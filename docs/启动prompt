@@ -1,0 +1,57 @@
+你现在接手 F:\software\IdeaProject\novel-ai 项目，实现文枢 wenshu。
+
+先按顺序阅读：
+1. docs/ai-execution/README.md
+2. docs/ai-execution/EXECUTION_RULES.md
+3. docs/ai-execution/MASTER_BACKLOG.md
+4. docs/ai-execution/API_CONTRACT.md
+5. docs/ai-execution/ACCEPTANCE_CRITERIA.md
+6. docs/ai-execution/PROGRESS.md
+7. docs/ai-execution/STORAGE_COS.md
+8. docs/ai-execution/COVERAGE_MATRIX.md
+
+执行规则：
+- 每次只领取 MASTER_BACKLOG.md 中依赖满足的最小任务。
+- 开始前把任务状态改为 DOING。
+- 完成后必须运行验证。
+- 通过后把任务改为 DONE，并更新 PROGRESS.md。
+- 如果阻塞，标记 BLOCKED 并写明原因。
+- 对象存储必须使用腾讯云 COS，禁止恢复 MinIO。
+- Maven 必须使用 JDK 21：F:\jdk21。
+
+第一轮任务：
+优先实现 P0-06 本地开发 profile 和测试数据库策略。
+完成后实现 P0-07 OpenAPI/接口文档生成。
+不要跳到 P1，除非 P0-06/P0-07 已完成并验证通过。
+
+
+
+
+
+
+
+继续实现 F:\software\IdeaProject\novel-ai 项目。
+
+请先读取：
+1. docs/ai-execution/README.md
+2. docs/ai-execution/EXECUTION_RULES.md
+3. docs/ai-execution/MASTER_BACKLOG.md
+4. docs/ai-execution/API_CONTRACT.md
+5. docs/ai-execution/ACCEPTANCE_CRITERIA.md
+6. docs/ai-execution/PROGRESS.md
+7. docs/ai-execution/STORAGE_COS.md
+8. docs/ai-execution/COVERAGE_MATRIX.md
+
+然后按规则继续：
+- 查看 PROGRESS.md 当前阶段和阻塞记录。
+- 从 MASTER_BACKLOG.md 选择下一个依赖已满足的 TODO 任务。
+- 优先完成当前 Phase，不要跨阶段跳功能。
+- 开始前把任务状态改为 DOING。
+- 实现后运行验证。
+- 验证通过后把任务状态改为 DONE。
+- 更新 PROGRESS.md 的实现日志和验证记录。
+- 若失败无法解决，标记 BLOCKED 并写明阻塞原因。
+- 对象存储必须使用腾讯云 COS，禁止恢复 MinIO。
+- Maven 使用 JDK 21：F:\jdk21。
+
+如果 P0 已全部 DONE，请从 P1-01 开始，按 P1-01、P1-02、P1-03 的顺序推进。
