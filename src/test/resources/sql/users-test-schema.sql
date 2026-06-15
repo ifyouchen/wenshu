@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS world_elements;
 DROP TABLE IF EXISTS characters;
 DROP TABLE IF EXISTS writing_daily_stats;
 DROP TABLE IF EXISTS chapter_snapshots;
@@ -148,4 +149,14 @@ CREATE TABLE characters (
     last_active_chapter_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE world_elements (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL,
+    type VARCHAR(50),
+    name VARCHAR(200),
+    description TEXT,
+    is_locked BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
