@@ -6,14 +6,14 @@
 
 阶段：`P1 账号与用户`
 
-整体状态：P0 后端基础设施已全部完成，P1 已完成用户领域、用户持久化和邮箱注册，下一轮从 `P1-04 邮箱验证与重发` 开始。
+整体状态：P0 后端基础设施已全部完成，当前开始实现 `P1-06 Access Token + Refresh Token 轮换`。
 
 ## 阶段进度
 
 | Phase | 状态 | 完成度 | 说明 |
 | --- | --- | --- | --- |
 | P0 后端基础设施 | DONE | 7/7 | 后端基础设施、测试 profile、OpenAPI 已完成 |
-| P1 账号与用户 | DOING | 3/11 | 已完成注册主链路，下一步邮箱验证与重发 |
+| P1 账号与用户 | DOING | 5/11 | 正在实现 Refresh Token 轮换 |
 | P2 作品、卷章与快照 | TODO | 0/7 | 未开始 |
 | P3 角色库与世界观词典 | TODO | 0/5 | 未开始 |
 | P4 导入、搜索替换、写作统计 | TODO | 0/9 | 未开始 |
@@ -36,15 +36,20 @@
 - P1-01：用户领域模型与仓储接口。
 - P1-02：用户持久化 MyBatis Mapper。
 - P1-03：邮箱注册。
+- P1-04：邮箱验证与重发。
+- P1-05：登录、失败锁定、登出。
 
 ## 当前待办
 
-下一轮领取 `P1-04 邮箱验证与重发`。
+当前领取 `P1-06 Access Token + Refresh Token 轮换`。
 
 ## 实现日志
 
 ### 2026-06-15
 
+- 完成 P1-04：注册时写入 24 小时邮箱验证 token；新增 `GET /api/v1/auth/verify-email` 与 `POST /api/v1/auth/resend-verify`；验证成功后更新 `isEmailVerified=true`，重发验证邮件 60 秒限流。
+- 完成 P1-05：新增 `POST /api/v1/auth/login` 和 `POST /api/v1/auth/logout`；登录失败次数持久化，连续 5 次失败锁定 15 分钟；业务失败不回滚失败计数。
+- 开始实现 P1-06：Access Token + Refresh Token 轮换。
 - 完成 P1-01：新增 User 聚合、EmailAddress 值对象、身份类型枚举、UserRepository 端口和注册邮箱唯一性策略；单元测试覆盖邮箱唯一性和软删除/恢复状态。
 - 完成 P1-02：新增 UserMapper、UserRecord、MyBatisUserRepository，支持按 ID/邮箱查询、邮箱存在性检查、插入和更新；测试覆盖 H2 下的持久化与领域对象还原。
 - 完成 P1-03：新增 AuthApplicationService、注册命令/结果、OpaqueAuthTokenService、BCrypt 密码哈希配置、`POST /api/v1/auth/register` 接口和响应 DTO；注册返回 Access Token、Refresh Token 与未验证用户信息，重复邮箱返回统一错误响应。
@@ -81,6 +86,8 @@
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-01：邮箱唯一性与软删除状态单元测试通过，4 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-02：UserMapper 按 ID/邮箱查询测试通过，6 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-03：注册接口、重复邮箱、Mapper 和 OpenAPI 回归通过，8 个测试通过 |
+| 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-04：邮箱验证、重发限流、注册 token 写入与回归测试通过，10 个测试通过 |
+| 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-05：登录成功、5 次失败锁定、登出与回归测试通过，13 个测试通过 |
 
 ## 阻塞记录
 

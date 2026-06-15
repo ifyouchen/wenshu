@@ -11,6 +11,9 @@ public class UserRecord {
     private String identityType;
     private boolean emailVerified;
     private boolean aiTrainConsent;
+    private int loginFailCount;
+    private Instant lockedUntil;
+    private Instant lastLoginAt;
     private boolean deleted;
     private Instant deletedAt;
     private Instant createdAt;
@@ -70,6 +73,30 @@ public class UserRecord {
 
     public void setAiTrainConsent(boolean aiTrainConsent) {
         this.aiTrainConsent = aiTrainConsent;
+    }
+
+    public int getLoginFailCount() {
+        return loginFailCount;
+    }
+
+    public void setLoginFailCount(int loginFailCount) {
+        this.loginFailCount = loginFailCount;
+    }
+
+    public Instant getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public void setLockedUntil(Instant lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 
     public boolean isDeleted() {

@@ -53,6 +53,9 @@ public class MyBatisUserRepository implements UserRepository {
                 IdentityType.fromValue(record.getIdentityType()),
                 record.isEmailVerified(),
                 record.isAiTrainConsent(),
+                record.getLoginFailCount(),
+                record.getLockedUntil(),
+                record.getLastLoginAt(),
                 record.isDeleted(),
                 record.getDeletedAt(),
                 record.getCreatedAt(),
@@ -69,6 +72,9 @@ public class MyBatisUserRepository implements UserRepository {
         record.setIdentityType(user.identityType().value());
         record.setEmailVerified(user.isEmailVerified());
         record.setAiTrainConsent(user.isAiTrainConsent());
+        record.setLoginFailCount(user.loginFailCount());
+        record.setLockedUntil(user.lockedUntil());
+        record.setLastLoginAt(user.lastLoginAt());
         record.setDeleted(user.isDeleted());
         record.setDeletedAt(user.deletedAt());
         record.setCreatedAt(user.createdAt());

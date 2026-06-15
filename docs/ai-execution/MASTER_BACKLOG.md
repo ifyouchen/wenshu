@@ -21,9 +21,9 @@
 | P1-01 | DONE | 用户领域模型与仓储接口 | P0 | 单元测试覆盖邮箱唯一性与软删除状态 |
 | P1-02 | DONE | 用户持久化 MyBatis Mapper | P1-01 | 可按邮箱、ID 查询用户 |
 | P1-03 | DONE | 邮箱注册 | P1-02 | `POST /api/v1/auth/register` 返回双 Token 和用户信息 |
-| P1-04 | TODO | 邮箱验证与重发 | P1-03 | token 24 小时有效，验证后 AI 功能解锁 |
-| P1-05 | TODO | 登录、失败锁定、登出 | P1-03 | 连续 5 次失败锁定 15 分钟 |
-| P1-06 | TODO | Access Token + Refresh Token 轮换 | P1-05 | 旧 Refresh Token 失效，新 Token 生效 |
+| P1-04 | DONE | 邮箱验证与重发 | P1-03 | token 24 小时有效，验证后 AI 功能解锁 |
+| P1-05 | DONE | 登录、失败锁定、登出 | P1-03 | 连续 5 次失败锁定 15 分钟 |
+| P1-06 | DOING | Access Token + Refresh Token 轮换 | P1-05 | 旧 Refresh Token 失效，新 Token 生效 |
 | P1-07 | TODO | 忘记密码与重置密码 | P1-03 | 重置后吊销所有 Refresh Token |
 | P1-08 | TODO | 当前用户、资料、密码、AI 授权开关 | P1-06 | `/user/me` 和设置接口可用 |
 | P1-09 | TODO | 账号注销与 30 天撤销 | P1-06 | 注销为软删除，撤销可恢复 |

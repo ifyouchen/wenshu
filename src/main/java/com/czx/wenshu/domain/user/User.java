@@ -14,6 +14,9 @@ public class User {
     private IdentityType identityType;
     private boolean emailVerified;
     private boolean aiTrainConsent;
+    private int loginFailCount;
+    private Instant lockedUntil;
+    private Instant lastLoginAt;
     private boolean deleted;
     private Instant deletedAt;
     private final Instant createdAt;
@@ -27,6 +30,9 @@ public class User {
             IdentityType identityType,
             boolean emailVerified,
             boolean aiTrainConsent,
+            int loginFailCount,
+            Instant lockedUntil,
+            Instant lastLoginAt,
             boolean deleted,
             Instant deletedAt,
             Instant createdAt,
@@ -39,6 +45,9 @@ public class User {
         this.identityType = identityType == null ? IdentityType.NEW_AUTHOR : identityType;
         this.emailVerified = emailVerified;
         this.aiTrainConsent = aiTrainConsent;
+        this.loginFailCount = loginFailCount;
+        this.lockedUntil = lockedUntil;
+        this.lastLoginAt = lastLoginAt;
         this.deleted = deleted;
         this.deletedAt = deletedAt;
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
@@ -58,6 +67,9 @@ public class User {
                 IdentityType.NEW_AUTHOR,
                 false,
                 true,
+                0,
+                null,
+                null,
                 false,
                 null,
                 now,
@@ -73,13 +85,16 @@ public class User {
             IdentityType identityType,
             boolean emailVerified,
             boolean aiTrainConsent,
+            int loginFailCount,
+            Instant lockedUntil,
+            Instant lastLoginAt,
             boolean deleted,
             Instant deletedAt,
             Instant createdAt,
             Instant updatedAt
     ) {
         return new User(id, new EmailAddress(email), passwordHash, nickname, identityType, emailVerified,
-                aiTrainConsent, deleted, deletedAt, createdAt, updatedAt);
+                aiTrainConsent, loginFailCount, lockedUntil, lastLoginAt, deleted, deletedAt, createdAt, updatedAt);
     }
 
     public void markDeleted(Clock clock) {
@@ -98,6 +113,35 @@ public class User {
         this.deleted = false;
         this.deletedAt = null;
         this.updatedAt = Instant.now(clock);
+    }
+
+    public void verifyEmail(Clock clock) {
+        if (emailVerified) {
+            return;
+        }
+        this.emailVerified = true;
+        this.updatedAt = Instant.now(clock);
+    }
+
+    public boolean isLockedAt(Instant now) {
+        return lockedUntil != null && now.isBefore(lockedUntil);
+    }
+
+    public void recordLoginFailure(Clock clock) {
+        Instant now = Instant.now(clock);
+        this.loginFailCount += 1;
+        if (this.loginFailCount >= 5) {
+            this.lockedUntil = now.plusSeconds(15 * 60L);
+        }
+        this.updatedAt = now;
+    }
+
+    public void recordLoginSuccess(Clock clock) {
+        Instant now = Instant.now(clock);
+        this.loginFailCount = 0;
+        this.lockedUntil = null;
+        this.lastLoginAt = now;
+        this.updatedAt = now;
     }
 
     public UUID id() {
@@ -126,6 +170,18 @@ public class User {
 
     public boolean isAiTrainConsent() {
         return aiTrainConsent;
+    }
+
+    public int loginFailCount() {
+        return loginFailCount;
+    }
+
+    public Instant lockedUntil() {
+        return lockedUntil;
+    }
+
+    public Instant lastLoginAt() {
+        return lastLoginAt;
     }
 
     public boolean isDeleted() {
