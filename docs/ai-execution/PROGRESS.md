@@ -6,7 +6,7 @@
 
 阶段：`P1 账号与用户`
 
-整体状态：P1 账号与用户阶段全部完成（11/11），准备进入 P2 作品、卷章与快照。
+整体状态：P1 已全部完成，P2-01~P2-04 已完成，继续推进 P2。
 
 ## 阶段进度
 
@@ -14,7 +14,7 @@
 | --- | --- | --- | --- |
 | P0 后端基础设施 | DONE | 7/7 | 后端基础设施、测试 profile、OpenAPI 已完成 |
 | P1 账号与用户 | DONE | 11/11 | P1 全部完成 |
-| P2 作品、卷章与快照 | TODO | 0/7 | 未开始 |
+| P2 作品、卷章与快照 | DOING | 4/7 | P2-01~P2-04 已完成 |
 | P3 角色库与世界观词典 | TODO | 0/5 | 未开始 |
 | P4 导入、搜索替换、写作统计 | TODO | 0/9 | 未开始 |
 | P5 AI 写作与润色 | TODO | 0/10 | 未开始 |
@@ -46,10 +46,14 @@
 - P1-09：账号注销与 30 天撤销。
 - P1-10：首次登录身份选择与入口偏好。
 - P1-11：邮件模板与安全告警邮件。
+- P2-01：Project/Volume/Chapter 领域模型。
+- P2-02：作品 CRUD。
+- P2-03：卷 CRUD。
+- P2-04：章节 CRUD。
 
 ## 当前待办
 
-P1 已全部完成，下一步进入 P2 作品、卷章与快照。
+下一步实现 P2-05 大纲树，或者继续推进 P2-06 和 P2-07。
 
 ## 实现日志
 
@@ -121,6 +125,7 @@ P1 已全部完成，下一步进入 P2 作品、卷章与快照。
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-07：忘记密码、重置密码、重置后吊销全部 Refresh Token 与回归测试通过，16 个测试通过 |
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P1-08：`/user/me`、`/user/profile`、`/user/password`、`/user/ai-consent` 接口与鉴权拦截器测试通过，25 个测试通过 |
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P1-09/P1-10/P1-11：`/user` DELETE、`/user/cancel-restore`、`/user/identity-type`、邮件模板与安全告警，30 个测试通过 |
+| 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P2-01~P2-04：Project/Volume/Chapter 领域模型与 CRUD，39 个测试通过 |
 
 ## 阻塞记录
 
@@ -182,3 +187,32 @@ P1 已全部完成，下一步进入 P2 作品、卷章与快照。
 - `WenshuProperties` 新增 `baseUrl` 和 `mail.from` 配置。
 - 修改密码、账号恢复操作后触发安全告警邮件。
 - 全量回归 30 个测试通过。
+
+### 2026-06-16 P2-01~P2-04
+
+- 完成 P2-01：Project/Volume/Chapter 领域模型。
+  - `Project` 聚合根：id、userId、title、genre、synopsis、worldview、totalWords、dailyCharGoal、status（draft/deleted）。
+  - `Volume` 实体：id、projectId、title、conflict、sortOrder。
+  - `Chapter` 实体：id、volumeId、projectId、title、outline、content、wordCount、sortOrder、status（pending/draft/completed）。
+  - `ChapterStatus` 和 `ProjectStatus` 枚举。
+  - 领域模型含聚合规则校验：标题必填且 200 字限制、资源归属校验。
+- 完成 P2-02：作品 CRUD。
+  - `GET /api/v1/projects` 作品列表（按 updatedAt 降序）。
+  - `POST /api/v1/projects` 创建作品。
+  - `GET /api/v1/projects/{id}` 作品详情。
+  - `PUT /api/v1/projects/{id}` 更新作品。
+  - `DELETE /api/v1/projects/{id}?confirm=true` 删除作品。
+  - 所有端口鉴权，校验 userId 归属。
+- 完成 P2-03：卷 CRUD。
+  - `POST /api/v1/projects/{id}/volumes` 新增卷。
+  - `PUT /api/v1/volumes/{id}` 更新卷。
+  - `DELETE /api/v1/volumes/{id}?confirm=true` 删除卷（级联删除章节）。
+- 完成 P2-04：章节 CRUD。
+  - `POST /api/v1/volumes/{id}/chapters` 新增章节。
+  - `GET /api/v1/chapters/{id}` 章节详情。
+  - `PUT /api/v1/chapters/{id}` 保存章节内容、标题、状态、大纲，自动计算 wordCount。
+  - `DELETE /api/v1/chapters/{id}` 删除章节。
+- AuthInterceptor 扩展保护 `/api/v1/projects/**`、`/api/v1/volumes/**`、`/api/v1/chapters/**`。
+- 测试 schema 新增 projects、volumes、chapters 表。
+- 新增 `ProjectControllerTests` 集成测试 9 个用例，全部通过。
+- 全量回归 39 个测试通过。

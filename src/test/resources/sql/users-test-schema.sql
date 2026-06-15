@@ -1,3 +1,6 @@
+DROP TABLE IF EXISTS chapters;
+DROP TABLE IF EXISTS volumes;
+DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS access_tokens;
 DROP TABLE IF EXISTS account_restore_tokens;
 DROP TABLE IF EXISTS email_verifications;
@@ -67,4 +70,41 @@ CREATE TABLE account_restore_tokens (
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     used_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE projects (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    genre VARCHAR(50),
+    synopsis TEXT,
+    worldview TEXT,
+    total_words INT DEFAULT 0,
+    daily_char_goal INT DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'draft',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE volumes (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL,
+    title VARCHAR(200),
+    conflict TEXT,
+    sort_order INT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE chapters (
+    id UUID PRIMARY KEY,
+    volume_id UUID NOT NULL,
+    project_id UUID NOT NULL,
+    title VARCHAR(200),
+    outline TEXT,
+    content TEXT DEFAULT '',
+    word_count INT DEFAULT 0,
+    sort_order INT NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -34,10 +34,10 @@
 
 | ID | 状态 | 任务 | 依赖 | 验收 |
 | --- | --- | --- | --- | --- |
-| P2-01 | TODO | Project/Volume/Chapter 领域模型 | P1 | 聚合规则清晰，章节归属校验 |
-| P2-02 | TODO | 作品 CRUD | P2-01 | `/projects` 列表、详情、创建、更新、删除 |
-| P2-03 | TODO | 卷 CRUD | P2-02 | `/projects/{id}/volumes`、`/volumes/{id}` |
-| P2-04 | TODO | 章节 CRUD | P2-03 | `/volumes/{id}/chapters`、`/chapters/{id}` |
+| P2-01 | DONE | Project/Volume/Chapter 领域模型 | P1 | 聚合规则清晰，章节归属校验 |
+| P2-02 | DONE | 作品 CRUD | P2-01 | `/projects` 列表、详情、创建、更新、删除 |
+| P2-03 | DONE | 卷 CRUD | P2-02 | `/projects/{id}/volumes`、`/volumes/{id}` |
+| P2-04 | DONE | 章节 CRUD | P2-03 | `/volumes/{id}/chapters`、`/chapters/{id}` |
 | P2-05 | TODO | 大纲树 | P2-04 | `/projects/{id}/outline` 返回卷章树 |
 | P2-06 | TODO | 章节保存差量字数统计钩子 | P2-04 | 保存章节时计算字数变化 |
 | P2-07 | TODO | 版本快照创建、列表、恢复 | P2-04 | AI 大改/替换前可自动快照 |
