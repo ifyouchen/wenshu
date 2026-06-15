@@ -26,8 +26,8 @@
 | P1-06 | DONE | Access Token + Refresh Token 轮换 | P1-05 | 旧 Refresh Token 失效，新 Token 生效 |
 | P1-07 | DONE | 忘记密码与重置密码 | P1-03 | 重置后吊销所有 Refresh Token |
 | P1-08 | DONE | 当前用户、资料、密码、AI 授权开关 | P1-06 | `/user/me` 和设置接口可用 |
-| P1-09 | DOING | 账号注销与 30 天撤销 | P1-06 | 注销为软删除，撤销可恢复 |
-| P1-10 | TODO | 首次登录身份选择与入口偏好 | P1-08 | 网文作者/短剧编剧/新人作者影响入口排序和引导文案 |
+| P1-09 | DONE | 账号注销与 30 天撤销 | P1-06 | 注销为软删除，撤销可恢复 |
+| P1-10 | DOING | 首次登录身份选择与入口偏好 | P1-08 | 网文作者/短剧编剧/新人作者影响入口排序和引导文案 |
 | P1-11 | TODO | 邮件模板与安全告警邮件 | P1-03 | verify/reset-password/security-alert 三套 HTML 模板可发送 |
 
 ## P2 作品、卷章与快照

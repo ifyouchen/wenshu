@@ -1,6 +1,7 @@
 package com.czx.wenshu.interfaces.rest.user;
 
 import com.czx.wenshu.application.user.ChangePasswordCommand;
+import com.czx.wenshu.application.user.DeleteAccountResult;
 import com.czx.wenshu.application.user.UpdateAiConsentCommand;
 import com.czx.wenshu.application.user.UpdateProfileCommand;
 import com.czx.wenshu.application.user.UserApplicationService;
@@ -13,7 +14,7 @@ import com.czx.wenshu.interfaces.rest.auth.CurrentUserProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "User", description = "当前用户、资料、密码与设置")
@@ -78,18 +80,24 @@ public class UserController {
         )));
     }
 
-    @Operation(summary = "注销账号", description = "软删除账号，30 天内可撤销注销。")
-    @DeleteMapping
-    public Result<Void> deleteAccount() {
+    @Operation(summary = "设置首次登录身份类型", description = "选择身份类型（网文作者/短剧编剧/新人作者），影响入口排序和引导文案。")
+    @PutMapping("/identity-type")
+    public Result<UserInfo> updateIdentityType(@Valid @RequestBody UpdateIdentityTypeRequest request) {
         User user = currentUserProvider.getCurrentUser();
-        userApplicationService.deleteAccount(new UUIDCommand(user.id()));
-        return Result.ok();
+        return Result.ok(userApplicationService.updateIdentityType(user.id(), request.identityType()));
     }
 
-    @Operation(summary = "撤销账号注销", description = "30 天内撤销注销，恢复账号。")
+    @Operation(summary = "注销账号", description = "软删除账号，30 天内可使用恢复令牌撤销注销。")
+    @DeleteMapping
+    public Result<DeleteAccountResponse> deleteAccount() {
+        User user = currentUserProvider.getCurrentUser();
+        DeleteAccountResult result = userApplicationService.deleteAccount(new UUIDCommand(user.id()));
+        return Result.ok(new DeleteAccountResponse(result.restoreToken(), result.restoreTokenExpiresAt().toString()));
+    }
+
+    @Operation(summary = "撤销账号注销", description = "30 天内使用恢复令牌撤销注销，恢复账号。")
     @PostMapping("/cancel-restore")
-    public Result<UserInfo> restoreAccount() {
-        User user = currentUserProvider.getCurrentUserForRestore();
-        return Result.ok(userApplicationService.restoreAccount(new UUIDCommand(user.id())));
+    public Result<UserInfo> restoreAccount(@Valid @RequestBody RestoreAccountRequest request) {
+        return Result.ok(userApplicationService.restoreAccount(request.restoreToken()));
     }
 }

@@ -227,6 +227,95 @@ class UserControllerTests {
         assertThat(data.get("aiTrainConsent")).isEqualTo(true);
     }
 
+    @Test
+    void deleteAccountSoftDeletesAndReturnsRestoreToken() {
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/user",
+                org.springframework.http.HttpMethod.DELETE,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(data.get("restoreToken")).isNotNull();
+        assertThat(data.get("restoreTokenExpiresAt")).isNotNull();
+
+        assertThat(userRepository.findByEmail(new EmailAddress("user@example.com")).orElseThrow().isDeleted()).isTrue();
+    }
+
+    @Test
+    void deleteAccountRevokesAllTokens() {
+        restTemplate.exchange(
+                "/api/v1/user",
+                org.springframework.http.HttpMethod.DELETE,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+
+        ResponseEntity<Map> meResponse = restTemplate.exchange(
+                "/api/v1/user/me",
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+        assertThat(meResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void restoreAccountRecoversDeletedAccount() {
+        ResponseEntity<Map> deleteResponse = restTemplate.exchange(
+                "/api/v1/user",
+                org.springframework.http.HttpMethod.DELETE,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+        Map<String, Object> deleteData = (Map<String, Object>) deleteResponse.getBody().get("data");
+        String restoreToken = (String) deleteData.get("restoreToken");
+
+        ResponseEntity<Map> restoreResponse = restTemplate.postForEntity(
+                "/api/v1/user/cancel-restore",
+                Map.of("restoreToken", restoreToken),
+                Map.class
+        );
+
+        assertThat(restoreResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> restoreData = (Map<String, Object>) restoreResponse.getBody().get("data");
+        assertThat(restoreData.get("email")).isEqualTo("user@example.com");
+
+        assertThat(userRepository.findByEmail(new EmailAddress("user@example.com")).orElseThrow().isDeleted()).isFalse();
+    }
+
+    @Test
+    void restoreAccountFailsWithInvalidToken() {
+        ResponseEntity<Map> restoreResponse = restTemplate.postForEntity(
+                "/api/v1/user/cancel-restore",
+                Map.of("restoreToken", "invalid_token"),
+                Map.class
+        );
+
+        assertThat(restoreResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void updateIdentityTypeChangesIdentityType() {
+        Map<String, String> request = Map.of(
+                "identityType", "short_drama_writer"
+        );
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/user/identity-type",
+                org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(request, authHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(data.get("identityType")).isEqualTo("short_drama_writer");
+
+        assertThat(userRepository.findByEmail(new EmailAddress("user@example.com")).orElseThrow().identityType().value()).isEqualTo("short_drama_writer");
+    }
+
     @TestConfiguration
     static class VerificationEmailSenderTestConfig {
 

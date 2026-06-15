@@ -18,6 +18,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/v1/user/**")
-                .excludePathPatterns("/api/v1/auth/**");
+                .excludePathPatterns(
+                        "/api/v1/user/cancel-restore"
+                );
     }
 }

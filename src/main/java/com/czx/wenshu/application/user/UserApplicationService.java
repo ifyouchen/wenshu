@@ -1,14 +1,17 @@
 package com.czx.wenshu.application.user;
 
+import com.czx.wenshu.application.auth.EmailVerificationTokenService;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
-import com.czx.wenshu.domain.user.EmailAddress;
+import com.czx.wenshu.domain.user.AccountRestoreToken;
+import com.czx.wenshu.domain.user.AccountRestoreTokenRepository;
+import com.czx.wenshu.domain.user.AccessTokenRepository;
 import com.czx.wenshu.domain.user.IdentityType;
+import com.czx.wenshu.domain.user.RefreshTokenRepository;
 import com.czx.wenshu.domain.user.User;
 import com.czx.wenshu.domain.user.UserRepository;
-import com.czx.wenshu.domain.user.AccessTokenRepository;
-import com.czx.wenshu.domain.user.RefreshTokenRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,17 +20,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserApplicationService {
 
+    private static final Duration RESTORE_TOKEN_TTL = Duration.ofDays(30);
+
     private final UserRepository userRepository;
     private final AccessTokenRepository accessTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final AccountRestoreTokenRepository accountRestoreTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationTokenService tokenService;
     private final Clock clock;
 
-    public UserApplicationService(UserRepository userRepository, AccessTokenRepository accessTokenRepository, RefreshTokenRepository refreshTokenRepository, PasswordEncoder passwordEncoder, Clock clock) {
+    public UserApplicationService(UserRepository userRepository, AccessTokenRepository accessTokenRepository, RefreshTokenRepository refreshTokenRepository, AccountRestoreTokenRepository accountRestoreTokenRepository, PasswordEncoder passwordEncoder, EmailVerificationTokenService tokenService, Clock clock) {
         this.userRepository = userRepository;
         this.accessTokenRepository = accessTokenRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.accountRestoreTokenRepository = accountRestoreTokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tokenService = tokenService;
         this.clock = clock;
     }
 
@@ -75,7 +84,18 @@ public class UserApplicationService {
     }
 
     @Transactional
-    public void deleteAccount(UUIDCommand command) {
+    public UserInfo updateIdentityType(UUID userId, String identityTypeValue) {
+        User user = userRepository.findById(userId)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "用户不存在"));
+        IdentityType identityType = IdentityType.fromValue(identityTypeValue);
+        user.updateProfile(user.nickname(), user.avatarUrl(), identityType, clock);
+        userRepository.save(user);
+        return UserInfo.from(user);
+    }
+
+    @Transactional
+    public DeleteAccountResult deleteAccount(UUIDCommand command) {
         User user = userRepository.findById(command.id())
                 .filter(candidate -> !candidate.isDeleted())
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "用户不存在"));
@@ -84,15 +104,31 @@ public class UserApplicationService {
         Instant now = Instant.now(clock);
         accessTokenRepository.revokeAllForUser(user.id(), now);
         refreshTokenRepository.revokeAllForUser(user.id(), now);
+
+        Instant expiresAt = now.plus(RESTORE_TOKEN_TTL);
+        String rawToken = tokenService.generateRawToken();
+        AccountRestoreToken restoreToken = AccountRestoreToken.issue(
+                user.id(), tokenService.hash(rawToken), expiresAt, now);
+        accountRestoreTokenRepository.save(restoreToken);
+        return new DeleteAccountResult(rawToken, expiresAt);
     }
 
     @Transactional
-    public UserInfo restoreAccount(UUIDCommand command) {
-        User user = userRepository.findById(command.id())
+    public UserInfo restoreAccount(String rawToken) {
+        Instant now = Instant.now(clock);
+        AccountRestoreToken restoreToken = accountRestoreTokenRepository.findByTokenHash(tokenService.hash(rawToken))
+                .orElseThrow(() -> new ApiException(ErrorCode.BAD_REQUEST, "恢复链接无效或已过期"));
+        if (!restoreToken.isUsableAt(now)) {
+            throw new ApiException(ErrorCode.BAD_REQUEST, "恢复链接无效或已过期");
+        }
+        User user = userRepository.findById(restoreToken.userId())
                 .filter(User::isDeleted)
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "用户不存在或未注销"));
+
         user.restore(clock);
         userRepository.save(user);
+        restoreToken.markUsed(now);
+        accountRestoreTokenRepository.markUsed(restoreToken.id(), now);
         return UserInfo.from(user);
     }
 }
