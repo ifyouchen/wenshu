@@ -311,4 +311,91 @@ class ProjectControllerTests {
                 new HttpEntity<>(Map.of("title", "第一章", "sortOrder", 0), authHeaders()), Map.class);
         return ((Map<String, Object>) response.getBody().get("data")).get("id").toString();
     }
+
+    @Test
+    void getOutlineReturnsVolumeChapterTree() {
+        String projectId = createProjectAndGetId();
+        String volumeId = createVolumeAndGetId(projectId);
+        createChapterAndGetId(volumeId);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/projects/" + projectId + "/outline",
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        List<Map<String, Object>> volumes = (List<Map<String, Object>>) data.get("volumes");
+        assertThat(volumes).hasSize(1);
+        assertThat(volumes.get(0).get("title")).isEqualTo("第一卷");
+        List<Map<String, Object>> chapters = (List<Map<String, Object>>) volumes.get(0).get("chapters");
+        assertThat(chapters).hasSize(1);
+        assertThat(chapters.get(0).get("title")).isEqualTo("第一章");
+    }
+
+    @Test
+    void updateWritingGoalSetsDailyCharGoal() {
+        String projectId = createProjectAndGetId();
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/projects/" + projectId + "/writing-goal",
+                org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(Map.of("dailyCharGoal", 3000), authHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(data.get("dailyCharGoal")).isEqualTo(3000);
+    }
+
+    @Test
+    void createSnapshotAndRestoreWorks() {
+        String projectId = createProjectAndGetId();
+        String volumeId = createVolumeAndGetId(projectId);
+        String chapterId = createChapterAndGetId(volumeId);
+
+        Map<String, String> updateReq = Map.of("content", "原始内容", "status", "draft");
+        restTemplate.exchange("/api/v1/chapters/" + chapterId,
+                org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(updateReq, authHeaders()), Map.class);
+
+        ResponseEntity<Map> snapshotResponse = restTemplate.exchange(
+                "/api/v1/chapters/" + chapterId + "/snapshots",
+                org.springframework.http.HttpMethod.POST,
+                new HttpEntity<>(Map.of("snapshotType", "manual", "label", "初始版本"), authHeaders()),
+                Map.class
+        );
+
+        assertThat(snapshotResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> snapshotData = (Map<String, Object>) snapshotResponse.getBody().get("data");
+        String snapshotId = snapshotData.get("id").toString();
+        assertThat(snapshotData.get("snapshotType")).isEqualTo("manual");
+
+        Map<String, String> updateReq2 = Map.of("content", "修改后内容", "status", "draft");
+        restTemplate.exchange("/api/v1/chapters/" + chapterId,
+                org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(updateReq2, authHeaders()), Map.class);
+
+        ResponseEntity<Map> listResponse = restTemplate.exchange(
+                "/api/v1/chapters/" + chapterId + "/snapshots",
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+        assertThat(listResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ResponseEntity<Map> restoreResponse = restTemplate.exchange(
+                "/api/v1/snapshots/" + snapshotId + "/restore",
+                org.springframework.http.HttpMethod.POST,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+
+        assertThat(restoreResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> restoredChapter = (Map<String, Object>) restoreResponse.getBody().get("data");
+        assertThat(restoredChapter.get("content")).isEqualTo("原始内容");
+    }
 }

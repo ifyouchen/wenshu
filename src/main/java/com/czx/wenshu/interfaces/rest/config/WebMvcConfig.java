@@ -17,7 +17,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/api/v1/user/**", "/api/v1/projects/**", "/api/v1/volumes/**", "/api/v1/chapters/**")
+                .addPathPatterns("/api/v1/user/**", "/api/v1/projects/**", "/api/v1/volumes/**", "/api/v1/chapters/**", "/api/v1/snapshots/**", "/api/v1/characters/**")
                 .excludePathPatterns(
                         "/api/v1/user/cancel-restore"
                 );

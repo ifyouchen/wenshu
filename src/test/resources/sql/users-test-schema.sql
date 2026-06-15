@@ -1,3 +1,6 @@
+DROP TABLE IF EXISTS characters;
+DROP TABLE IF EXISTS writing_daily_stats;
+DROP TABLE IF EXISTS chapter_snapshots;
 DROP TABLE IF EXISTS chapters;
 DROP TABLE IF EXISTS volumes;
 DROP TABLE IF EXISTS projects;
@@ -105,6 +108,44 @@ CREATE TABLE chapters (
     word_count INT DEFAULT 0,
     sort_order INT NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE chapter_snapshots (
+    id UUID PRIMARY KEY,
+    chapter_id UUID NOT NULL,
+    content TEXT NOT NULL,
+    word_count INT,
+    snapshot_type VARCHAR(30),
+    label VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE writing_daily_stats (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    project_id UUID,
+    stat_date DATE NOT NULL,
+    manual_chars INT DEFAULT 0,
+    ai_accepted_chars INT DEFAULT 0,
+    total_chars INT DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE characters (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL,
+    name VARCHAR(200),
+    role VARCHAR(50),
+    appearance TEXT,
+    personality TEXT,
+    abilities TEXT DEFAULT '[]',
+    speech_style TEXT,
+    status VARCHAR(200) DEFAULT '{}',
+    is_locked BOOLEAN DEFAULT FALSE,
+    first_chapter_id UUID,
+    last_active_chapter_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

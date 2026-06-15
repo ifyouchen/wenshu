@@ -3,8 +3,10 @@ package com.czx.wenshu.interfaces.rest.project;
 import com.czx.wenshu.application.project.CreateChapterCommand;
 import com.czx.wenshu.application.project.CreateProjectCommand;
 import com.czx.wenshu.application.project.CreateVolumeCommand;
+import com.czx.wenshu.application.project.OutlineInfo;
 import com.czx.wenshu.application.project.ProjectApplicationService;
 import com.czx.wenshu.application.project.ProjectInfo;
+import com.czx.wenshu.application.project.SnapshotInfo;
 import com.czx.wenshu.application.project.UpdateChapterCommand;
 import com.czx.wenshu.application.project.UpdateProjectCommand;
 import com.czx.wenshu.application.project.UpdateVolumeCommand;
@@ -87,6 +89,20 @@ public class ProjectController {
         return Result.ok();
     }
 
+    @Operation(summary = "大纲树", description = "返回作品卷章大纲树。")
+    @GetMapping("/projects/{id}/outline")
+    public Result<OutlineInfo> getOutline(@PathVariable UUID id) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(projectService.getOutline(id, user.id()));
+    }
+
+    @Operation(summary = "设置作品每日目标", description = "设置作品的每日字数目标。")
+    @PutMapping("/projects/{id}/writing-goal")
+    public Result<ProjectInfo> updateWritingGoal(@PathVariable UUID id, @RequestBody UpdateWritingGoalRequest request) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(projectService.updateWritingGoal(id, user.id(), request.dailyCharGoal()));
+    }
+
     @Operation(summary = "新增卷", description = "在指定作品下新增卷。")
     @PostMapping("/projects/{id}/volumes")
     public Result<VolumeInfo> createVolume(@PathVariable UUID id, @Valid @RequestBody CreateVolumeRequest request) {
@@ -143,5 +159,26 @@ public class ProjectController {
         User user = currentUserProvider.getCurrentUser();
         projectService.deleteChapter(id, user.id());
         return Result.ok();
+    }
+
+    @Operation(summary = "快照列表", description = "获取章节的版本快照列表。")
+    @GetMapping("/chapters/{id}/snapshots")
+    public Result<List<SnapshotInfo>> listSnapshots(@PathVariable UUID id) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(projectService.listSnapshots(id, user.id()));
+    }
+
+    @Operation(summary = "创建快照", description = "手动创建章节版本快照。")
+    @PostMapping("/chapters/{id}/snapshots")
+    public Result<SnapshotInfo> createSnapshot(@PathVariable UUID id, @RequestBody CreateSnapshotRequest request) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(projectService.createSnapshot(id, user.id(), request.snapshotType(), request.label()));
+    }
+
+    @Operation(summary = "恢复快照", description = "恢复到指定快照版本，恢复前自动创建当前状态快照。")
+    @PostMapping("/snapshots/{id}/restore")
+    public Result<ChapterInfo> restoreSnapshot(@PathVariable UUID id) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(projectService.restoreSnapshot(id, user.id()));
     }
 }

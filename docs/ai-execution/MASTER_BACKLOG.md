@@ -38,15 +38,15 @@
 | P2-02 | DONE | 作品 CRUD | P2-01 | `/projects` 列表、详情、创建、更新、删除 |
 | P2-03 | DONE | 卷 CRUD | P2-02 | `/projects/{id}/volumes`、`/volumes/{id}` |
 | P2-04 | DONE | 章节 CRUD | P2-03 | `/volumes/{id}/chapters`、`/chapters/{id}` |
-| P2-05 | TODO | 大纲树 | P2-04 | `/projects/{id}/outline` 返回卷章树 |
-| P2-06 | TODO | 章节保存差量字数统计钩子 | P2-04 | 保存章节时计算字数变化 |
-| P2-07 | TODO | 版本快照创建、列表、恢复 | P2-04 | AI 大改/替换前可自动快照 |
+| P2-05 | DONE | 大纲树 | P2-04 | `/projects/{id}/outline` 返回卷章树 |
+| P2-06 | DONE | 章节保存差量字数统计钩子 | P2-04 | 保存章节时计算字数变化 |
+| P2-07 | DONE | 版本快照创建、列表、恢复 | P2-04 | AI 大改/替换前可自动快照 |
 
 ## P3 角色库与世界观词典
 
 | ID | 状态 | 任务 | 依赖 | 验收 |
 | --- | --- | --- | --- | --- |
-| P3-01 | TODO | 角色 CRUD | P2 | `/projects/{id}/characters` 可用 |
+| P3-01 | DOING | 角色 CRUD | P2 | `/projects/{id}/characters` 可用 |
 | P3-02 | TODO | 角色锁定/解锁 | P3-01 | 锁定角色优先进入上下文 |
 | P3-03 | TODO | 世界观要素 CRUD | P2 | 可管理地点、势力、道具、规则 |
 | P3-04 | TODO | 专有名词词典 CRUD | P2 | 支持别名、类型、定义、锁定 |

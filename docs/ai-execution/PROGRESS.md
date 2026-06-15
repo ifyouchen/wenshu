@@ -4,9 +4,9 @@
 
 ## 当前阶段
 
-阶段：`P1 账号与用户`
+阶段：`P2 作品、卷章与快照`
 
-整体状态：P1 已全部完成，P2-01~P2-04 已完成，继续推进 P2。
+整体状态：P2 全部完成（7/7），准备进入 P3 角色库与世界观词典。
 
 ## 阶段进度
 
@@ -14,7 +14,7 @@
 | --- | --- | --- | --- |
 | P0 后端基础设施 | DONE | 7/7 | 后端基础设施、测试 profile、OpenAPI 已完成 |
 | P1 账号与用户 | DONE | 11/11 | P1 全部完成 |
-| P2 作品、卷章与快照 | DOING | 4/7 | P2-01~P2-04 已完成 |
+| P2 作品、卷章与快照 | DONE | 7/7 | P2 全部完成 |
 | P3 角色库与世界观词典 | TODO | 0/5 | 未开始 |
 | P4 导入、搜索替换、写作统计 | TODO | 0/9 | 未开始 |
 | P5 AI 写作与润色 | TODO | 0/10 | 未开始 |
@@ -50,10 +50,13 @@
 - P2-02：作品 CRUD。
 - P2-03：卷 CRUD。
 - P2-04：章节 CRUD。
+- P2-05：大纲树。
+- P2-06：章节保存差量字数统计钩子。
+- P2-07：版本快照创建、列表、恢复。
 
 ## 当前待办
 
-下一步实现 P2-05 大纲树，或者继续推进 P2-06 和 P2-07。
+P2 已全部完成，下一步进入 P3 角色库与世界观词典。
 
 ## 实现日志
 
@@ -126,6 +129,7 @@
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P1-08：`/user/me`、`/user/profile`、`/user/password`、`/user/ai-consent` 接口与鉴权拦截器测试通过，25 个测试通过 |
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P1-09/P1-10/P1-11：`/user` DELETE、`/user/cancel-restore`、`/user/identity-type`、邮件模板与安全告警，30 个测试通过 |
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P2-01~P2-04：Project/Volume/Chapter 领域模型与 CRUD，39 个测试通过 |
+| 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P2-05~P2-07：大纲树、差量字数统计、版本快照，42 个测试通过 |
 
 ## 阻塞记录
 
@@ -216,3 +220,29 @@
 - 测试 schema 新增 projects、volumes、chapters 表。
 - 新增 `ProjectControllerTests` 集成测试 9 个用例，全部通过。
 - 全量回归 39 个测试通过。
+
+### 2026-06-16 P2-05~P2-07
+
+- 完成 P2-05：大纲树。
+  - `GET /api/v1/projects/{id}/outline` 返回卷章大纲树，包含卷下所有章节的标题、大纲、字数、状态。
+  - 新增 `OutlineInfo`、`VolumeNode`、`ChapterNode` DTO。
+  - `ProjectApplicationService.getOutline()` 一次性查询所有卷和章节，按 volumeId 分组。
+- 完成 P2-06：章节保存差量字数统计钩子。
+  - 新增 `WritingDailyStats` 领域对象和 `WritingDailyStatsRepository` 端口。
+  - 新增 `WritingStatsService.recordManualDelta()` 在章节保存时记录差量字数到 `writing_daily_stats` 表。
+  - `ProjectApplicationService.updateChapter()` 在保存内容后调用 `writingStatsService.recordManualDelta()`。
+  - `Chapter.wordCountDelta()` 计算新旧字数差值。
+  - 新增 `PUT /api/v1/projects/{id}/writing-goal` 设置作品每日目标。
+  - 测试 schema 新增 `writing_daily_stats` 表。
+- 完成 P2-07：版本快照创建、列表、恢复。
+  - 新增 `ChapterSnapshot` 领域对象和 `ChapterSnapshotRepository` 端口。
+  - 新增 `ChapterSnapshotRecord`、`ChapterSnapshotMapper`、`MyBatisChapterSnapshotRepository` 持久化。
+  - `GET /api/v1/chapters/{id}/snapshots` 快照列表。
+  - `POST /api/v1/chapters/{id}/snapshots` 手动创建快照。
+  - `POST /api/v1/snapshots/{id}/restore` 恢复快照（恢复前自动创建当前状态快照）。
+  - 恢复快照时同时更新差量字数统计。
+  - `ChapterInfo` 新增 `content` 字段。
+  - `AuthInterceptor` 扩展保护 `/api/v1/snapshots/**`。
+  - 测试 schema 新增 `chapter_snapshots` 表。
+  - 新增 `SnapshotInfo` DTO 和 `CreateSnapshotRequest` 请求 DTO。
+  - 新增 3 个集成测试（大纲树、写作目标、快照创建与恢复），全量 42 个测试通过。
