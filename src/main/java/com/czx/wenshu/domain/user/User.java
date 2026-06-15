@@ -144,6 +144,13 @@ public class User {
         this.updatedAt = now;
     }
 
+    public void changePassword(String passwordHash, Clock clock) {
+        setPasswordHash(passwordHash);
+        this.loginFailCount = 0;
+        this.lockedUntil = null;
+        this.updatedAt = Instant.now(clock);
+    }
+
     public UUID id() {
         return id;
     }

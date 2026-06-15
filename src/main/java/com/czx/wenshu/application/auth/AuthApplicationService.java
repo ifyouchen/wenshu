@@ -5,6 +5,9 @@ import com.czx.wenshu.common.result.ErrorCode;
 import com.czx.wenshu.domain.user.EmailAddress;
 import com.czx.wenshu.domain.user.EmailVerification;
 import com.czx.wenshu.domain.user.EmailVerificationRepository;
+import com.czx.wenshu.domain.user.PasswordReset;
+import com.czx.wenshu.domain.user.PasswordResetRepository;
+import com.czx.wenshu.domain.user.RefreshTokenRepository;
 import com.czx.wenshu.domain.user.User;
 import com.czx.wenshu.domain.user.UserRegistrationPolicy;
 import com.czx.wenshu.domain.user.UserRepository;
@@ -20,30 +23,40 @@ public class AuthApplicationService {
 
     private static final Duration VERIFY_EMAIL_TOKEN_TTL = Duration.ofHours(24);
     private static final Duration RESEND_VERIFY_EMAIL_COOLDOWN = Duration.ofSeconds(60);
+    private static final Duration PASSWORD_RESET_TOKEN_TTL = Duration.ofHours(24);
 
     private final UserRepository userRepository;
     private final EmailVerificationRepository emailVerificationRepository;
+    private final PasswordResetRepository passwordResetRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
     private final EmailVerificationTokenService emailVerificationTokenService;
     private final VerificationEmailSender verificationEmailSender;
+    private final PasswordResetEmailSender passwordResetEmailSender;
     private final Clock clock;
 
     public AuthApplicationService(
             UserRepository userRepository,
             EmailVerificationRepository emailVerificationRepository,
+            PasswordResetRepository passwordResetRepository,
+            RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
             AuthTokenService authTokenService,
             EmailVerificationTokenService emailVerificationTokenService,
             VerificationEmailSender verificationEmailSender,
+            PasswordResetEmailSender passwordResetEmailSender,
             Clock clock
     ) {
         this.userRepository = userRepository;
         this.emailVerificationRepository = emailVerificationRepository;
+        this.passwordResetRepository = passwordResetRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.authTokenService = authTokenService;
         this.emailVerificationTokenService = emailVerificationTokenService;
         this.verificationEmailSender = verificationEmailSender;
+        this.passwordResetEmailSender = passwordResetEmailSender;
         this.clock = clock;
     }
 
@@ -121,6 +134,39 @@ public class AuthApplicationService {
         // Token persistence and revocation are completed in P1-06.
     }
 
+    @Transactional
+    public RefreshTokenResult refreshToken(RefreshTokenCommand command) {
+        return authTokenService.rotateRefreshToken(command.refreshToken());
+    }
+
+    @Transactional
+    public ForgotPasswordResult forgotPassword(ForgotPasswordCommand command) {
+        EmailAddress email = new EmailAddress(command.email());
+        return userRepository.findByEmail(email)
+                .filter(user -> !user.isDeleted())
+                .map(this::issuePasswordResetEmail)
+                .orElseGet(() -> new ForgotPasswordResult(false, null));
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordCommand command) {
+        Instant now = Instant.now(clock);
+        PasswordReset passwordReset = passwordResetRepository.findByTokenHash(emailVerificationTokenService.hash(command.token()))
+                .orElseThrow(() -> new ApiException(ErrorCode.BAD_REQUEST, "密码重置链接无效"));
+        if (!passwordReset.isUsableAt(now)) {
+            throw new ApiException(ErrorCode.BAD_REQUEST, "密码重置链接已失效");
+        }
+
+        User user = userRepository.findById(passwordReset.userId())
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "用户不存在"));
+        user.changePassword(passwordEncoder.encode(command.newPassword()), clock);
+        userRepository.save(user);
+        passwordReset.markUsed(now);
+        passwordResetRepository.markUsed(passwordReset.id(), now);
+        refreshTokenRepository.revokeAllForUser(user.id(), now);
+    }
+
     private ResendVerifyEmailResult issueVerificationEmail(User user) {
         Instant now = Instant.now(clock);
         Instant expiresAt = now.plus(VERIFY_EMAIL_TOKEN_TTL);
@@ -134,5 +180,20 @@ public class AuthApplicationService {
         emailVerificationRepository.save(verification);
         verificationEmailSender.sendVerificationEmail(user.email(), rawToken, expiresAt);
         return new ResendVerifyEmailResult(true, expiresAt);
+    }
+
+    private ForgotPasswordResult issuePasswordResetEmail(User user) {
+        Instant now = Instant.now(clock);
+        Instant expiresAt = now.plus(PASSWORD_RESET_TOKEN_TTL);
+        String rawToken = emailVerificationTokenService.generateRawToken();
+        PasswordReset passwordReset = PasswordReset.issue(
+                user.id(),
+                emailVerificationTokenService.hash(rawToken),
+                expiresAt,
+                now
+        );
+        passwordResetRepository.save(passwordReset);
+        passwordResetEmailSender.sendPasswordResetEmail(user.email(), rawToken, expiresAt);
+        return new ForgotPasswordResult(true, expiresAt);
     }
 }

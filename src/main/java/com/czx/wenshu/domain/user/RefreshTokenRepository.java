@@ -11,4 +11,6 @@ public interface RefreshTokenRepository {
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
     void revoke(UUID id, Instant revokedAt, UUID replacedById);
+
+    void revokeAllForUser(UUID userId, Instant revokedAt);
 }

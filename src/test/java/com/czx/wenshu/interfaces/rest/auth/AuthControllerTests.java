@@ -2,6 +2,7 @@ package com.czx.wenshu.interfaces.rest.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.czx.wenshu.application.auth.PasswordResetEmailSender;
 import com.czx.wenshu.application.auth.VerificationEmailSender;
 import com.czx.wenshu.domain.user.EmailAddress;
 import com.czx.wenshu.domain.user.UserRepository;
@@ -34,6 +35,9 @@ class AuthControllerTests {
 
     @Autowired
     private CapturingVerificationEmailSender verificationEmailSender;
+
+    @Autowired
+    private CapturingPasswordResetEmailSender passwordResetEmailSender;
 
     @Test
     void registerReturnsTokenPairAndUserInfo() {
@@ -185,6 +189,92 @@ class AuthControllerTests {
         assertThat(response.getBody().get("code")).isEqualTo(0);
     }
 
+    @Test
+    void refreshTokenRotatesAndRevokesOldToken() {
+        ResponseEntity<Map> registerResponse = restTemplate.postForEntity("/api/v1/auth/register", Map.of(
+                "email", "refresh@example.com",
+                "password", "password123",
+                "nickname", "刷新用户"
+        ), Map.class);
+        Map<String, Object> registerData = (Map<String, Object>) registerResponse.getBody().get("data");
+        String oldRefreshToken = (String) registerData.get("refreshToken");
+
+        ResponseEntity<Map> refreshResponse = restTemplate.postForEntity("/api/v1/auth/refresh", Map.of(
+                "refreshToken", oldRefreshToken
+        ), Map.class);
+
+        assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> refreshData = (Map<String, Object>) refreshResponse.getBody().get("data");
+        String newRefreshToken = (String) refreshData.get("refreshToken");
+        assertThat(newRefreshToken).startsWith("wrt_").isNotEqualTo(oldRefreshToken);
+
+        ResponseEntity<Map> reusedOldTokenResponse = restTemplate.postForEntity("/api/v1/auth/refresh", Map.of(
+                "refreshToken", oldRefreshToken
+        ), Map.class);
+        assertThat(reusedOldTokenResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(reusedOldTokenResponse.getBody()).isNotNull();
+        assertThat(reusedOldTokenResponse.getBody().get("code")).isEqualTo(40100);
+    }
+
+    @Test
+    void forgotAndResetPasswordRevokesAllRefreshTokens() {
+        passwordResetEmailSender.clear();
+        ResponseEntity<Map> registerResponse = restTemplate.postForEntity("/api/v1/auth/register", Map.of(
+                "email", "reset@example.com",
+                "password", "old-password",
+                "nickname", "重置用户"
+        ), Map.class);
+        Map<String, Object> registerData = (Map<String, Object>) registerResponse.getBody().get("data");
+        String oldRefreshToken = (String) registerData.get("refreshToken");
+
+        ResponseEntity<Map> forgotResponse = restTemplate.postForEntity("/api/v1/auth/password/forgot", Map.of(
+                "email", "reset@example.com"
+        ), Map.class);
+
+        assertThat(forgotResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> forgotData = (Map<String, Object>) forgotResponse.getBody().get("data");
+        assertThat(forgotData.get("sent")).isEqualTo(true);
+        assertThat(passwordResetEmailSender.sentTokens()).hasSize(1);
+        String resetToken = passwordResetEmailSender.sentTokens().getFirst().rawToken();
+
+        ResponseEntity<Map> resetResponse = restTemplate.postForEntity("/api/v1/auth/password/reset", Map.of(
+                "token", resetToken,
+                "newPassword", "new-password"
+        ), Map.class);
+
+        assertThat(resetResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ResponseEntity<Map> oldRefreshResponse = restTemplate.postForEntity("/api/v1/auth/refresh", Map.of(
+                "refreshToken", oldRefreshToken
+        ), Map.class);
+        assertThat(oldRefreshResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        ResponseEntity<Map> oldPasswordLogin = restTemplate.postForEntity("/api/v1/auth/login", Map.of(
+                "email", "reset@example.com",
+                "password", "old-password"
+        ), Map.class);
+        assertThat(oldPasswordLogin.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        ResponseEntity<Map> newPasswordLogin = restTemplate.postForEntity("/api/v1/auth/login", Map.of(
+                "email", "reset@example.com",
+                "password", "new-password"
+        ), Map.class);
+        assertThat(newPasswordLogin.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void forgotPasswordDoesNotFailForUnknownEmail() {
+        passwordResetEmailSender.clear();
+
+        ResponseEntity<Map> response = restTemplate.postForEntity("/api/v1/auth/password/forgot", Map.of(
+                "email", "missing@example.com"
+        ), Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(data.get("sent")).isEqualTo(false);
+        assertThat(passwordResetEmailSender.sentTokens()).isEmpty();
+    }
+
     @TestConfiguration
     static class VerificationEmailSenderTestConfig {
 
@@ -192,6 +282,12 @@ class AuthControllerTests {
         @Primary
         CapturingVerificationEmailSender capturingVerificationEmailSender() {
             return new CapturingVerificationEmailSender();
+        }
+
+        @Bean
+        @Primary
+        CapturingPasswordResetEmailSender capturingPasswordResetEmailSender() {
+            return new CapturingPasswordResetEmailSender();
         }
     }
 
@@ -214,5 +310,23 @@ class AuthControllerTests {
     }
 
     record SentToken(EmailAddress email, String rawToken, Instant expiresAt) {
+    }
+
+    static class CapturingPasswordResetEmailSender implements PasswordResetEmailSender {
+
+        private final List<SentToken> sentTokens = new ArrayList<>();
+
+        @Override
+        public void sendPasswordResetEmail(EmailAddress email, String rawToken, Instant expiresAt) {
+            sentTokens.add(new SentToken(email, rawToken, expiresAt));
+        }
+
+        void clear() {
+            sentTokens.clear();
+        }
+
+        List<SentToken> sentTokens() {
+            return sentTokens;
+        }
     }
 }

@@ -1,10 +1,13 @@
 package com.czx.wenshu.interfaces.rest.auth;
 
 import com.czx.wenshu.application.auth.AuthApplicationService;
+import com.czx.wenshu.application.auth.ForgotPasswordCommand;
 import com.czx.wenshu.application.auth.LoginCommand;
+import com.czx.wenshu.application.auth.RefreshTokenCommand;
 import com.czx.wenshu.application.auth.RegisterCommand;
 import com.czx.wenshu.application.auth.RegisterResult;
 import com.czx.wenshu.application.auth.ResendVerifyEmailCommand;
+import com.czx.wenshu.application.auth.ResetPasswordCommand;
 import com.czx.wenshu.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,6 +58,29 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         authApplicationService.logout(authorizationHeader);
+        return Result.ok();
+    }
+
+    @Operation(summary = "Refresh Token 轮换", description = "使用 Refresh Token 换取新的双 Token，旧 Refresh Token 立即失效。")
+    @PostMapping("/refresh")
+    public Result<RefreshTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return Result.ok(RefreshTokenResponse.from(authApplicationService.refreshToken(
+                new RefreshTokenCommand(request.refreshToken())
+        )));
+    }
+
+    @Operation(summary = "发起密码重置", description = "生成 24 小时有效的密码重置 token，并发送重置邮件。")
+    @PostMapping("/password/forgot")
+    public Result<ForgotPasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return Result.ok(ForgotPasswordResponse.from(authApplicationService.forgotPassword(
+                new ForgotPasswordCommand(request.email())
+        )));
+    }
+
+    @Operation(summary = "重置密码", description = "使用密码重置 token 设置新密码，并吊销所有 Refresh Token。")
+    @PostMapping("/password/reset")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authApplicationService.resetPassword(new ResetPasswordCommand(request.token(), request.newPassword()));
         return Result.ok();
     }
 

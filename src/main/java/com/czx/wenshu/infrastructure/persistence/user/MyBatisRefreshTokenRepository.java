@@ -32,6 +32,11 @@ public class MyBatisRefreshTokenRepository implements RefreshTokenRepository {
         mapper.revoke(id.toString(), revokedAt, replacedById == null ? null : replacedById.toString());
     }
 
+    @Override
+    public void revokeAllForUser(UUID userId, Instant revokedAt) {
+        mapper.revokeAllForUser(userId.toString(), revokedAt);
+    }
+
     private RefreshToken toDomain(RefreshTokenRecord record) {
         return RefreshToken.rehydrate(
                 UUID.fromString(record.getId()),

@@ -38,4 +38,12 @@ public interface RefreshTokenMapper {
             WHERE id = CAST(#{id} AS UUID)
             """)
     void revoke(@Param("id") String id, @Param("revokedAt") Instant revokedAt, @Param("replacedById") String replacedById);
+
+    @Update("""
+            UPDATE refresh_tokens
+            SET revoked_at = #{revokedAt}
+            WHERE user_id = CAST(#{userId} AS UUID)
+              AND revoked_at IS NULL
+            """)
+    void revokeAllForUser(@Param("userId") String userId, @Param("revokedAt") Instant revokedAt);
 }

@@ -1,19 +1,19 @@
 # wenshu Progress
 
-最后更新：2026-06-15 21:16 Asia/Shanghai
+最后更新：2026-06-15 21:32 Asia/Shanghai
 
 ## 当前阶段
 
 阶段：`P1 账号与用户`
 
-整体状态：P0 后端基础设施已全部完成，当前开始实现 `P1-06 Access Token + Refresh Token 轮换`。
+整体状态：P0 后端基础设施已全部完成，`P1-07 忘记密码与重置密码` 已完成，下一步进入 `P1-08 当前用户、资料、密码、AI 授权开关`。
 
 ## 阶段进度
 
 | Phase | 状态 | 完成度 | 说明 |
 | --- | --- | --- | --- |
 | P0 后端基础设施 | DONE | 7/7 | 后端基础设施、测试 profile、OpenAPI 已完成 |
-| P1 账号与用户 | DOING | 5/11 | 正在实现 Refresh Token 轮换 |
+| P1 账号与用户 | DOING | 7/11 | 下一步实现当前用户、资料、密码、AI 授权开关 |
 | P2 作品、卷章与快照 | TODO | 0/7 | 未开始 |
 | P3 角色库与世界观词典 | TODO | 0/5 | 未开始 |
 | P4 导入、搜索替换、写作统计 | TODO | 0/9 | 未开始 |
@@ -38,18 +38,23 @@
 - P1-03：邮箱注册。
 - P1-04：邮箱验证与重发。
 - P1-05：登录、失败锁定、登出。
+- P1-06：Access Token + Refresh Token 轮换。
+- P1-07：忘记密码与重置密码。
 
 ## 当前待办
 
-当前领取 `P1-06 Access Token + Refresh Token 轮换`。
+下一步领取 `P1-08 当前用户、资料、密码、AI 授权开关`。
 
 ## 实现日志
 
 ### 2026-06-15
 
+- 开始实现 P1-07：忘记密码与重置密码。
+- 完成 P1-07：新增忘记密码和重置密码接口，密码重置 token 24 小时有效，重置成功后吊销该用户所有 Refresh Token，旧密码与旧 Refresh Token 均失效。
+- 同步 P1-07 验收标准：忘记密码不泄露邮箱存在性，重置 token 24 小时有效且一次性使用，重置后所有设备退出。
 - 完成 P1-04：注册时写入 24 小时邮箱验证 token；新增 `GET /api/v1/auth/verify-email` 与 `POST /api/v1/auth/resend-verify`；验证成功后更新 `isEmailVerified=true`，重发验证邮件 60 秒限流。
 - 完成 P1-05：新增 `POST /api/v1/auth/login` 和 `POST /api/v1/auth/logout`；登录失败次数持久化，连续 5 次失败锁定 15 分钟；业务失败不回滚失败计数。
-- 开始实现 P1-06：Access Token + Refresh Token 轮换。
+- 完成 P1-06：新增 `refresh_tokens` Flyway 迁移、RefreshToken 领域模型与仓储端口、MyBatis 持久化；注册/登录持久化 Refresh Token 哈希；新增 `POST /api/v1/auth/refresh`，刷新时旧 Refresh Token 立即吊销，新双 Token 生效。
 - 完成 P1-01：新增 User 聚合、EmailAddress 值对象、身份类型枚举、UserRepository 端口和注册邮箱唯一性策略；单元测试覆盖邮箱唯一性和软删除/恢复状态。
 - 完成 P1-02：新增 UserMapper、UserRecord、MyBatisUserRepository，支持按 ID/邮箱查询、邮箱存在性检查、插入和更新；测试覆盖 H2 下的持久化与领域对象还原。
 - 完成 P1-03：新增 AuthApplicationService、注册命令/结果、OpaqueAuthTokenService、BCrypt 密码哈希配置、`POST /api/v1/auth/register` 接口和响应 DTO；注册返回 Access Token、Refresh Token 与未验证用户信息，重复邮箱返回统一错误响应。
@@ -88,6 +93,8 @@
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-03：注册接口、重复邮箱、Mapper 和 OpenAPI 回归通过，8 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-04：邮箱验证、重发限流、注册 token 写入与回归测试通过，10 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-05：登录成功、5 次失败锁定、登出与回归测试通过，13 个测试通过 |
+| 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-06：Refresh Token 轮换、旧 token 失效和回归测试通过，14 个测试通过 |
+| 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-07：忘记密码、重置密码、重置后吊销全部 Refresh Token 与回归测试通过，16 个测试通过 |
 
 ## 阻塞记录
 
@@ -102,7 +109,7 @@
 - LLM 能力需要可降级，缺少 Key 不影响应用启动。
 - 对象存储从原技术文档中的 MinIO 改为腾讯云 COS。后续实现以 `docs/ai-execution/STORAGE_COS.md` 为准，使用 `com.qcloud:cos_api` SDK，不再维护本地 MinIO 服务。
 - Spring Boot 3.5.x 使用 Springdoc 2.8.x 生成 OpenAPI 文档，本项目固定 `springdoc-openapi-starter-webmvc-ui` 为 `2.8.17`。
-- P1-03 注册阶段先返回服务端生成的不透明 Access/Refresh Token，令牌持久化、轮换和吊销在 `P1-06` 落地。
+- P1-06 已落地 Refresh Token 哈希持久化和轮换吊销；Access Token 暂为短期不透明 token，鉴权解析与当前用户上下文在 `P1-08` 继续完善。
 
 ### 2026-06-15 存储切换
 
