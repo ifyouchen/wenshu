@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS access_tokens;
+DROP TABLE IF EXISTS account_restore_tokens;
 DROP TABLE IF EXISTS email_verifications;
 DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS refresh_tokens;
@@ -8,6 +10,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     nickname VARCHAR(100),
+    avatar_url VARCHAR(500),
     identity_type VARCHAR(20) DEFAULT 'new_author',
     is_email_verified BOOLEAN DEFAULT FALSE,
     ai_train_consent BOOLEAN DEFAULT TRUE,
@@ -40,6 +43,24 @@ CREATE TABLE refresh_tokens (
 );
 
 CREATE TABLE password_resets (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    token_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE access_tokens (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    token_hash VARCHAR(128) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE account_restore_tokens (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     token_hash VARCHAR(128) NOT NULL,

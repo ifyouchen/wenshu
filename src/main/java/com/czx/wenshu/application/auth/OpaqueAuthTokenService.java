@@ -2,6 +2,8 @@ package com.czx.wenshu.application.auth;
 
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
+import com.czx.wenshu.domain.user.AccessToken;
+import com.czx.wenshu.domain.user.AccessTokenRepository;
 import com.czx.wenshu.domain.user.RefreshToken;
 import com.czx.wenshu.domain.user.RefreshTokenRepository;
 import com.czx.wenshu.domain.user.User;
@@ -24,11 +26,13 @@ public class OpaqueAuthTokenService implements AuthTokenService {
     private static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(30);
 
     private final SecureRandom secureRandom = new SecureRandom();
+    private final AccessTokenRepository accessTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
     private final Clock clock;
 
-    public OpaqueAuthTokenService(RefreshTokenRepository refreshTokenRepository, UserRepository userRepository, Clock clock) {
+    public OpaqueAuthTokenService(AccessTokenRepository accessTokenRepository, RefreshTokenRepository refreshTokenRepository, UserRepository userRepository, Clock clock) {
+        this.accessTokenRepository = accessTokenRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.userRepository = userRepository;
         this.clock = clock;
@@ -59,8 +63,24 @@ public class OpaqueAuthTokenService implements AuthTokenService {
         return new RefreshTokenResult(issued.tokenPair(), user);
     }
 
+    public User resolveAccessToken(String rawToken) {
+        Instant now = Instant.now(clock);
+        AccessToken accessToken = accessTokenRepository.findByTokenHash(hash(rawToken))
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED, "Access Token 无效或已失效"));
+        if (!accessToken.isUsableAt(now)) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED, "Access Token 无效或已失效");
+        }
+        return userRepository.findById(accessToken.userId())
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED, "Access Token 无效或已失效"));
+    }
+
     private IssuedRefreshToken issueInternal(User user) {
         Instant now = Instant.now(clock);
+        String rawAccessToken = "wat_" + randomToken();
+        AccessToken accessToken = AccessToken.issue(user.id(), hash(rawAccessToken), now.plus(ACCESS_TOKEN_TTL), now);
+        accessTokenRepository.save(accessToken);
+
         String rawRefreshToken = "wrt_" + randomToken();
         RefreshToken refreshToken = RefreshToken.issue(
                 user.id(),
@@ -70,7 +90,7 @@ public class OpaqueAuthTokenService implements AuthTokenService {
         );
         refreshTokenRepository.save(refreshToken);
         TokenPair tokenPair = new TokenPair(
-                "wat_" + randomToken(),
+                rawAccessToken,
                 rawRefreshToken,
                 "Bearer",
                 ACCESS_TOKEN_TTL.toSeconds(),
@@ -85,7 +105,7 @@ public class OpaqueAuthTokenService implements AuthTokenService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    private String hash(String rawToken) {
+    public String hash(String rawToken) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return Base64.getUrlEncoder().withoutPadding()

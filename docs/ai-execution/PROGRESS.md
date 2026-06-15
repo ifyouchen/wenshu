@@ -1,19 +1,19 @@
 # wenshu Progress
 
-最后更新：2026-06-15 21:32 Asia/Shanghai
+最后更新：2026-06-16 Asia/Shanghai
 
 ## 当前阶段
 
 阶段：`P1 账号与用户`
 
-整体状态：P0 后端基础设施已全部完成，`P1-07 忘记密码与重置密码` 已完成，下一步进入 `P1-08 当前用户、资料、密码、AI 授权开关`。
+整体状态：P1-08 已完成，下一步实现 `P1-09 账号注销与 30 天撤销`。
 
 ## 阶段进度
 
 | Phase | 状态 | 完成度 | 说明 |
 | --- | --- | --- | --- |
 | P0 后端基础设施 | DONE | 7/7 | 后端基础设施、测试 profile、OpenAPI 已完成 |
-| P1 账号与用户 | DOING | 7/11 | 下一步实现当前用户、资料、密码、AI 授权开关 |
+| P1 账号与用户 | DOING | 8/11 | P1-08 已完成，下一步 P1-09 账号注销与 30 天撤销 |
 | P2 作品、卷章与快照 | TODO | 0/7 | 未开始 |
 | P3 角色库与世界观词典 | TODO | 0/5 | 未开始 |
 | P4 导入、搜索替换、写作统计 | TODO | 0/9 | 未开始 |
@@ -40,12 +40,31 @@
 - P1-05：登录、失败锁定、登出。
 - P1-06：Access Token + Refresh Token 轮换。
 - P1-07：忘记密码与重置密码。
+- P1-08：当前用户、资料、密码、AI 授权开关。
 
 ## 当前待办
 
-下一步领取 `P1-08 当前用户、资料、密码、AI 授权开关`。
+下一步领取 `P1-09 账号注销与 30 天撤销`。
 
 ## 实现日志
+
+### 2026-06-16
+
+- 完成 P1-08：当前用户、资料、密码、AI 授权开关。
+- 新增 Access Token 持久化和鉴权拦截器：`AccessToken` 领域对象、`AccessTokenRepository` 端口、MyBatis 持久化、Flyway V3 迁移创建 `access_tokens` 表。
+- 新增 `OpaqueAuthTokenService.resolveAccessToken()` 方法，解析并验证 Access Token 对应的用户。
+- 新增 `AuthInterceptor` 拦截 `/api/v1/user/**` 路径，从 `Authorization: Bearer` 头解析当前用户。
+- 新增 `CurrentUserProvider` 组件，从请求上下文获取当前认证用户。
+- 新增 `WebMvcConfig` 注册拦截器。
+- 新增 `PUT /api/v1/user/ai-consent` 接口和 `UpdateAiConsentCommand`。
+- 新增 `UserApplicationService` 处理当前用户、资料更新、密码修改、AI 授权开关。
+- 新增 `UserController` 提供 4 个接口：`GET /user/me`、`PUT /user/profile`、`PUT /user/password`、`PUT /user/ai-consent`。
+- `User` 领域对象新增 `updateProfile()`、`updateAiConsent()`、`changePasswordByUser()` 方法和 `avatarUrl` 字段。
+- 修改密码后吊销所有 Access Token 和 Refresh Token，用户需重新登录。
+- `UserRecord`、`UserMapper`、`MyBatisUserRepository` 同步增加 `avatarUrl` 字段。
+- 测试 schema 同步增加 `access_tokens` 表和 `avatar_url` 字段。
+- 新增 `UserControllerTests` 集成测试 9 个用例，全部通过。
+- 全量回归 25 个测试通过。
 
 ### 2026-06-15
 
@@ -60,7 +79,7 @@
 - 完成 P1-03：新增 AuthApplicationService、注册命令/结果、OpaqueAuthTokenService、BCrypt 密码哈希配置、`POST /api/v1/auth/register` 接口和响应 DTO；注册返回 Access Token、Refresh Token 与未验证用户信息，重复邮箱返回统一错误响应。
 - 完成 P0-06：新增 `local` profile 用于 PostgreSQL/Redis 联调，新增 `test` profile 使用 H2 内存库并关闭 Flyway/Redis 仓储，测试类统一激活 `test` profile。
 - 完成 P0-07：新增 Springdoc OpenAPI WebMVC UI，配置 `/v3/api-docs` 和 `/swagger-ui.html`，补充 OpenAPI 元信息、System 接口注解和端点集成测试。
-- 分析三份 HTML 原始文档，确认产品为“文枢 wenshu”。
+- 分析三份 HTML 原始文档，确认产品为"文枢 wenshu"。
 - 将 Maven 坐标从 `novel-ai` 调整为 `wenshu`。
 - 将主包名从 `com.czx.novelai` 调整为 `com.czx.wenshu`。
 - 新增 DDD 四层包结构。
@@ -95,6 +114,7 @@
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-05：登录成功、5 次失败锁定、登出与回归测试通过，13 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-06：Refresh Token 轮换、旧 token 失效和回归测试通过，14 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-07：忘记密码、重置密码、重置后吊销全部 Refresh Token 与回归测试通过，16 个测试通过 |
+| 2026-06-16 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-08：`/user/me`、`/user/profile`、`/user/password`、`/user/ai-consent` 接口与鉴权拦截器测试通过，25 个测试通过 |
 
 ## 阻塞记录
 
@@ -118,3 +138,11 @@
 - `pom.xml` 新增腾讯云 COS XML Java SDK：`com.qcloud:cos_api`。
 - 为避免与 Spring `spring-jcl` 冲突，排除 COS SDK 传递依赖 `commons-logging`。
 - 新增 COS 执行说明：`docs/ai-execution/STORAGE_COS.md`。
+
+### 2026-06-16 P1-08
+
+- Access Token 从纯内存不透明 token 改为数据库持久化吊销模型，注册和登录时写入 `access_tokens` 表。
+- `OpaqueAuthTokenService.issueFor()` 现在同时持久化 Access Token 哈希和 Refresh Token 哈希。
+- 新增 `AuthInterceptor` 拦截 `/api/v1/user/**`，从 `Authorization: Bearer` 头解析当前用户。
+- 修改密码后吊销所有 Access Token 和 Refresh Token，强制全部设备重新登录。
+- `User` 领域对象新增 `avatarUrl` 字段和 `updateProfile()`、`updateAiConsent()`、`changePasswordByUser()` 方法。

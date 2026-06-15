@@ -50,6 +50,7 @@ public class MyBatisUserRepository implements UserRepository {
                 record.getEmail(),
                 record.getPasswordHash(),
                 record.getNickname(),
+                record.getAvatarUrl(),
                 IdentityType.fromValue(record.getIdentityType()),
                 record.isEmailVerified(),
                 record.isAiTrainConsent(),
@@ -69,6 +70,7 @@ public class MyBatisUserRepository implements UserRepository {
         record.setEmail(user.email().value());
         record.setPasswordHash(user.passwordHash());
         record.setNickname(user.nickname());
+        record.setAvatarUrl(user.avatarUrl());
         record.setIdentityType(user.identityType().value());
         record.setEmailVerified(user.isEmailVerified());
         record.setAiTrainConsent(user.isAiTrainConsent());

@@ -11,6 +11,7 @@ public class User {
     private final EmailAddress email;
     private String passwordHash;
     private String nickname;
+    private String avatarUrl;
     private IdentityType identityType;
     private boolean emailVerified;
     private boolean aiTrainConsent;
@@ -27,6 +28,7 @@ public class User {
             EmailAddress email,
             String passwordHash,
             String nickname,
+            String avatarUrl,
             IdentityType identityType,
             boolean emailVerified,
             boolean aiTrainConsent,
@@ -42,6 +44,7 @@ public class User {
         this.email = Objects.requireNonNull(email, "email must not be null");
         setPasswordHash(passwordHash);
         this.nickname = normalizeNickname(nickname);
+        this.avatarUrl = avatarUrl;
         this.identityType = identityType == null ? IdentityType.NEW_AUTHOR : identityType;
         this.emailVerified = emailVerified;
         this.aiTrainConsent = aiTrainConsent;
@@ -64,6 +67,7 @@ public class User {
                 new EmailAddress(email),
                 passwordHash,
                 nickname,
+                null,
                 IdentityType.NEW_AUTHOR,
                 false,
                 true,
@@ -82,6 +86,7 @@ public class User {
             String email,
             String passwordHash,
             String nickname,
+            String avatarUrl,
             IdentityType identityType,
             boolean emailVerified,
             boolean aiTrainConsent,
@@ -93,7 +98,7 @@ public class User {
             Instant createdAt,
             Instant updatedAt
     ) {
-        return new User(id, new EmailAddress(email), passwordHash, nickname, identityType, emailVerified,
+        return new User(id, new EmailAddress(email), passwordHash, nickname, avatarUrl, identityType, emailVerified,
                 aiTrainConsent, loginFailCount, lockedUntil, lastLoginAt, deleted, deletedAt, createdAt, updatedAt);
     }
 
@@ -151,6 +156,25 @@ public class User {
         this.updatedAt = Instant.now(clock);
     }
 
+    public void updateProfile(String nickname, String avatarUrl, IdentityType identityType, Clock clock) {
+        this.nickname = normalizeNickname(nickname);
+        this.avatarUrl = avatarUrl;
+        if (identityType != null) {
+            this.identityType = identityType;
+        }
+        this.updatedAt = Instant.now(clock);
+    }
+
+    public void updateAiConsent(boolean aiTrainConsent, Clock clock) {
+        this.aiTrainConsent = aiTrainConsent;
+        this.updatedAt = Instant.now(clock);
+    }
+
+    public void changePasswordByUser(String currentPasswordHash, String newPasswordHash, Clock clock) {
+        setPasswordHash(newPasswordHash);
+        this.updatedAt = Instant.now(clock);
+    }
+
     public UUID id() {
         return id;
     }
@@ -165,6 +189,10 @@ public class User {
 
     public String nickname() {
         return nickname;
+    }
+
+    public String avatarUrl() {
+        return avatarUrl;
     }
 
     public IdentityType identityType() {

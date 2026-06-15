@@ -8,6 +8,7 @@ public class UserRecord {
     private String email;
     private String passwordHash;
     private String nickname;
+    private String avatarUrl;
     private String identityType;
     private boolean emailVerified;
     private boolean aiTrainConsent;
@@ -49,6 +50,14 @@ public class UserRecord {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public String getIdentityType() {

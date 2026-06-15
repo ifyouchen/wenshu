@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Update;
 public interface UserMapper {
 
     @Select("""
-            SELECT id, email, password_hash, nickname, identity_type, is_email_verified AS email_verified,
+            SELECT id, email, password_hash, nickname, avatar_url, identity_type, is_email_verified AS email_verified,
                    ai_train_consent, login_fail_count, locked_until, last_login_at,
                    is_deleted AS deleted, deleted_at, created_at, updated_at
             FROM users
@@ -19,7 +19,7 @@ public interface UserMapper {
     UserRecord findById(@Param("id") String id);
 
     @Select("""
-            SELECT id, email, password_hash, nickname, identity_type, is_email_verified AS email_verified,
+            SELECT id, email, password_hash, nickname, avatar_url, identity_type, is_email_verified AS email_verified,
                    ai_train_consent, login_fail_count, locked_until, last_login_at,
                    is_deleted AS deleted, deleted_at, created_at, updated_at
             FROM users
@@ -36,12 +36,12 @@ public interface UserMapper {
 
     @Insert("""
             INSERT INTO users (
-                id, email, password_hash, nickname, identity_type, is_email_verified,
+                id, email, password_hash, nickname, avatar_url, identity_type, is_email_verified,
                 ai_train_consent, login_fail_count, locked_until, last_login_at,
                 is_deleted, deleted_at, created_at, updated_at
             )
             VALUES (
-                CAST(#{id} AS UUID), #{email}, #{passwordHash}, #{nickname}, #{identityType}, #{emailVerified},
+                CAST(#{id} AS UUID), #{email}, #{passwordHash}, #{nickname}, #{avatarUrl}, #{identityType}, #{emailVerified},
                 #{aiTrainConsent}, #{loginFailCount}, #{lockedUntil}, #{lastLoginAt},
                 #{deleted}, #{deletedAt}, #{createdAt}, #{updatedAt}
             )
@@ -52,6 +52,7 @@ public interface UserMapper {
             UPDATE users
             SET password_hash = #{passwordHash},
                 nickname = #{nickname},
+                avatar_url = #{avatarUrl},
                 identity_type = #{identityType},
                 is_email_verified = #{emailVerified},
                 ai_train_consent = #{aiTrainConsent},

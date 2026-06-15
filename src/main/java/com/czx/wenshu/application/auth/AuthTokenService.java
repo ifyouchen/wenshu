@@ -7,4 +7,6 @@ public interface AuthTokenService {
     TokenPair issueFor(User user);
 
     RefreshTokenResult rotateRefreshToken(String rawRefreshToken);
+
+    User resolveAccessToken(String rawToken);
 }
