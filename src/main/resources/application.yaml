@@ -56,6 +56,10 @@ springdoc:
 wenshu:
   product-name: 文枢 wenshu
   api-version: v1
+  base-url: ${WENSHU_BASE_URL:http://localhost:8080}
+  mail:
+    enabled: ${WENSHU_MAIL_ENABLED:false}
+    from: ${WENSHU_MAIL_FROM:noreply@wenshu.ai}
   llm:
     creative-model: claude-sonnet-4-6
     utility-model: deepseek-chat

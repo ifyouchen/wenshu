@@ -13,6 +13,9 @@ import com.czx.wenshu.domain.user.UserRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserApplicationService {
 
     private static final Duration RESTORE_TOKEN_TTL = Duration.ofDays(30);
+    private static final DateTimeFormatter ALERT_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Shanghai"));
 
     private final UserRepository userRepository;
     private final AccessTokenRepository accessTokenRepository;
@@ -28,15 +32,17 @@ public class UserApplicationService {
     private final AccountRestoreTokenRepository accountRestoreTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationTokenService tokenService;
+    private final SecurityAlertEmailSender securityAlertEmailSender;
     private final Clock clock;
 
-    public UserApplicationService(UserRepository userRepository, AccessTokenRepository accessTokenRepository, RefreshTokenRepository refreshTokenRepository, AccountRestoreTokenRepository accountRestoreTokenRepository, PasswordEncoder passwordEncoder, EmailVerificationTokenService tokenService, Clock clock) {
+    public UserApplicationService(UserRepository userRepository, AccessTokenRepository accessTokenRepository, RefreshTokenRepository refreshTokenRepository, AccountRestoreTokenRepository accountRestoreTokenRepository, PasswordEncoder passwordEncoder, EmailVerificationTokenService tokenService, SecurityAlertEmailSender securityAlertEmailSender, Clock clock) {
         this.userRepository = userRepository;
         this.accessTokenRepository = accessTokenRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.accountRestoreTokenRepository = accountRestoreTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
+        this.securityAlertEmailSender = securityAlertEmailSender;
         this.clock = clock;
     }
 
@@ -71,6 +77,8 @@ public class UserApplicationService {
         Instant now = Instant.now(clock);
         accessTokenRepository.revokeAllForUser(user.id(), now);
         refreshTokenRepository.revokeAllForUser(user.id(), now);
+        securityAlertEmailSender.sendSecurityAlertEmail(
+                user.email(), "密码修改", "您的账号密码已被修改", ALERT_TIME_FORMATTER.format(now));
     }
 
     @Transactional
@@ -129,6 +137,8 @@ public class UserApplicationService {
         userRepository.save(user);
         restoreToken.markUsed(now);
         accountRestoreTokenRepository.markUsed(restoreToken.id(), now);
+        securityAlertEmailSender.sendSecurityAlertEmail(
+                user.email(), "账号恢复", "您的账号已从注销状态恢复", ALERT_TIME_FORMATTER.format(now));
         return UserInfo.from(user);
     }
 }

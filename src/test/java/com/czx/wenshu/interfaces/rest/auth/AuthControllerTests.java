@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.czx.wenshu.application.auth.PasswordResetEmailSender;
 import com.czx.wenshu.application.auth.VerificationEmailSender;
+import com.czx.wenshu.application.user.SecurityAlertEmailSender;
 import com.czx.wenshu.domain.user.EmailAddress;
 import com.czx.wenshu.domain.user.UserRepository;
 import java.time.Instant;
@@ -289,6 +290,12 @@ class AuthControllerTests {
         CapturingPasswordResetEmailSender capturingPasswordResetEmailSender() {
             return new CapturingPasswordResetEmailSender();
         }
+
+        @Bean
+        @Primary
+        CapturingSecurityAlertEmailSender capturingSecurityAlertEmailSender() {
+            return new CapturingSecurityAlertEmailSender();
+        }
     }
 
     static class CapturingVerificationEmailSender implements VerificationEmailSender {
@@ -327,6 +334,13 @@ class AuthControllerTests {
 
         List<SentToken> sentTokens() {
             return sentTokens;
+        }
+    }
+
+    static class CapturingSecurityAlertEmailSender implements SecurityAlertEmailSender {
+
+        @Override
+        public void sendSecurityAlertEmail(EmailAddress email, String alertType, String alertDetail, String alertTime) {
         }
     }
 }

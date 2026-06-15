@@ -7,8 +7,10 @@ public class WenshuProperties {
 
     private String productName;
     private String apiVersion;
+    private String baseUrl;
     private Llm llm;
     private Storage storage;
+    private Mail mail;
 
     public String getProductName() {
         return productName;
@@ -26,6 +28,14 @@ public class WenshuProperties {
         this.apiVersion = apiVersion;
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
     public Llm getLlm() {
         return llm;
     }
@@ -40,6 +50,14 @@ public class WenshuProperties {
 
     public void setStorage(Storage storage) {
         this.storage = storage;
+    }
+
+    public Mail getMail() {
+        return mail;
+    }
+
+    public void setMail(Mail mail) {
+        this.mail = mail;
     }
 
     public static class Llm {
@@ -146,6 +164,19 @@ public class WenshuProperties {
 
         public void setPresignedUrlTtlMinutes(int presignedUrlTtlMinutes) {
             this.presignedUrlTtlMinutes = presignedUrlTtlMinutes;
+        }
+    }
+
+    public static class Mail {
+
+        private String from;
+
+        public String getFrom() {
+            return from;
+        }
+
+        public void setFrom(String from) {
+            this.from = from;
         }
     }
 }

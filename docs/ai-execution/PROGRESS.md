@@ -6,14 +6,14 @@
 
 阶段：`P1 账号与用户`
 
-整体状态：P1-08 已完成，下一步实现 `P1-09 账号注销与 30 天撤销`。
+整体状态：P1 账号与用户阶段全部完成（11/11），准备进入 P2 作品、卷章与快照。
 
 ## 阶段进度
 
 | Phase | 状态 | 完成度 | 说明 |
 | --- | --- | --- | --- |
 | P0 后端基础设施 | DONE | 7/7 | 后端基础设施、测试 profile、OpenAPI 已完成 |
-| P1 账号与用户 | DOING | 8/11 | P1-08 已完成，下一步 P1-09 账号注销与 30 天撤销 |
+| P1 账号与用户 | DONE | 11/11 | P1 全部完成 |
 | P2 作品、卷章与快照 | TODO | 0/7 | 未开始 |
 | P3 角色库与世界观词典 | TODO | 0/5 | 未开始 |
 | P4 导入、搜索替换、写作统计 | TODO | 0/9 | 未开始 |
@@ -42,9 +42,14 @@
 - P1-07：忘记密码与重置密码。
 - P1-08：当前用户、资料、密码、AI 授权开关。
 
+- P1-08：当前用户、资料、密码、AI 授权开关。
+- P1-09：账号注销与 30 天撤销。
+- P1-10：首次登录身份选择与入口偏好。
+- P1-11：邮件模板与安全告警邮件。
+
 ## 当前待办
 
-下一步领取 `P1-09 账号注销与 30 天撤销`。
+P1 已全部完成，下一步进入 P2 作品、卷章与快照。
 
 ## 实现日志
 
@@ -114,7 +119,8 @@
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-05：登录成功、5 次失败锁定、登出与回归测试通过，13 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-06：Refresh Token 轮换、旧 token 失效和回归测试通过，14 个测试通过 |
 | 2026-06-15 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-07：忘记密码、重置密码、重置后吊销全部 Refresh Token 与回归测试通过，16 个测试通过 |
-| 2026-06-16 | `$env:JAVA_HOME='F:\jdk21'; mvn test` | PASS | P1-08：`/user/me`、`/user/profile`、`/user/password`、`/user/ai-consent` 接口与鉴权拦截器测试通过，25 个测试通过 |
+| 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P1-08：`/user/me`、`/user/profile`、`/user/password`、`/user/ai-consent` 接口与鉴权拦截器测试通过，25 个测试通过 |
+| 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P1-09/P1-10/P1-11：`/user` DELETE、`/user/cancel-restore`、`/user/identity-type`、邮件模板与安全告警，30 个测试通过 |
 
 ## 阻塞记录
 
@@ -130,6 +136,9 @@
 - 对象存储从原技术文档中的 MinIO 改为腾讯云 COS。后续实现以 `docs/ai-execution/STORAGE_COS.md` 为准，使用 `com.qcloud:cos_api` SDK，不再维护本地 MinIO 服务。
 - Spring Boot 3.5.x 使用 Springdoc 2.8.x 生成 OpenAPI 文档，本项目固定 `springdoc-openapi-starter-webmvc-ui` 为 `2.8.17`。
 - P1-06 已落地 Refresh Token 哈希持久化和轮换吊销；Access Token 暂为短期不透明 token，鉴权解析与当前用户上下文在 `P1-08` 继续完善。
+- P1-08 已落地 Access Token 持久化（`access_tokens` 表）和 `AuthInterceptor` 鉴权拦截器；`OpaqueAuthTokenService` 同时持久化 Access Token 和 Refresh Token 哈希。
+- P1-09 账号注销返回 30 天恢复令牌（`account_restore_tokens` 表），恢复端点不需要 Bearer 认证，使用独立恢复令牌。
+- P1-11 邮件模板使用 Thymeleaf HTML，SMTP 发送通过 `wenshu.mail.enabled` 配置开关控制，默认日志回退。
 
 ### 2026-06-15 存储切换
 
@@ -146,3 +155,30 @@
 - 新增 `AuthInterceptor` 拦截 `/api/v1/user/**`，从 `Authorization: Bearer` 头解析当前用户。
 - 修改密码后吊销所有 Access Token 和 Refresh Token，强制全部设备重新登录。
 - `User` 领域对象新增 `avatarUrl` 字段和 `updateProfile()`、`updateAiConsent()`、`changePasswordByUser()` 方法。
+
+### 2026-06-16 P1-09
+
+- 完成 P1-09：账号注销与 30 天撤销。
+- 新增 `AccountRestoreToken` 领域对象与仓储端口、MyBatis 持久化、Flyway V4 迁移创建 `account_restore_tokens` 表。
+- `DELETE /api/v1/user` 软删除账号并吊销所有 Token，返回 30 天有效的恢复令牌。
+- `POST /api/v1/user/cancel-restore` 使用恢复令牌撤销注销并恢复账号。
+- 注销后恢复令牌一次性使用，恢复成功后发送安全告警邮件。
+- `AuthInterceptor` 排除 `/user/cancel-restore` 路径，因恢复端点不需要 Bearer 认证。
+
+### 2026-06-16 P1-10
+
+- 完成 P1-10：首次登录身份选择与入口偏好。
+- 新增 `PUT /api/v1/user/identity-type` 接口，支持设置 `web_novel_author`、`short_drama_writer`、`new_author` 三种身份类型。
+- IdentityType 枚举已存在于 P1-01，本任务补充独立接口和更新逻辑。
+
+### 2026-06-16 P1-11
+
+- 完成 P1-11：邮件模板与安全告警邮件。
+- 新增三套 Thymeleaf HTML 邮件模板：`verify-email`、`reset-password`、`security-alert`。
+- 新增 `EmailService` 接口和 `SmtpEmailService` 实现（异步发送，`@ConditionalOnProperty(wenshu.mail.enabled=true)`）。
+- 新增 `LoggingMailConfig`（默认回退），SMTP 未启用时邮件仅记录日志。
+- 新增 `SmtpMailConfig`（`wenshu.mail.enabled=true` 时激活），使用 `JavaMailSender` 真实发送。
+- 新增 `SecurityAlertEmailSender` 接口和委托实现，密码修改、账号恢复时发送安全告警邮件。
+- `WenshuProperties` 新增 `baseUrl` 和 `mail.from` 配置。
+- 修改密码、账号恢复操作后触发安全告警邮件。
+- 全量回归 30 个测试通过。
