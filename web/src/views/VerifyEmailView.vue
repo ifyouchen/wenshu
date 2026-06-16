@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** 邮箱验证页面：用户点击邮件中的链接跳转至此页。 */
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { NCard, NButton, NSpin, NSpace, NIcon } from 'naive-ui'
 import { CheckCircle2, XCircle, ArrowRight } from 'lucide-vue-next'

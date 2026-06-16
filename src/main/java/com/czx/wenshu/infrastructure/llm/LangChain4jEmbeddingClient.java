@@ -42,7 +42,7 @@ public class LangChain4jEmbeddingClient implements EmbeddingClient {
             log.debug("[EmbeddingClient] 向量生成完成 长度={}", vector.length);
             return vector;
         } catch (Exception e) {
-            log.warn("[EmbeddingClient] 向量生成失败 error={}", e.getMessage());
+            log.warn("[EmbeddingClient] 向量生成失败", e);
             return null;
         }
     }

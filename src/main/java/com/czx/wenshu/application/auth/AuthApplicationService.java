@@ -108,7 +108,7 @@ public class AuthApplicationService {
 
         // P9-09：新用户自动发放体验额度（5 万字）
         wordPackService.issueTrial(user.id());
-        log.info("[AuthApplicationService] 新用户注册成功，体验额度已发放 userId={}", user.id());
+        log.info("[AuthApplicationService] 新用户注册成功 userId={} 昵称={} 体验额度已发放", user.id(), command.nickname());
 
         return new RegisterResult(tokenPair, user);
     }
@@ -119,6 +119,7 @@ public class AuthApplicationService {
         new UserRegistrationPolicy(userRepository).ensureEmailAvailable(email);
         Instant now = Instant.now(clock);
         if (registrationEmailCodeRepository.existsUnusedCreatedAfter(email, now.minus(REGISTER_CODE_COOLDOWN))) {
+            log.warn("[AuthApplicationService] 注册码发送过于频繁 email={}", email.value());
             throw new ApiException(ErrorCode.RATE_LIMITED, "请 60 秒后再试");
         }
 
@@ -132,6 +133,7 @@ public class AuthApplicationService {
         );
         registrationEmailCodeRepository.save(code);
         verificationEmailSender.sendVerificationEmail(email, rawCode, expiresAt);
+        log.info("[AuthApplicationService] 注册验证码已发送 email={} 过期时间={}", email.value(), expiresAt);
         return new SendRegisterCodeResult(true, expiresAt);
     }
 
@@ -141,6 +143,7 @@ public class AuthApplicationService {
         EmailVerification verification = emailVerificationRepository.findByTokenHash(emailVerificationTokenService.hash(rawToken))
                 .orElseThrow(() -> new ApiException(ErrorCode.BAD_REQUEST, "邮箱验证链接无效"));
         if (!verification.isUsableAt(now)) {
+            log.warn("[AuthApplicationService] 邮箱验证链接已失效 userId={}", verification.userId());
             throw new ApiException(ErrorCode.BAD_REQUEST, "邮箱验证链接已失效");
         }
 
@@ -150,7 +153,7 @@ public class AuthApplicationService {
         userRepository.save(user);
         verification.markUsed(now);
         emailVerificationRepository.markUsed(verification.id(), now);
-
+        log.info("[AuthApplicationService] 邮箱验证成功 userId={}", user.id());
         return new VerifyEmailResult(user);
     }
 
@@ -179,20 +182,24 @@ public class AuthApplicationService {
 
         Instant now = Instant.now(clock);
         if (user.isLockedAt(now)) {
+            log.warn("[AuthApplicationService] 账号已锁定 userId={} email={}", user.id(), email.value());
             throw new ApiException(ErrorCode.FORBIDDEN, "账号已锁定，请 15 分钟后再试");
         }
         if (!passwordEncoder.matches(command.password(), user.passwordHash())) {
             user.recordLoginFailure(clock);
             userRepository.save(user);
+            log.warn("[AuthApplicationService] 登录密码错误 userId={} email={}", user.id(), email.value());
             throw new ApiException(ErrorCode.BAD_REQUEST, "邮箱或密码错误");
         }
 
         user.recordLoginSuccess(clock);
         userRepository.save(user);
+        log.info("[AuthApplicationService] 登录成功 userId={} email={}", user.id(), email.value());
         return new LoginResult(authTokenService.issueFor(user), user);
     }
 
     public void logout(String authorizationHeader) {
+        log.info("[AuthApplicationService] 当前设备登出");
         // Token persistence and revocation are completed in P1-06.
     }
 
@@ -212,16 +219,22 @@ public class AuthApplicationService {
 
     @Transactional
     public RefreshTokenResult refreshToken(RefreshTokenCommand command) {
-        return authTokenService.rotateRefreshToken(command.refreshToken());
+        RefreshTokenResult result = authTokenService.rotateRefreshToken(command.refreshToken());
+        log.info("[AuthApplicationService] Token 轮换成功 userId={}", result.user().id());
+        return result;
     }
 
     @Transactional
     public ForgotPasswordResult forgotPassword(ForgotPasswordCommand command) {
         EmailAddress email = new EmailAddress(command.email());
+        log.info("[AuthApplicationService] 发起密码重置 email={}", email.value());
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .map(this::issuePasswordResetEmail)
-                .orElseGet(() -> new ForgotPasswordResult(false, null));
+                .orElseGet(() -> {
+                    log.warn("[AuthApplicationService] 密码重置邮箱不存在 email={}", email.value());
+                    return new ForgotPasswordResult(false, null);
+                });
     }
 
     @Transactional
@@ -230,6 +243,7 @@ public class AuthApplicationService {
         PasswordReset passwordReset = passwordResetRepository.findByTokenHash(emailVerificationTokenService.hash(command.token()))
                 .orElseThrow(() -> new ApiException(ErrorCode.BAD_REQUEST, "密码重置链接无效"));
         if (!passwordReset.isUsableAt(now)) {
+            log.warn("[AuthApplicationService] 密码重置链接已失效 userId={}", passwordReset.userId());
             throw new ApiException(ErrorCode.BAD_REQUEST, "密码重置链接已失效");
         }
 
@@ -241,6 +255,7 @@ public class AuthApplicationService {
         passwordReset.markUsed(now);
         passwordResetRepository.markUsed(passwordReset.id(), now);
         refreshTokenRepository.revokeAllForUser(user.id(), now);
+        log.info("[AuthApplicationService] 密码重置成功 userId={}", user.id());
     }
 
     private ResendVerifyEmailResult issueVerificationEmail(User user) {

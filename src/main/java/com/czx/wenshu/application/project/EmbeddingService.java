@@ -73,7 +73,7 @@ public class EmbeddingService {
                 );
                 savedCount++;
             } catch (Exception e) {
-                log.warn("[EmbeddingService] 写入向量失败 eventText={} error={}", event.eventText(), e.getMessage());
+                log.warn("[EmbeddingService] 写入向量失败 eventText={}", event.eventText(), e);
             }
         }
         log.info("[EmbeddingService] 向量写入完成 chapterId={} 成功数={}", chapterId, savedCount);
@@ -115,7 +115,7 @@ public class EmbeddingService {
                     .filter(e -> eventTexts.contains(e.eventText()))
                     .toList();
         } catch (Exception e) {
-            log.warn("[EmbeddingService] pgvector 检索失败，退化为关键词检索 error={}", e.getMessage());
+            log.warn("[EmbeddingService] pgvector 检索失败，退化为关键词检索", e);
             return keyEventRepository.findByProjectId(projectId).stream()
                     .filter(evt -> query != null && evt.eventText().contains(query))
                     .limit(topK)

@@ -20,12 +20,16 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 骨架生成提交（P5-04）与应用入库（P5-05）。 */
 @Service
 public class SkeletonService {
+
+    private static final Logger log = LoggerFactory.getLogger(SkeletonService.class);
 
     private final AsyncTaskService asyncTaskService;
     private final SkeletonTaskRunner skeletonTaskRunner;
@@ -60,6 +64,7 @@ public class SkeletonService {
     public String submitSkeletonTask(UUID userId, SkeletonInput input) {
         verifyProjectOwnership(input.projectId(), userId);
         AsyncTask task = asyncTaskService.createTask(userId, input.projectId(), "novel_skeleton");
+        log.info("[SkeletonService] 提交骨架生成任务 userId={} projectId={} taskId={}", userId, input.projectId(), task.id());
         skeletonTaskRunner.run(task.id(), input);  // 异步执行（@Async 代理）
         return task.id().toString();
     }
@@ -108,6 +113,8 @@ public class SkeletonService {
             createdCharacters++;
         }
 
+        log.info("[SkeletonService] 骨架入库完成 projectId={} 卷数={} 章节数={} 角色数={}",
+                projectId, createdVolumes, createdChapters, createdCharacters);
         return new SkeletonApplyResult(projectId.toString(), createdVolumes, createdChapters, createdCharacters,
                 skeleton.title(), skeleton.theme());
     }

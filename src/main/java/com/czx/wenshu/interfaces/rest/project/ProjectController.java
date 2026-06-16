@@ -24,6 +24,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +42,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1")
 public class ProjectController {
+
+    private static final Logger log = LoggerFactory.getLogger(ProjectController.class);
 
     private final ProjectApplicationService projectService;
     private final CurrentUserProvider currentUserProvider;
@@ -60,6 +64,7 @@ public class ProjectController {
     @PostMapping("/projects")
     public Result<ProjectInfo> createProject(@Valid @RequestBody CreateProjectRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 创建作品 userId={} title={}", user.id(), request.title());
         return Result.ok(projectService.createProject(user.id(), new CreateProjectCommand(
                 request.title(), request.genre(), request.synopsis(), request.worldview())));
     }
@@ -86,6 +91,7 @@ public class ProjectController {
             return Result.fail(com.czx.wenshu.common.result.ErrorCode.BAD_REQUEST, "请确认删除操作");
         }
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 删除作品 userId={} projectId={}", user.id(), id);
         projectService.deleteProject(id, user.id());
         return Result.ok();
     }
@@ -108,6 +114,7 @@ public class ProjectController {
     @PostMapping("/projects/{id}/volumes")
     public Result<VolumeInfo> createVolume(@PathVariable UUID id, @Valid @RequestBody CreateVolumeRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 新增卷 userId={} projectId={} title={}", user.id(), id, request.title());
         return Result.ok(projectService.createVolume(id, user.id(), new CreateVolumeCommand(
                 request.title(), request.conflict(), request.sortOrder())));
     }
@@ -116,6 +123,7 @@ public class ProjectController {
     @PutMapping("/volumes/{id}")
     public Result<VolumeInfo> updateVolume(@PathVariable UUID id, @RequestBody UpdateVolumeRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 更新卷 userId={} volumeId={} title={}", user.id(), id, request.title());
         return Result.ok(projectService.updateVolume(id, user.id(), new UpdateVolumeCommand(
                 request.title(), request.conflict())));
     }
@@ -127,6 +135,7 @@ public class ProjectController {
             return Result.fail(com.czx.wenshu.common.result.ErrorCode.BAD_REQUEST, "请确认删除操作");
         }
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 删除卷 userId={} volumeId={}", user.id(), id);
         projectService.deleteVolume(id, user.id());
         return Result.ok();
     }
@@ -135,6 +144,7 @@ public class ProjectController {
     @PostMapping("/volumes/{id}/chapters")
     public Result<ChapterInfo> createChapter(@PathVariable UUID id, @Valid @RequestBody CreateChapterRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 新增章节 userId={} volumeId={} title={}", user.id(), id, request.title());
         return Result.ok(projectService.createChapter(id, user.id(), new CreateChapterCommand(
                 request.title(), request.outline(), request.sortOrder())));
     }
@@ -150,6 +160,7 @@ public class ProjectController {
     @PutMapping("/chapters/{id}")
     public Result<ChapterInfo> updateChapter(@PathVariable UUID id, @RequestBody UpdateChapterRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 保存章节 userId={} chapterId={} title={} status={}", user.id(), id, request.title(), request.status());
         return Result.ok(projectService.updateChapter(id, user.id(), new UpdateChapterCommand(
                 request.title(), request.content(), request.outline(), request.status())));
     }
@@ -158,6 +169,7 @@ public class ProjectController {
     @DeleteMapping("/chapters/{id}")
     public Result<Void> deleteChapter(@PathVariable UUID id) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 删除章节 userId={} chapterId={}", user.id(), id);
         projectService.deleteChapter(id, user.id());
         return Result.ok();
     }
@@ -173,6 +185,7 @@ public class ProjectController {
     @PostMapping("/chapters/{id}/snapshots")
     public Result<SnapshotInfo> createSnapshot(@PathVariable UUID id, @RequestBody CreateSnapshotRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 创建快照 userId={} chapterId={} type={} label={}", user.id(), id, request.snapshotType(), request.label());
         return Result.ok(projectService.createSnapshot(id, user.id(), request.snapshotType(), request.label()));
     }
 
@@ -180,6 +193,7 @@ public class ProjectController {
     @PostMapping("/snapshots/{id}/restore")
     public Result<ChapterInfo> restoreSnapshot(@PathVariable UUID id) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 恢复快照 userId={} snapshotId={}", user.id(), id);
         return Result.ok(projectService.restoreSnapshot(id, user.id()));
     }
 
@@ -192,6 +206,7 @@ public class ProjectController {
     public Result<SnapshotInfo> acceptAiContent(@PathVariable UUID chapterId,
                                                  @Valid @RequestBody AcceptAiRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ProjectController] 接受 AI 内容 userId={} chapterId={} acceptedChars={}", user.id(), chapterId, request.acceptedChars());
         return Result.ok(projectService.acceptAiContent(
                 chapterId, user.id(), request.acceptedChars(), request.content()));
     }

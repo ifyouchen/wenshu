@@ -8,16 +8,21 @@
  * - AI 内容：AI 训练授权开关
  * - 订阅用量：当前套餐 + 当月配额用量（P9-01/P9-02）
  * - 账户安全：修改密码、注销账号
- *
- * P9 未完成部分（订阅升级、账单）展示为占位提示。
  */
-import { ref, onMounted, reactive, computed } from 'vue'
+import { ref, onMounted, reactive, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NLayout, NLayoutContent, NPageHeader, NTabs, NTabPane, NForm, NFormItem,
   NInput, NInputNumber, NButton, NSpace, NSpin, NSwitch, NSelect, NProgress,
-  NAlert, NText, NTag, NDivider, useMessage, useDialog,
+  NAlert, NText, NTag, NDivider, NIcon, useMessage, useDialog,
 } from 'naive-ui'
+import {
+  User,
+  Pencil,
+  Bot,
+  Gem,
+  Shield,
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { getMe, updateProfile, changePassword, setWritingGoal, updateAiConsent, setIdentityType, deleteAccount } from '@/api/user'
 import { getCurrentSubscription } from '@/api/subscription'
@@ -29,39 +34,34 @@ const auth = useAuthStore()
 const message = useMessage()
 const dialog = useDialog()
 
-/** 加载状态。 */
 const loading = ref(false)
-/** 当前用户信息。 */
 const user = ref<UserInfo | null>(null)
-/** 当前订阅（P9-01/P9-02）。 */
 const subscription = ref<CurrentSubscriptionInfo | null>(null)
-/** 订阅加载中。 */
 const subLoading = ref(false)
 
-// ── 个人资料表单 ──────────────────────────────────────────────────────────
+// 个人资料表单
 const profileForm = reactive({ nickname: '', avatarUrl: '' })
 const profileSaving = ref(false)
 
-// ── 创作偏好表单 ─────────────────────────────────────────────────────────
+// 创作偏好表单
 const goalForm = reactive({ dailyCharGoal: 2000, identityType: '' })
 const goalSaving = ref(false)
 
-/** 身份类型选项。 */
 const identityOptions = [
   { label: '网文作者', value: 'web_novel_author' },
   { label: '短剧编剧', value: 'short_drama_writer' },
   { label: '新人作者', value: 'new_author' },
 ]
 
-// ── AI 授权开关 ─────────────────────────────────────────────────────────
+// AI 授权开关
 const aiConsent = ref(false)
 const aiConsentSaving = ref(false)
 
-// ── 修改密码表单 ─────────────────────────────────────────────────────────
+// 修改密码表单
 const pwdForm = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
 const pwdSaving = ref(false)
 
-// ── 配额进度计算 ──────────────────────────────────────────────────────────
+// 配额进度
 const charUsedPct = computed(() => {
   if (!subscription.value) return 0
   const { usedChars, limitChars } = subscription.value.quota
@@ -73,7 +73,6 @@ const adaptUsedPct = computed(() => {
   return Math.min(Math.round((usedAdaptations / limitAdaptations) * 100), 100)
 })
 
-// ── 数据加载 ─────────────────────────────────────────────────────────────
 onMounted(async () => {
   loading.value = true
   try {
@@ -90,21 +89,17 @@ onMounted(async () => {
     loading.value = false
   }
 
-  // 加载订阅信息（P9-01/P9-02）
   subLoading.value = true
   try {
     const res = await getCurrentSubscription()
     subscription.value = res.data.data
   } catch {
-    // 静默失败，订阅区显示占位
+    // 静默失败
   } finally {
     subLoading.value = false
   }
 })
 
-// ── 操作处理 ─────────────────────────────────────────────────────────────
-
-/** 保存个人资料。 */
 async function saveProfile() {
   profileSaving.value = true
   try {
@@ -120,7 +115,6 @@ async function saveProfile() {
   }
 }
 
-/** 保存创作偏好。 */
 async function saveGoalAndIdentity() {
   goalSaving.value = true
   try {
@@ -136,7 +130,6 @@ async function saveGoalAndIdentity() {
   }
 }
 
-/** 切换 AI 训练授权。 */
 async function handleAiConsentChange(val: boolean) {
   aiConsentSaving.value = true
   try {
@@ -144,14 +137,13 @@ async function handleAiConsentChange(val: boolean) {
     aiConsent.value = val
     message.success(val ? 'AI 训练授权已开启' : 'AI 训练授权已关闭')
   } catch {
-    aiConsent.value = !val  // 回滚
+    aiConsent.value = !val
     message.error('设置失败，请重试')
   } finally {
     aiConsentSaving.value = false
   }
 }
 
-/** 修改密码。 */
 async function savePassword() {
   if (pwdForm.newPassword !== pwdForm.confirmPassword) {
     message.error('两次输入的新密码不一致')
@@ -173,7 +165,6 @@ async function savePassword() {
   }
 }
 
-/** 注销账号。 */
 function handleDeleteAccount() {
   dialog.warning({
     title: '注销账号',
@@ -193,28 +184,34 @@ function handleDeleteAccount() {
   })
 }
 
-/** 格式化字数。 */
 function fmtChars(n: number): string {
   return n >= 10000 ? `${(n / 10000).toFixed(1)}万` : `${n}`
+}
+
+function tabLabel(icon: any, label: string) {
+  return () => h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '6px' } }, [
+    h(NIcon, { component: icon, size: 14 }),
+    label,
+  ])
 }
 </script>
 
 <template>
-  <NLayout style="height: 100vh; background: #f8f8f8">
+  <NLayout class="settings-layout">
     <NLayoutContent class="settings-content">
-      <!-- 页头 -->
-      <NPageHeader title="账户设置" subtitle="管理你的个人信息和偏好" @back="router.back()" />
+      <NPageHeader
+        title="账户设置"
+        subtitle="管理你的个人信息和偏好"
+        @back="router.back()"
+      />
 
-      <!-- 加载中 -->
-      <div v-if="loading" style="text-align: center; padding: 60px">
+      <div v-if="loading" class="settings-loading">
         <NSpin size="large" />
       </div>
 
-      <NTabs v-else type="line" animated style="margin-top: 16px">
-
-        <!-- ── Tab 1: 个人资料 ─────────────────────────────────────── -->
-        <NTabPane name="profile" tab="👤 个人资料">
-          <NForm label-placement="left" label-width="100" style="max-width: 480px; margin-top: 16px">
+      <NTabs v-else type="line" animated class="settings-tabs">
+        <NTabPane name="profile" :tab="tabLabel(User, '个人资料')">
+          <NForm label-placement="left" label-width="100" class="settings-form">
             <NFormItem label="邮箱">
               <NInput :value="user?.email ?? ''" readonly placeholder="邮箱" />
             </NFormItem>
@@ -222,8 +219,7 @@ function fmtChars(n: number): string {
               <NInput v-model:value="profileForm.nickname" placeholder="请输入昵称" maxlength="50" />
             </NFormItem>
             <NFormItem label="头像链接">
-              <NInput v-model:value="profileForm.avatarUrl"
-                      placeholder="头像图片 URL（可选）" clearable />
+              <NInput v-model:value="profileForm.avatarUrl" placeholder="头像图片 URL（可选）" clearable />
             </NFormItem>
             <NFormItem>
               <NButton type="primary" :loading="profileSaving" @click="saveProfile">保存资料</NButton>
@@ -231,9 +227,8 @@ function fmtChars(n: number): string {
           </NForm>
         </NTabPane>
 
-        <!-- ── Tab 2: 创作偏好 ─────────────────────────────────────── -->
-        <NTabPane name="pref" tab="✏️ 创作偏好">
-          <NForm label-placement="left" label-width="120" style="max-width: 480px; margin-top: 16px">
+        <NTabPane name="pref" :tab="tabLabel(Pencil, '创作偏好')">
+          <NForm label-placement="left" label-width="120" class="settings-form">
             <NFormItem label="每日目标字数" feedback="写作统计页将以此目标计算进度">
               <NInputNumber
                 v-model:value="goalForm.dailyCharGoal"
@@ -257,9 +252,8 @@ function fmtChars(n: number): string {
           </NForm>
         </NTabPane>
 
-        <!-- ── Tab 3: AI 内容 ──────────────────────────────────────── -->
-        <NTabPane name="ai" tab="🤖 AI 内容">
-          <div style="max-width: 480px; margin-top: 16px">
+        <NTabPane name="ai" :tab="tabLabel(Bot, 'AI 内容')">
+          <div class="settings-form">
             <NAlert type="info" style="margin-bottom: 16px">
               开启后，你的写作内容可能被用于改善 AI 模型（经过去标识化处理）。
               你可以随时关闭，关闭后立即生效。
@@ -278,11 +272,9 @@ function fmtChars(n: number): string {
           </div>
         </NTabPane>
 
-        <!-- ── Tab 4: 订阅用量 ──────────────────────────────────────── -->
-        <NTabPane name="sub" tab="💎 订阅用量">
-          <div style="max-width: 600px; margin-top: 16px">
+        <NTabPane name="sub" :tab="tabLabel(Gem, '订阅用量')">
+          <div class="settings-form settings-form--wide">
             <NSpin :show="subLoading">
-              <!-- 有订阅数据 -->
               <template v-if="subscription">
                 <NSpace align="center" style="margin-bottom: 16px">
                   <NTag :type="subscription.planKey === 'free' ? 'default' : 'success'" size="large">
@@ -295,11 +287,10 @@ function fmtChars(n: number): string {
                   <NText v-else depth="3" style="font-size: 13px">永久有效</NText>
                 </NSpace>
 
-                <!-- 当月配额用量 -->
-                <div style="margin-bottom: 20px">
-                  <div style="margin-bottom: 8px">
+                <div class="quota-row">
+                  <div class="quota-label">
                     <NText style="font-size: 14px; font-weight: 500">AI 字符用量</NText>
-                    <NText depth="3" style="font-size: 12px; margin-left: 8px">
+                    <NText depth="3" style="font-size: 12px">
                       {{ fmtChars(subscription.quota.usedChars) }} /
                       {{ fmtChars(subscription.quota.limitChars) }} 字
                     </NText>
@@ -307,16 +298,15 @@ function fmtChars(n: number): string {
                   <NProgress
                     type="line"
                     :percentage="charUsedPct"
-                    :processing-color="charUsedPct >= 90 ? '#d03050' : '#18a058'"
                     :height="10"
                     :show-indicator="false"
                   />
                 </div>
 
-                <div style="margin-bottom: 20px">
-                  <div style="margin-bottom: 8px">
+                <div class="quota-row">
+                  <div class="quota-label">
                     <NText style="font-size: 14px; font-weight: 500">改编 / 审查次数</NText>
-                    <NText depth="3" style="font-size: 12px; margin-left: 8px">
+                    <NText depth="3" style="font-size: 12px">
                       {{ subscription.quota.usedAdaptations }} /
                       {{ subscription.quota.limitAdaptations }} 次
                     </NText>
@@ -324,13 +314,11 @@ function fmtChars(n: number): string {
                   <NProgress
                     type="line"
                     :percentage="adaptUsedPct"
-                    :processing-color="adaptUsedPct >= 80 ? '#f0a020' : '#18a058'"
                     :height="10"
                     :show-indicator="false"
                   />
                 </div>
 
-                <!-- 免费版升级入口（P8-19 占位）-->
                 <NAlert
                   v-if="subscription.planKey === 'free'"
                   type="warning"
@@ -340,19 +328,17 @@ function fmtChars(n: number): string {
                   订阅升级功能正在开发中（P8-19），敬请期待。
                 </NAlert>
 
-                <!-- P2-1：邀请好友赠额度 -->
-                <div class="invite-section" style="margin-top: 16px; padding: 12px; background: rgba(99,102,241,0.05); border-radius: 8px; border: 1px solid rgba(99,102,241,0.15)">
-                  <NText strong style="font-size: 14px">🎁 邀请好友赠额度</NText>
+                <div class="invite-section">
+                  <NText strong style="font-size: 14px">邀请好友赠额度</NText>
                   <NText depth="3" style="font-size: 13px; display: block; margin-top: 4px">
                     每成功邀请一位新用户注册，双方各额外获得 10,000 字体验额度（上限 50,000 字）。
                   </NText>
-                  <NText depth="3" style="font-size: 12px; display: block; margin-top: 8px; color: #999">
+                  <NText depth="3" style="font-size: 12px; display: block; margin-top: 8px">
                     邀请功能即将上线，敬请期待。
                   </NText>
                 </div>
               </template>
 
-              <!-- 加载失败或无数据 -->
               <NAlert v-else-if="!subLoading" type="default">
                 订阅信息暂时无法加载，请稍后刷新。
               </NAlert>
@@ -360,33 +346,26 @@ function fmtChars(n: number): string {
           </div>
         </NTabPane>
 
-        <!-- ── Tab 5: 账户安全 ──────────────────────────────────────── -->
-        <NTabPane name="security" tab="🔒 账户安全">
-          <div style="max-width: 480px; margin-top: 16px">
-
-            <!-- 修改密码 -->
-            <NText style="font-size: 15px; font-weight: 600">修改密码</NText>
+        <NTabPane name="security" :tab="tabLabel(Shield, '账户安全')">
+          <div class="settings-form">
+            <NText class="section-title">修改密码</NText>
             <NDivider style="margin: 10px 0 16px" />
             <NForm label-placement="left" label-width="110">
               <NFormItem label="当前密码">
-                <NInput v-model:value="pwdForm.currentPassword" type="password"
-                        placeholder="当前密码" show-password-on="click" />
+                <NInput v-model:value="pwdForm.currentPassword" type="password" placeholder="当前密码" show-password-on="click" />
               </NFormItem>
               <NFormItem label="新密码">
-                <NInput v-model:value="pwdForm.newPassword" type="password"
-                        placeholder="新密码（至少 8 位）" show-password-on="click" />
+                <NInput v-model:value="pwdForm.newPassword" type="password" placeholder="新密码（至少 8 位）" show-password-on="click" />
               </NFormItem>
               <NFormItem label="确认新密码">
-                <NInput v-model:value="pwdForm.confirmPassword" type="password"
-                        placeholder="再次输入新密码" show-password-on="click" />
+                <NInput v-model:value="pwdForm.confirmPassword" type="password" placeholder="再次输入新密码" show-password-on="click" />
               </NFormItem>
               <NFormItem>
                 <NButton type="primary" :loading="pwdSaving" @click="savePassword">修改密码</NButton>
               </NFormItem>
             </NForm>
 
-            <!-- 注销账号 -->
-            <NText style="font-size: 15px; font-weight: 600; color: #d03050">危险操作</NText>
+            <NText class="section-title section-title--danger">危险操作</NText>
             <NDivider style="margin: 10px 0 16px" />
             <NAlert type="error" style="margin-bottom: 12px">
               注销账号将软删除你的数据，30 天内可撤销。注销后立即退出所有设备。
@@ -394,26 +373,76 @@ function fmtChars(n: number): string {
             <NButton type="error" @click="handleDeleteAccount">注销账号</NButton>
           </div>
         </NTabPane>
-
       </NTabs>
     </NLayoutContent>
   </NLayout>
 </template>
 
 <style scoped>
+.settings-layout {
+  height: calc(100vh - var(--w-topbar-height));
+  background: var(--w-bg);
+}
+
 .settings-content {
-  padding: 16px;
+  padding: var(--w-space-4);
   overflow-y: auto;
   max-width: 900px;
   margin: 0 auto;
-  /* P8-14：移动端底部导航预留 */
   padding-bottom: 72px;
 }
 
 @media (min-width: 768px) {
   .settings-content {
-    padding: 24px 32px;
-    padding-bottom: 32px;
+    padding: var(--w-space-5) var(--w-space-6);
+    padding-bottom: var(--w-space-5);
   }
+}
+
+.settings-loading {
+  text-align: center;
+  padding: 60px;
+}
+
+.settings-tabs {
+  margin-top: var(--w-space-4);
+}
+
+.settings-form {
+  max-width: 480px;
+  margin-top: var(--w-space-4);
+}
+
+.settings-form--wide {
+  max-width: 600px;
+}
+
+.section-title {
+  font-size: var(--w-text-base);
+  font-weight: 600;
+  color: var(--w-text);
+}
+
+.section-title--danger {
+  color: var(--w-danger);
+}
+
+.quota-row {
+  margin-bottom: var(--w-space-5);
+}
+
+.quota-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.invite-section {
+  margin-top: var(--w-space-4);
+  padding: var(--w-space-3);
+  background: var(--w-bg-tertiary);
+  border-radius: var(--w-radius-md);
+  border: 1px solid var(--w-border-default);
 }
 </style>

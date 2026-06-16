@@ -191,7 +191,7 @@ public class WritingStatsQueryService {
                     .map(r -> new TimeHeatmapEntry(r.getWeekday(), r.getHour(), r.getTotalChars()))
                     .toList();
         } catch (Exception e) {
-            log.warn("[WritingStatsQueryService] 时间热力图查询失败，返回空数据 userId={} error={}", userId, e.getMessage());
+            log.warn("[WritingStatsQueryService] 时间热力图查询失败，返回空数据 userId={}", userId, e);
             return List.of();
         }
     }

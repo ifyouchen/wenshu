@@ -8,10 +8,18 @@
  *
  * diff 实现：纯前端文字级逐行比对，高亮新增/删除行，无需引入外部 diff 库。
  */
-import {computed, ref, watch} from 'vue'
-import {NButton, NDrawer, NDrawerContent, NEmpty, NInput, NModal, NScrollbar, NSpace, NSpin, NTag, NText, useDialog, useMessage,} from 'naive-ui'
-import type {SnapshotInfo} from '@/api/snapshot'
-import {createSnapshot, listSnapshots, restoreSnapshot} from '@/api/snapshot'
+import { computed, ref, watch } from 'vue'
+import {
+  NButton, NDrawer, NDrawerContent, NEmpty, NInput, NModal, NScrollbar,
+  NSpace, NSpin, NTag, NText, NIcon, useDialog, useMessage,
+} from 'naive-ui'
+import {
+  Plus,
+  Eye,
+  RotateCcw,
+} from 'lucide-vue-next'
+import type { SnapshotInfo } from '@/api/snapshot'
+import { createSnapshot, listSnapshots, restoreSnapshot } from '@/api/snapshot'
 
 const props = defineProps<{
   /** 控制抽屉是否显示。 */
@@ -34,22 +42,18 @@ const dialog = useDialog()
 
 const loading = ref(false)
 const snapshots = ref<SnapshotInfo[]>([])
-/** 当前预览的快照。 */
 const previewSnapshot = ref<SnapshotInfo | null>(null)
 const showPreview = ref(false)
 const showCreate = ref(false)
 const createLabel = ref('')
 const creating = ref(false)
 const restoring = ref(false)
-/** 是否只显示差异行。 */
 const diffOnly = ref(true)
 
-/** 监听抽屉打开，自动加载快照列表。 */
 watch(() => props.show, async (val) => {
   if (val && props.chapterId) await loadSnapshots()
 })
 
-/** 加载快照列表。 */
 async function loadSnapshots() {
   loading.value = true
   try {
@@ -62,7 +66,6 @@ async function loadSnapshots() {
   }
 }
 
-/** 手动创建快照。 */
 async function handleCreateSnapshot() {
   creating.value = true
   try {
@@ -78,7 +81,6 @@ async function handleCreateSnapshot() {
   }
 }
 
-/** 恢复快照（弹确认对话框）。 */
 function handleRestoreSnapshot(snapshot: SnapshotInfo) {
   dialog.warning({
     title: '确认恢复',
@@ -101,19 +103,11 @@ function handleRestoreSnapshot(snapshot: SnapshotInfo) {
   })
 }
 
-/** 打开快照预览（diff 模式）。 */
 function openPreview(snapshot: SnapshotInfo) {
   previewSnapshot.value = snapshot
   showPreview.value = true
 }
 
-/**
- * 计算 diff 结果。
- * 基于按行分割的 LCS 简化算法：仅标记增删行（不支持移动）。
- * - type 'added'：仅出现在新版本（当前内容）的行。
- * - type 'removed'：仅出现在旧版本（快照内容）的行。
- * - type 'unchanged'：两者相同的行。
- */
 const diffLines = computed<Array<{ text: string; type: 'added' | 'removed' | 'unchanged' }>>(() => {
   if (!previewSnapshot.value) return []
   const oldLines = (previewSnapshot.value.content ?? '').split('\n')
@@ -121,10 +115,8 @@ const diffLines = computed<Array<{ text: string; type: 'added' | 'removed' | 'un
   return computeDiff(oldLines, newLines)
 })
 
-/** 过滤后仅包含变更行（diffOnly 模式）。 */
 const visibleDiffLines = computed(() => {
   if (!diffOnly.value) return diffLines.value
-  // 保留变更行及其前后 2 行上下文
   const lines = diffLines.value
   const include = new Set<number>()
   lines.forEach((l, i) => {
@@ -137,13 +129,11 @@ const visibleDiffLines = computed(() => {
   return lines.filter((_, i) => include.has(i))
 })
 
-/** 简化 LCS diff（逐行比对）。 */
 function computeDiff(
   oldLines: string[],
   newLines: string[],
 ): Array<{ text: string; type: 'added' | 'removed' | 'unchanged' }> {
   const result: Array<{ text: string; type: 'added' | 'removed' | 'unchanged' }> = []
-  // 使用双指针贪心近似（非完整 LCS，但对网文连续文本足够）
   let i = 0; let j = 0
   while (i < oldLines.length || j < newLines.length) {
     if (i >= oldLines.length) {
@@ -154,16 +144,13 @@ function computeDiff(
       result.push({ text: oldLines[i++], type: 'unchanged' })
       j++
     } else {
-      // 向前看 3 行尝试对齐
       const lookAhead = 3
       let matched = false
       for (let d = 1; d <= lookAhead && !matched; d++) {
         if (i + d < oldLines.length && oldLines[i + d] === newLines[j]) {
-          // 旧版本有 d 行删除
           for (let k = 0; k < d; k++) result.push({ text: oldLines[i++], type: 'removed' })
           matched = true
         } else if (j + d < newLines.length && newLines[j + d] === oldLines[i]) {
-          // 新版本有 d 行新增
           for (let k = 0; k < d; k++) result.push({ text: newLines[j++], type: 'added' })
           matched = true
         }
@@ -177,7 +164,6 @@ function computeDiff(
   return result
 }
 
-/** 去除 HTML 标签，还原纯文本。 */
 function stripHtmlTags(html: string): string {
   return html
     .replace(/<\/p>/gi, '\n')
@@ -190,17 +176,12 @@ function stripHtmlTags(html: string): string {
     .trim()
 }
 
-/** 格式化时间为可读字符串。 */
 function formatTime(iso: string): string {
   const d = new Date(iso)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ` +
     `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-/**
- * 快照类型中文映射（P1-2）。
- * 将后端枚举值转换为用户可读的中文标签。
- */
 function snapshotTypeLabel(type: string): string {
   const map: Record<string, string> = {
     manual: '手动存档',
@@ -224,7 +205,10 @@ function snapshotTypeLabel(type: string): string {
     <NDrawerContent title="版本快照" :native-scrollbar="false">
       <template #footer>
         <NButton type="primary" size="small" @click="showCreate = true">
-          + 手动创建快照
+          <template #icon>
+            <NIcon :component="Plus" :size="14" />
+          </template>
+          手动创建快照
         </NButton>
       </template>
 
@@ -232,7 +216,7 @@ function snapshotTypeLabel(type: string): string {
         <NEmpty v-if="!loading && !snapshots.length" description="暂无快照记录" />
 
         <div v-for="snap in snapshots" :key="snap.id" class="snapshot-item">
-          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+          <div class="snapshot-meta">
             <NText strong style="font-size: 13px">
               {{ snap.label || formatTime(snap.createdAt) }}
             </NText>
@@ -245,8 +229,16 @@ function snapshotTypeLabel(type: string): string {
             {{ snap.wordCount }} 字 · {{ formatTime(snap.createdAt) }}
           </NText>
           <NSpace :size="6" style="margin-top: 6px">
-            <NButton size="tiny" @click="openPreview(snap)">对比预览</NButton>
+            <NButton size="tiny" @click="openPreview(snap)">
+              <template #icon>
+                <NIcon :component="Eye" :size="12" />
+              </template>
+              对比预览
+            </NButton>
             <NButton size="tiny" type="warning" :loading="restoring" @click="handleRestoreSnapshot(snap)">
+              <template #icon>
+                <NIcon :component="RotateCcw" :size="12" />
+              </template>
               恢复此版本
             </NButton>
           </NSpace>
@@ -256,8 +248,15 @@ function snapshotTypeLabel(type: string): string {
   </NDrawer>
 
   <!-- 创建快照弹窗 -->
-  <NModal v-model:show="showCreate" preset="dialog" title="创建快照" positive-text="创建" negative-text="取消"
-          :loading="creating" @positive-click="handleCreateSnapshot">
+  <NModal
+    v-model:show="showCreate"
+    preset="dialog"
+    title="创建快照"
+    positive-text="创建"
+    negative-text="取消"
+    :loading="creating"
+    @positive-click="handleCreateSnapshot"
+  >
     <NInput
       v-model:value="createLabel"
       placeholder="快照备注（可选，如：大改前）"
@@ -285,21 +284,14 @@ function snapshotTypeLabel(type: string): string {
     </template>
 
     <NScrollbar style="max-height: 60vh">
-      <div v-if="visibleDiffLines.length" style="font-family: monospace; font-size: 13px; line-height: 1.7">
+      <div v-if="visibleDiffLines.length" class="diff-list">
         <div
           v-for="(line, idx) in visibleDiffLines"
           :key="idx"
-          :style="{
-            background: line.type === 'added' ? 'rgba(24,160,88,0.12)' : line.type === 'removed' ? 'rgba(245,63,63,0.10)' : 'transparent',
-            padding: '1px 8px',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            borderLeft: line.type === 'added' ? '3px solid #18a058' : line.type === 'removed' ? '3px solid #f53f3f' : '3px solid transparent',
-          }"
+          :class="['diff-line', `diff-line--${line.type}`]"
         >
-          <span :style="{ color: line.type === 'added' ? '#18a058' : line.type === 'removed' ? '#f53f3f' : '#666', marginRight: '8px' }">
-            {{ line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ' }}
-          </span>{{ line.text }}
+          <span class="diff-marker">{{ line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ' }}</span>
+          {{ line.text }}
         </div>
       </div>
       <NEmpty v-else description="两个版本内容完全相同" />
@@ -310,11 +302,56 @@ function snapshotTypeLabel(type: string): string {
 <style scoped>
 .snapshot-item {
   padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--w-border-subtle);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.snapshot-item:last-child { border-bottom: none; }
-</style>
 
+.snapshot-item:last-child {
+  border-bottom: none;
+}
+
+.snapshot-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.diff-list {
+  font-family: var(--w-font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.diff-line {
+  padding: 1px 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-left: 3px solid transparent;
+}
+
+.diff-line--added {
+  background: var(--w-success-soft);
+  border-left-color: var(--w-success);
+  color: var(--w-success);
+}
+
+.diff-line--removed {
+  background: var(--w-danger-soft);
+  border-left-color: var(--w-danger);
+  color: var(--w-danger);
+}
+
+.diff-line--unchanged {
+  color: var(--w-text-secondary);
+}
+
+.diff-marker {
+  display: inline-block;
+  width: 14px;
+  margin-right: 8px;
+  font-weight: 600;
+}
+</style>

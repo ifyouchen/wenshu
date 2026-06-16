@@ -54,6 +54,7 @@ public class ProjectApplicationService {
     public ProjectInfo createProject(UUID userId, CreateProjectCommand command) {
         Project project = Project.create(userId, command.title(), command.genre(), command.synopsis(), command.worldview(), clock);
         projectRepository.save(project);
+        log.info("[ProjectApplicationService] 创建作品 projectId={} userId={} title={}", project.id(), userId, command.title());
         return ProjectInfo.from(project);
     }
 
@@ -77,6 +78,7 @@ public class ProjectApplicationService {
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "作品不存在"));
         project.update(command.title(), command.genre(), command.synopsis(), command.worldview(), clock);
         projectRepository.save(project);
+        log.info("[ProjectApplicationService] 更新作品 projectId={} userId={}", projectId, userId);
         return ProjectInfo.from(project);
     }
 
@@ -86,6 +88,7 @@ public class ProjectApplicationService {
                 .filter(p -> p.userId().equals(userId))
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "作品不存在"));
         projectRepository.deleteById(projectId);
+        log.info("[ProjectApplicationService] 删除作品 projectId={} userId={}", projectId, userId);
     }
 
     @Transactional
@@ -96,6 +99,7 @@ public class ProjectApplicationService {
         int sortOrder = command.sortOrder() >= 0 ? command.sortOrder() : volumeRepository.countByProjectId(projectId);
         Volume volume = Volume.create(projectId, command.title(), command.conflict(), sortOrder, clock);
         volumeRepository.save(volume);
+        log.info("[ProjectApplicationService] 新增卷 volumeId={} projectId={} userId={} title={}", volume.id(), projectId, userId, command.title());
         return VolumeInfo.from(volume);
     }
 
@@ -106,6 +110,7 @@ public class ProjectApplicationService {
         verifyProjectOwnership(volume.projectId(), userId);
         volume.update(command.title(), command.conflict());
         volumeRepository.save(volume);
+        log.info("[ProjectApplicationService] 更新卷 volumeId={} userId={}", volumeId, userId);
         return VolumeInfo.from(volume);
     }
 
@@ -115,6 +120,7 @@ public class ProjectApplicationService {
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "卷不存在"));
         verifyProjectOwnership(volume.projectId(), userId);
         volumeRepository.deleteById(volumeId);
+        log.info("[ProjectApplicationService] 删除卷 volumeId={} userId={}", volumeId, userId);
     }
 
     @Transactional
@@ -125,6 +131,7 @@ public class ProjectApplicationService {
         int sortOrder = command.sortOrder() >= 0 ? command.sortOrder() : chapterRepository.findByVolumeId(volumeId).size();
         Chapter chapter = Chapter.create(volumeId, volume.projectId(), command.title(), command.outline(), sortOrder, clock);
         chapterRepository.save(chapter);
+        log.info("[ProjectApplicationService] 新增章节 chapterId={} volumeId={} userId={} title={}", chapter.id(), volumeId, userId, command.title());
         return ChapterInfo.from(chapter);
     }
 
@@ -148,6 +155,7 @@ public class ProjectApplicationService {
         writingStatsService.recordManualDelta(project.userId(), chapter.projectId(), delta);
         // P6-02：章节保存后自动更新角色锚点（lastActiveChapterId / firstChapterId）
         characterAnchorService.updateAnchors(chapter.projectId(), chapterId, chapter.content());
+        log.info("[ProjectApplicationService] 保存章节 chapterId={} userId={} title={} contentDelta={}", chapterId, userId, command.title(), delta);
         return ChapterInfo.from(chapter);
     }
 
@@ -157,6 +165,7 @@ public class ProjectApplicationService {
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "章节不存在"));
         verifyProjectOwnership(chapter.projectId(), userId);
         chapterRepository.deleteById(chapterId);
+        log.info("[ProjectApplicationService] 删除章节 chapterId={} userId={}", chapterId, userId);
     }
 
     @Transactional(readOnly = true)
@@ -202,6 +211,7 @@ public class ProjectApplicationService {
         ChapterSnapshot snapshot = ChapterSnapshot.create(chapterId, chapter.content(), chapter.wordCount(),
                 snapshotType, label, clock);
         snapshotRepository.save(snapshot);
+        log.info("[ProjectApplicationService] 创建快照 snapshotId={} chapterId={} userId={} type={}", snapshot.id(), chapterId, userId, snapshotType);
         return SnapshotInfo.from(snapshot);
     }
 
@@ -220,6 +230,7 @@ public class ProjectApplicationService {
         chapter.saveContent(chapter.title(), snapshot.content(), chapter.outline(), chapter.status(), clock);
         chapterRepository.save(chapter);
         writingStatsService.recordManualDelta(project.userId(), chapter.projectId(), delta);
+        log.info("[ProjectApplicationService] 恢复快照 snapshotId={} chapterId={} userId={} contentDelta={}", snapshotId, chapter.id(), userId, delta);
         return ChapterInfo.from(chapter);
     }
 

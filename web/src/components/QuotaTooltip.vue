@@ -4,7 +4,7 @@
  * 显示当月 AI 字符和改编/审查剩余次数。
  */
 import { computed, onMounted } from 'vue'
-import { NTooltip, NProgress, NSpace, NText, NIcon } from 'naive-ui'
+import { NTooltip, NProgress, NIcon } from 'naive-ui'
 import { BarChart3, Info } from 'lucide-vue-next'
 import { useQuotaStore } from '@/stores/quota'
 

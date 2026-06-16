@@ -173,7 +173,7 @@ public class ConsistencyTaskRunner {
                     "{\"reportId\":\"" + reportId + "\",\"items\":" + savedCount + "}");
             log.info("[ConsistencyTaskRunner] 审查完成 projectId={} 发现问题数={}", projectId, savedCount);
         } catch (Exception e) {
-            log.warn("[ConsistencyTaskRunner] 审查失败 taskId={} error={}", taskId, e.getMessage());
+            log.warn("[ConsistencyTaskRunner] 审查失败 taskId={}", taskId, e);
             asyncTaskService.fail(taskId, e.getMessage());
         }
     }
@@ -195,7 +195,7 @@ public class ConsistencyTaskRunner {
             String result = creativeLlmClient.chat(null, verifyPrompt);
             return result != null && result.trim().toUpperCase().startsWith("YES");
         } catch (Exception e) {
-            log.warn("[ConsistencyTaskRunner] Claude 验证失败，默认采纳 DeepSeek 结果 error={}", e.getMessage());
+            log.warn("[ConsistencyTaskRunner] Claude 验证失败，默认采纳 DeepSeek 结果", e);
             return true;
         }
     }

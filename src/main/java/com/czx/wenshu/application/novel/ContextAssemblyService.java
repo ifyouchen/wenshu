@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class ContextAssemblyService {
+
+    private static final Logger log = LoggerFactory.getLogger(ContextAssemblyService.class);
 
     /** 默认 Token 预算（约 2000 中文字符）。 */
     public static final int DEFAULT_TOKEN_BUDGET = 4000;
@@ -85,6 +89,9 @@ public class ContextAssemblyService {
         }
 
         int totalTokens = estimateTokens(sys.toString()) + estimateTokens(recentContent);
+        log.debug("[ContextAssemblyService] 上下文组装完成 projectId={} 预算Token={} 实际Token={} 锁定角色={} 锁定设定={} 包含最近章节数={}",
+                projectId, budget, totalTokens, lockedChars.size(), lockedElements.size(),
+                recentContent.isBlank() ? 0 : countIncludedChapters(recentContent));
         return new ContextBundle(sys.toString(), recentContent, totalTokens,
                 lockedChars.size(), lockedElements.size(),
                 recentContent.isBlank() ? 0 : countIncludedChapters(recentContent));

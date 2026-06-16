@@ -8,6 +8,8 @@ import com.czx.wenshu.domain.project.ChapterRepository;
 import com.czx.wenshu.domain.project.ProjectRepository;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class ContinueService {
+
+    private static final Logger log = LoggerFactory.getLogger(ContinueService.class);
 
     private static final String CONTINUE_SYSTEM =
             "你是一位专业的网文续写助手，文风流畅自然，擅长保持角色一致性与情节张力。请根据提供的上下文和近期内容自然续写，直接输出续写文本，无需说明。";
@@ -69,6 +73,8 @@ public class ContinueService {
                     + ctx.recentContent() + "\n\n" + userPrompt;
         }
 
+        log.info("[ContinueService] 续写上下文准备完成 chapterId={} userId={} instruction={} 估算Token={} 角色数={} 设定数={}",
+                chapterId, userId, instruction, ctx.estimatedTokens(), ctx.lockedCharacterCount(), ctx.lockedWorldElementCount());
         return new ContinueContext(systemPrompt, userPrompt);
     }
 }

@@ -43,7 +43,7 @@ public class EmbeddingConfig {
             log.info("[EmbeddingConfig] 向量嵌入模型已就绪（DeepSeek embedding-2）");
             return new LangChain4jEmbeddingClient(model, EMBEDDING_DIMENSION);
         } catch (Exception e) {
-            log.warn("[EmbeddingConfig] 嵌入模型初始化失败，降级为 Noop: {}", e.getMessage());
+            log.warn("[EmbeddingConfig] 嵌入模型初始化失败，降级为 Noop", e);
             return new NoopEmbeddingClient();
         }
     }

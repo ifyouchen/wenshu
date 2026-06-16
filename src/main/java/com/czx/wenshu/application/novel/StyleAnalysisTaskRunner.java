@@ -40,6 +40,7 @@ public class StyleAnalysisTaskRunner {
     @Async("aiTaskExecutor")
     @Transactional
     public void run(UUID taskId, UUID userId, String sampleText) {
+        log.info("[StyleAnalysisTaskRunner] 开始文风分析 taskId={} userId={} 样本长度={}", taskId, userId, sampleText != null ? sampleText.length() : 0);
         try {
             asyncTaskService.markRunning(taskId, 2, "分析文风样本");
 
@@ -58,9 +59,9 @@ public class StyleAnalysisTaskRunner {
             });
 
             asyncTaskService.completeWithJson(taskId, finalTags);
-            log.info("文风分析完成 userId={} tags={}", userId, finalTags);
+            log.info("[StyleAnalysisTaskRunner] 文风分析完成 userId={} tags={}", userId, finalTags);
         } catch (Exception e) {
-            log.warn("文风分析失败 taskId={} error={}", taskId, e.getMessage());
+            log.warn("[StyleAnalysisTaskRunner] 文风分析失败 taskId={}", taskId, e);
             asyncTaskService.fail(taskId, e.getMessage());
         }
     }

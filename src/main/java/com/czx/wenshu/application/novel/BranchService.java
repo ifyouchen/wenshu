@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 /** 卡点分支建议（P5-08）。 */
 @Service
 public class BranchService {
+
+    private static final Logger log = LoggerFactory.getLogger(BranchService.class);
 
     private static final TypeReference<List<BranchOption>> BRANCH_LIST_TYPE = new TypeReference<>() {};
     private static final String BRANCH_SYSTEM = "你是一位专业的网文剧情策划师，擅长设计有张力的剧情分支。请只输出 JSON 数组，不要其他内容。";
@@ -63,8 +67,10 @@ public class BranchService {
 
         List<BranchOption> branches = JsonExtractor.parseArray(response, BRANCH_LIST_TYPE, objectMapper);
         if (branches == null || branches.isEmpty()) {
+            log.warn("[BranchService] 分支建议解析失败 chapterId={}", chapterId);
             throw new ApiException(ErrorCode.INTERNAL_ERROR, "分支建议解析失败，请重试");
         }
+        log.info("[BranchService] 分支建议生成完成 chapterId={} branchCount={}", chapterId, branches.size());
         return branches;
     }
 }

@@ -41,6 +41,7 @@ public class SummaryTaskRunner {
     @Async("aiTaskExecutor")
     @Transactional
     public void run(UUID taskId, UUID chapterId, UUID projectId, String chapterTitle, String content) {
+        log.info("[SummaryTaskRunner] 开始生成章节摘要 taskId={} chapterId={} projectId={}", taskId, chapterId, projectId);
         try {
             asyncTaskService.markRunning(taskId, 2, "生成章节摘要");
 
@@ -62,9 +63,9 @@ public class SummaryTaskRunner {
             summaryRepository.save(chapterSummary);
 
             asyncTaskService.completeWithJson(taskId, "{\"chapterId\":\"" + chapterId + "\"}");
-            log.info("章节摘要生成完成 chapterId={}", chapterId);
+            log.info("[SummaryTaskRunner] 章节摘要生成完成 chapterId={}", chapterId);
         } catch (Exception e) {
-            log.warn("章节摘要生成失败 taskId={} error={}", taskId, e.getMessage());
+            log.warn("[SummaryTaskRunner] 章节摘要生成失败 taskId={}", taskId, e);
             asyncTaskService.fail(taskId, e.getMessage());
         }
     }

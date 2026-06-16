@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NCard, NForm, NFormItem, NInput, NButton, NSpace, NH2, NAlert, useMessage } from 'naive-ui'
+import { NCard, NForm, NFormItem, NInput, NButton, NH2, NAlert, useMessage } from 'naive-ui'
 import { Mail, ArrowLeft, Send } from 'lucide-vue-next'
 import * as authApi from '@/api/auth'
 

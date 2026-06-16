@@ -12,52 +12,50 @@
  * - AI 操作：选中文字 / AI 浮窗
  * - 视图切换：快照历史 / 移动端侧栏
  */
-import { NModal, NScrollbar } from 'naive-ui'
+import { NModal, NScrollbar, NIcon } from 'naive-ui'
+import { Command, Keyboard } from 'lucide-vue-next'
 import { useKeyboardHelpStore, SHORTCUT_GROUPS } from '@/stores/keyboardHelp'
 import type { ShortcutItem } from '@/stores/keyboardHelp'
 
 const store = useKeyboardHelpStore()
 
-/**
- * 将快捷键 keys 数组渲染为展示友好的字符串。
- * 单个 key 直接返回，多个 key 之间自动以 "+" 连接。
- */
 function renderKeys(item: ShortcutItem): string[] {
   return item.keys
 }
 </script>
 
 <template>
-  <!-- 快捷键参考弹窗（Teleport 避免层叠遮挡问题） -->
   <Teleport to="body">
     <NModal
       v-model:show="store.visible"
       preset="card"
-      title="⌨️ 快捷键参考"
+      title="快捷键参考"
       style="width: min(640px, 96vw)"
       :segmented="{ content: true }"
     >
+      <template #header>
+        <div class="modal-title">
+          <NIcon :component="Keyboard" :size="18" class="modal-title-icon" />
+          <span>快捷键参考</span>
+        </div>
+      </template>
+
       <NScrollbar style="max-height: 70vh">
         <div class="kbd-help-body">
-          <!-- 遍历所有快捷键分组 -->
           <div
             v-for="group in SHORTCUT_GROUPS"
             :key="group.title"
             class="kbd-group"
           >
-            <!-- 分组标题 -->
             <div class="kbd-group-title">
-              <span>{{ group.icon }}</span>
+              <NIcon :component="group.icon" :size="14" class="group-icon" />
               <span>{{ group.title }}</span>
             </div>
 
-            <!-- 快捷键列表 -->
             <table class="kbd-table">
               <tbody>
                 <tr v-for="(item, i) in group.shortcuts" :key="i" class="kbd-row">
-                  <!-- 操作说明 -->
                   <td class="kbd-desc">{{ item.description }}</td>
-                  <!-- 快捷键展示 -->
                   <td class="kbd-keys">
                     <span
                       v-for="(k, ki) in renderKeys(item)"
@@ -65,7 +63,6 @@ function renderKeys(item: ShortcutItem): string[] {
                       class="kbd-key-group"
                     >
                       <kbd>{{ k }}</kbd>
-                      <!-- 多键之间添加 "+" 分隔符（最后一个 key 不加）-->
                       <span
                         v-if="ki < renderKeys(item).length - 1"
                         class="kbd-plus"
@@ -77,8 +74,8 @@ function renderKeys(item: ShortcutItem): string[] {
             </table>
           </div>
 
-          <!-- 底部提示 -->
           <div class="kbd-footer">
+            <NIcon :component="Command" :size="12" />
             <span>按 <kbd>?</kbd> 或通过命令面板（<kbd>Ctrl</kbd>+<kbd>K</kbd>）快速打开此面板</span>
           </div>
         </div>
@@ -88,20 +85,28 @@ function renderKeys(item: ShortcutItem): string[] {
 </template>
 
 <style scoped>
-/* ─── 弹窗主体 ─── */
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-title-icon {
+  color: var(--w-brand);
+}
+
 .kbd-help-body {
   padding: 4px 0 8px;
 }
 
-/* ─── 分组容器 ─── */
 .kbd-group {
   margin-bottom: 24px;
 }
+
 .kbd-group:last-of-type {
   margin-bottom: 0;
 }
 
-/* ─── 分组标题 ─── */
 .kbd-group-title {
   display: flex;
   align-items: center;
@@ -110,76 +115,84 @@ function renderKeys(item: ShortcutItem): string[] {
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  opacity: 0.55;
+  color: var(--w-text-tertiary);
   margin-bottom: 10px;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+  border-bottom: 1px solid var(--w-border-subtle);
 }
 
-/* ─── 快捷键表格 ─── */
+.group-icon {
+  color: var(--w-brand);
+}
+
 .kbd-table {
   width: 100%;
   border-collapse: collapse;
 }
+
 .kbd-row {
-  border-bottom: 1px solid rgba(128, 128, 128, 0.06);
+  border-bottom: 1px solid var(--w-border-subtle);
 }
+
 .kbd-row:last-child {
   border-bottom: none;
 }
 
-/* ─── 说明列 ─── */
 .kbd-desc {
   padding: 8px 12px 8px 4px;
   font-size: 14px;
   line-height: 1.5;
   width: 100%;
+  color: var(--w-text);
 }
 
-/* ─── 快捷键列 ─── */
 .kbd-keys {
   padding: 8px 0;
   text-align: right;
   white-space: nowrap;
 }
+
 .kbd-key-group {
   display: inline-flex;
   align-items: center;
   gap: 2px;
 }
+
 .kbd-plus {
   font-size: 11px;
-  opacity: 0.4;
+  color: var(--w-text-muted);
   margin: 0 1px;
 }
 
-/* ─── kbd 标签样式 ─── */
 kbd {
   display: inline-block;
   padding: 2px 7px;
-  border: 1px solid rgba(128, 128, 128, 0.3);
+  border: 1px solid var(--w-border-strong);
   border-bottom-width: 2px;
   border-radius: 5px;
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--w-font-mono);
   font-size: 12px;
-  background: rgba(128, 128, 128, 0.07);
+  background: var(--w-bg-tertiary);
+  color: var(--w-text);
   line-height: 1.6;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
-/* ─── 底部提示 ─── */
 .kbd-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   margin-top: 20px;
   padding: 10px 12px;
-  background: rgba(128, 128, 128, 0.05);
-  border-radius: 6px;
+  background: var(--w-bg-tertiary);
+  border: 1px solid var(--w-border-default);
+  border-radius: var(--w-radius-md);
   font-size: 12px;
-  opacity: 0.6;
+  color: var(--w-text-tertiary);
   text-align: center;
   line-height: 1.6;
 }
 
-/* ─── 移动端适配 ─── */
 @media (max-width: 767px) {
   .kbd-desc { font-size: 13px; }
   .kbd-keys { font-size: 11px; }

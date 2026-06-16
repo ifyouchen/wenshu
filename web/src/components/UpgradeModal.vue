@@ -13,9 +13,14 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  NModal, NButton, NTag, NText, NDivider,
+  NModal, NButton, NTag, NText, NDivider, NIcon,
   NSpin, useMessage,
 } from 'naive-ui'
+import {
+  Rocket,
+  Sparkles,
+  Check,
+} from 'lucide-vue-next'
 import { useUpgradeModal } from '@/composables/useUpgradeModal'
 import type { UpgradeScenario } from '@/composables/useUpgradeModal'
 import { createCheckout, getSubscriptionPlans, getCurrentSubscription } from '@/api/subscription'
@@ -30,17 +35,20 @@ const currentPlanKey = ref('free')
 const loadingPlans = ref(false)
 const checkoutLoading = ref(false)
 
-/** 场景标题 */
+const scenarioIcon = computed(() => {
+  if (scenario.value === 'pro-feature') return Sparkles
+  return Rocket
+})
+
 const scenarioTitle = computed<string>(() => {
   const titles: Record<UpgradeScenario, string> = {
-    'quota-chars': '🚀 AI 字符配额已用尽',
-    'quota-adaptations': '🎬 改编/审查次数已用尽',
-    'pro-feature': '✨ 升级到专业版',
+    'quota-chars': 'AI 字符配额已用尽',
+    'quota-adaptations': '改编/审查次数已用尽',
+    'pro-feature': '升级到专业版',
   }
   return titles[scenario.value]
 })
 
-/** 场景描述 */
 const scenarioDesc = computed<string>(() => {
   const descs: Record<UpgradeScenario, string> = {
     'quota-chars': '本月 AI 字符配额已耗尽。升级专业版获得 200 万字/月配额，继续你的创作。',
@@ -50,19 +58,16 @@ const scenarioDesc = computed<string>(() => {
   return descs[scenario.value]
 })
 
-/** 过滤显示的套餐（仅展示非免费套餐，当前已是高级套餐则不展示该套餐以下的） */
 const displayPlans = computed(() => plans.value.filter(p => p.planKey !== 'free'))
 
-/** 专业版功能列表 */
 const proFeatures = [
-  '✅ 每月 200 万字 AI 字符额度',
-  '✅ 每月 50 次改编/一致性审查',
-  '✅ 优先响应，更快的 AI 生成',
-  '✅ 无限制快照版本历史',
-  '✅ 高级文风分析与定制',
+  '每月 200 万字 AI 字符额度',
+  '每月 50 次改编/一致性审查',
+  '优先响应，更快的 AI 生成',
+  '无限制快照版本历史',
+  '高级文风分析与定制',
 ]
 
-/** 加载套餐列表和当前订阅 */
 async function loadData() {
   loadingPlans.value = true
   try {
@@ -83,7 +88,6 @@ async function loadData() {
   }
 }
 
-/** 点击"立即升级"发起结账（P9-03 / P8-19）*/
 async function handleCheckout(planKey: string) {
   checkoutLoading.value = true
   try {
@@ -95,7 +99,6 @@ async function handleCheckout(planKey: string) {
       closeUpgrade()
       return
     }
-    // 在新标签打开支付页
     window.open(payUrl, '_blank')
     closeUpgrade()
     notify.info('已在新窗口打开支付页面，完成支付后请刷新页面')
@@ -106,7 +109,6 @@ async function handleCheckout(planKey: string) {
   }
 }
 
-/** 弹窗打开时加载数据 */
 function onShow() {
   loadData()
 }
@@ -122,27 +124,31 @@ function onShow() {
       :segmented="{ content: true }"
       @after-enter="onShow"
     >
-      <!-- 场景说明 -->
+      <template #header>
+        <div class="modal-title">
+          <NIcon :component="scenarioIcon" :size="18" class="modal-title-icon" />
+          <span>{{ scenarioTitle }}</span>
+        </div>
+      </template>
+
       <NText style="font-size: 14px; display: block; margin-bottom: 16px">
         {{ scenarioDesc }}
       </NText>
 
-      <!-- 加载中 -->
-      <div v-if="loadingPlans" style="text-align: center; padding: 24px">
+      <div v-if="loadingPlans" class="plans-loading">
         <NSpin />
       </div>
 
       <template v-else>
-        <!-- 专业版特性列表 -->
         <div class="upgrade-features">
           <div v-for="f in proFeatures" :key="f" class="upgrade-feature-item">
-            {{ f }}
+            <NIcon :component="Check" :size="14" class="feature-check" />
+            <span>{{ f }}</span>
           </div>
         </div>
 
         <NDivider style="margin: 16px 0" />
 
-        <!-- 套餐选择 -->
         <div class="upgrade-plans">
           <div
             v-for="plan in displayPlans"
@@ -150,28 +156,29 @@ function onShow() {
             class="upgrade-plan-card"
             :class="{ 'upgrade-plan-current': plan.planKey === currentPlanKey }"
           >
-            <!-- 套餐头部 -->
             <div class="upgrade-plan-header">
               <NText strong style="font-size: 16px">{{ plan.name }}</NText>
               <NTag
                 v-if="plan.planKey === currentPlanKey"
-                type="success" size="small" style="margin-left: 8px"
-              >当前套餐</NTag>
+                type="success"
+                size="small"
+                style="margin-left: 8px"
+              >
+                当前套餐
+              </NTag>
               <div style="flex: 1" />
               <div style="text-align: right">
-                <NText strong style="font-size: 22px; color: #18a058">
+                <NText strong class="plan-price">
                   ¥{{ plan.pricePerMonth }}
                 </NText>
                 <NText depth="3" style="font-size: 12px">/月</NText>
               </div>
             </div>
 
-            <!-- 套餐描述 -->
             <NText depth="3" style="font-size: 13px; display: block; margin: 8px 0">
               {{ plan.description }}
             </NText>
 
-            <!-- 配额信息 -->
             <div style="margin-bottom: 12px">
               <NText style="font-size: 12px">
                 字符额度：{{ (plan.monthlyCharLimit / 10000).toFixed(0) }} 万字/月 |
@@ -179,7 +186,6 @@ function onShow() {
               </NText>
             </div>
 
-            <!-- 升级按钮 -->
             <NButton
               v-if="plan.planKey !== currentPlanKey"
               type="primary"
@@ -193,8 +199,7 @@ function onShow() {
           </div>
         </div>
 
-        <!-- 跳转账户设置 -->
-        <div style="margin-top: 12px; text-align: center">
+        <div class="upgrade-footer">
           <NButton
             text
             size="small"
@@ -209,47 +214,83 @@ function onShow() {
 </template>
 
 <style scoped>
-/* ─── 功能列表 ─── */
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-title-icon {
+  color: var(--w-brand);
+}
+
+.plans-loading {
+  text-align: center;
+  padding: 24px;
+}
+
 .upgrade-features {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 4px;
 }
+
 .upgrade-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
-  color: #555;
+  color: var(--w-text-secondary);
 }
 
-/* ─── 套餐卡片 ─── */
+.feature-check {
+  color: var(--w-success);
+  flex-shrink: 0;
+}
+
 .upgrade-plans {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 }
+
 .upgrade-plan-card {
   flex: 1;
   min-width: 180px;
-  border: 1px solid rgba(128, 128, 128, 0.2);
-  border-radius: 10px;
+  border: 1px solid var(--w-border-default);
+  border-radius: var(--w-radius-md);
   padding: 14px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color var(--w-transition-base), box-shadow var(--w-transition-base);
+  background: var(--w-bg-secondary);
 }
+
 .upgrade-plan-card:hover {
-  border-color: #18a058;
-  box-shadow: 0 2px 12px rgba(24, 160, 88, 0.15);
+  border-color: var(--w-brand);
+  box-shadow: 0 2px 12px var(--w-brand-glow);
 }
+
 .upgrade-plan-current {
-  border-color: #18a058;
-  background: rgba(24, 160, 88, 0.04);
+  border-color: var(--w-success);
+  background: var(--w-success-soft);
 }
+
 .upgrade-plan-header {
   display: flex;
   align-items: center;
   margin-bottom: 6px;
 }
 
-/* ─── 移动端 ─── */
+.plan-price {
+  font-size: 22px;
+  color: var(--w-success);
+}
+
+.upgrade-footer {
+  margin-top: 12px;
+  text-align: center;
+}
+
 @media (max-width: 767px) {
   .upgrade-features { grid-template-columns: 1fr; }
   .upgrade-plans { flex-direction: column; }

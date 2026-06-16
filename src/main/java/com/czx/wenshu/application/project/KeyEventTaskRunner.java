@@ -104,7 +104,7 @@ public class KeyEventTaskRunner {
             asyncTaskService.completeWithJson(taskId, "{\"count\":" + savedCount + "}");
             log.info("[KeyEventTaskRunner] 关键事件提取完成 chapterId={} 事件数={}", chapterId, savedCount);
         } catch (Exception e) {
-            log.warn("[KeyEventTaskRunner] 关键事件提取失败 taskId={} error={}", taskId, e.getMessage());
+            log.warn("[KeyEventTaskRunner] 关键事件提取失败 taskId={}", taskId, e);
             asyncTaskService.fail(taskId, e.getMessage());
         }
     }

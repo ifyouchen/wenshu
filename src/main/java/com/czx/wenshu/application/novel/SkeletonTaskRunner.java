@@ -35,6 +35,7 @@ public class SkeletonTaskRunner {
 
     @Async("aiTaskExecutor")
     public void run(UUID taskId, SkeletonInput input) {
+        log.info("[SkeletonTaskRunner] 开始生成骨架 taskId={} projectId={} genre={}", taskId, input.projectId(), input.genre());
         try {
             asyncTaskService.markRunning(taskId, 3, "初始化");
             asyncTaskService.updateProgress(taskId, 1, "构建 Prompt", 10);
@@ -60,7 +61,7 @@ public class SkeletonTaskRunner {
             asyncTaskService.completeWithJson(taskId, json);
             log.info("骨架生成任务完成 taskId={}", taskId);
         } catch (Exception e) {
-            log.warn("骨架生成任务失败 taskId={} error={}", taskId, e.getMessage());
+            log.warn("[SkeletonTaskRunner] 骨架生成任务失败 taskId={}", taskId, e);
             asyncTaskService.fail(taskId, e.getMessage());
         }
     }

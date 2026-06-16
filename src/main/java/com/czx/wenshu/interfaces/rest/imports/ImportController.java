@@ -15,6 +15,8 @@ import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +34,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/import")
 public class ImportController {
 
+    private static final Logger log = LoggerFactory.getLogger(ImportController.class);
+
     private final ImportApplicationService importService;
     private final CurrentUserProvider currentUserProvider;
 
@@ -47,6 +51,7 @@ public class ImportController {
             @RequestPart("file") MultipartFile file,
             @RequestParam("projectId") UUID projectId) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ImportController] 文件解析 userId={} projectId={} 文件名={}", user.id(), projectId, file.getOriginalFilename());
         try {
             ImportPreviewInfo preview = importService.parseFile(
                     user.id(), projectId,
@@ -65,6 +70,7 @@ public class ImportController {
             @PathVariable UUID parseId,
             @RequestBody AdjustSplitRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ImportController] 调整切分点 userId={} parseId={}", user.id(), parseId);
         List<AdjustChapterItem> items = request.chapters() == null
                 ? List.of()
                 : request.chapters().stream()
@@ -79,6 +85,7 @@ public class ImportController {
             @PathVariable UUID parseId,
             @Valid @RequestBody ApplyImportRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ImportController] 确认导入 userId={} parseId={} volumeId={}", user.id(), parseId, request.volumeId());
         return Result.ok(importService.applyImport(parseId, user.id(), request.volumeId()));
     }
 
@@ -86,6 +93,7 @@ public class ImportController {
     @PostMapping("/paste")
     public Result<List<ChapterInfo>> pasteImport(@Valid @RequestBody PasteImportRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[ImportController] 粘贴文本导入 userId={} projectId={} volumeId={}", user.id(), request.projectId(), request.volumeId());
         return Result.ok(importService.pasteImport(
                 user.id(), request.projectId(), request.volumeId(), request.text()));
     }

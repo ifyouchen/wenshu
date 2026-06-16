@@ -24,6 +24,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +41,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/user")
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     private final UserApplicationService userApplicationService;
     private final StyleProfileService styleProfileService;
@@ -72,6 +76,7 @@ public class UserController {
     @PutMapping("/profile")
     public Result<UserInfo> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[UserController] 更新资料 userId={} 昵称={}", user.id(), request.nickname());
         return Result.ok(userApplicationService.updateProfile(new UpdateProfileCommand(
                 user.id(),
                 request.nickname(),
@@ -84,6 +89,7 @@ public class UserController {
     @PutMapping("/password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[UserController] 修改密码 userId={}", user.id());
         userApplicationService.changePassword(new ChangePasswordCommand(
                 user.id(),
                 request.currentPassword(),
@@ -113,6 +119,7 @@ public class UserController {
     @DeleteMapping
     public Result<DeleteAccountResponse> deleteAccount() {
         User user = currentUserProvider.getCurrentUser();
+        log.warn("[UserController] 注销账号 userId={}", user.id());
         DeleteAccountResult result = userApplicationService.deleteAccount(new UUIDCommand(user.id()));
         return Result.ok(new DeleteAccountResponse(result.restoreToken(), result.restoreTokenExpiresAt().toString()));
     }
@@ -120,6 +127,7 @@ public class UserController {
     @Operation(summary = "撤销账号注销", description = "30 天内使用恢复令牌撤销注销，恢复账号。")
     @PostMapping("/cancel-restore")
     public Result<UserInfo> restoreAccount(@Valid @RequestBody RestoreAccountRequest request) {
+        log.info("[UserController] 撤销账号注销");
         return Result.ok(userApplicationService.restoreAccount(request.restoreToken()));
     }
 
@@ -163,6 +171,7 @@ public class UserController {
     @PutMapping("/style-profile")
     public Result<UserStyleProfileInfo> saveStyleProfile(@Valid @RequestBody StyleProfileRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[UserController] 保存文风样本 userId={} 样本长度={}", user.id(), request.sampleText().length());
         return Result.ok(styleProfileService.saveProfile(user.id(), request.sampleText()));
     }
 
@@ -170,6 +179,7 @@ public class UserController {
     @DeleteMapping("/style-profile")
     public Result<Void> deleteStyleProfile() {
         User user = currentUserProvider.getCurrentUser();
+        log.info("[UserController] 删除文风档案 userId={}", user.id());
         styleProfileService.deleteProfile(user.id());
         return Result.ok();
     }

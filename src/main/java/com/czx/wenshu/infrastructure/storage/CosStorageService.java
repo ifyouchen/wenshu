@@ -71,7 +71,7 @@ public class CosStorageService implements FileStorageService {
             log.info("[CosStorageService] 文件上传成功 objectKey={}", objectKey);
             return objectKey;
         } catch (Exception e) {
-            log.error("[CosStorageService] 文件上传失败 objectKey={} error={}", objectKey, e.getMessage());
+            log.error("[CosStorageService] 文件上传失败 objectKey={}", objectKey, e);
             throw new RuntimeException("COS 文件上传失败: " + e.getMessage(), e);
         }
     }

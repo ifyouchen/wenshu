@@ -2,7 +2,7 @@
 import { onUnmounted, ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import type { FormInst, FormRules } from 'naive-ui'
-import { NCard, NForm, NFormItem, NInput, NButton, NSpace, NH2, NAlert, useMessage } from 'naive-ui'
+import { NCard, NForm, NFormItem, NInput, NButton, NH2, NAlert, useMessage } from 'naive-ui'
 import { User, Mail, KeyRound, Lock, ArrowRight } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { sendRegisterCode } from '@/api/auth'

@@ -10,7 +10,7 @@
  */
 import { computed, h, onMounted, onUnmounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { NButton, NDropdown, NIcon, NText } from 'naive-ui'
+import { NButton, NDropdown, NIcon } from 'naive-ui'
 import {
   BookOpen,
   BarChart3,

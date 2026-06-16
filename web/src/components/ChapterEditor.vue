@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * TipTap 章节编辑器（P8-06）。
+ * TipTap 章节编辑器。
+ *
  * 核心约束：
- *  - 任意时刻只加载当前章节内容，不加载全卷。
- *  - 内容变更自动保存（debounce 1000ms）。
- *  - 字数统计使用 CharacterCount extension。
+ * - 任意时刻只加载当前章节内容，不加载全卷。
+ * - 内容变更自动保存（debounce 1000ms）。
+ * - 字数统计使用 CharacterCount extension。
  */
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
@@ -12,32 +13,26 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import { NSpace, NText, NTag } from 'naive-ui'
+import { NIcon } from 'naive-ui'
+import { Check, AlertCircle, Loader2 } from 'lucide-vue-next'
 import type { ChapterInfo } from '@/api/project'
 
 const props = defineProps<{
-  /** 当前章节数据（由父组件通过 API 加载后传入，编辑器不自行加载卷数据）。 */
   chapter: ChapterInfo | null
-  /** 是否只读。 */
   readonly?: boolean
 }>()
 
 const emit = defineEmits<{
-  /** 内容发生变化，携带新的 HTML 内容（debounced）。 */
   change: [content: string]
-  /** 编辑器实例就绪，供父组件监听文本选中状态（P8-08）。 */
   editorReady: [editor: Editor]
 }>()
 
-/** 自动保存防抖定时器。 */
 let saveTimer: ReturnType<typeof setTimeout> | null = null
-/** 保存状态：idle / saving / saved / error */
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
 const editor = useEditor({
   extensions: [
     StarterKit.configure({
-      // 仅保留必要格式，网文写作不需要标题/代码块等
       heading: false,
       codeBlock: false,
       blockquote: false,
@@ -48,7 +43,6 @@ const editor = useEditor({
   editable: !props.readonly,
   content: props.chapter?.content ?? '',
   onUpdate: ({ editor }) => {
-    // 内容变化时触发防抖保存
     if (saveTimer) clearTimeout(saveTimer)
     saveStatus.value = 'idle'
     saveTimer = setTimeout(() => {
@@ -58,7 +52,6 @@ const editor = useEditor({
   },
 })
 
-/** 章节切换时更新编辑器内容（只加载新章节，不加载全卷）。 */
 watch(() => props.chapter, (newChapter) => {
   if (!editor.value || !newChapter) return
   const current = editor.value.getHTML()
@@ -69,13 +62,11 @@ watch(() => props.chapter, (newChapter) => {
   }
 }, { immediate: false })
 
-/** 父组件可通过此方法标记保存结果。 */
 function markSaved() { saveStatus.value = 'saved' }
 function markError() { saveStatus.value = 'error' }
 
 defineExpose({ markSaved, markError })
 
-/** 编辑器就绪后通知父组件（P8-08，供 AI 浮窗监听选区）。 */
 onMounted(() => {
   if (editor.value) emit('editorReady', editor.value)
 })
@@ -88,22 +79,31 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="chapter-editor">
-    <!-- 状态栏：字数统计 + 保存状态 -->
+    <!-- 状态栏 -->
     <div class="editor-statusbar">
-      <NSpace align="center" :size="12">
-        <NText depth="3" style="font-size: 12px">
-          {{ editor?.storage.characterCount.words() ?? 0 }} 词 ·
+      <div class="statusbar-left">
+        <span class="statusbar-stat">
+          {{ editor?.storage.characterCount.words() ?? 0 }} 词
+        </span>
+        <span class="statusbar-divider" />
+        <span class="statusbar-stat">
           {{ editor?.storage.characterCount.characters() ?? 0 }} 字
-        </NText>
-        <NTag
-          v-if="saveStatus !== 'idle'"
-          :type="saveStatus === 'saved' ? 'success' : saveStatus === 'error' ? 'error' : 'default'"
-          size="small"
-          :bordered="false"
-        >
-          {{ saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '已保存' : '保存失败' }}
-        </NTag>
-      </NSpace>
+        </span>
+      </div>
+      <div class="statusbar-right">
+        <span v-if="saveStatus === 'saving'" class="save-status saving">
+          <NIcon :component="Loader2" :size="12" class="spin-icon" />
+          保存中
+        </span>
+        <span v-else-if="saveStatus === 'saved'" class="save-status saved">
+          <NIcon :component="Check" :size="12" />
+          已保存
+        </span>
+        <span v-else-if="saveStatus === 'error'" class="save-status error">
+          <NIcon :component="AlertCircle" :size="12" />
+          保存失败
+        </span>
+      </div>
     </div>
 
     <!-- TipTap 编辑区 -->
@@ -119,47 +119,120 @@ onBeforeUnmount(() => {
 }
 
 .editor-statusbar {
-  padding: 4px 16px;
-  border-bottom: 1px solid var(--n-border-color, #eee);
-  background: var(--n-color, #fff);
+  height: 34px;
+  padding: 0 var(--w-space-5);
+  border-bottom: 1px solid var(--w-border-subtle);
+  background: var(--w-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  font-size: var(--w-text-xs);
+  color: var(--w-text-tertiary);
+}
+
+.statusbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--w-space-2);
+}
+
+.statusbar-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--w-border-default);
+}
+
+.statusbar-stat {
+  font-variant-numeric: tabular-nums;
+}
+
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.save-status.saved {
+  color: var(--w-success);
+}
+
+.save-status.error {
+  color: var(--w-danger);
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .editor-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 48px;
-  max-width: 800px;
-  margin: 0 auto;
-  width: 100%;
+  padding: var(--w-space-6) var(--w-space-5);
 }
 
 /* TipTap prose 样式 */
 :deep(.ProseMirror) {
+  max-width: var(--w-editor-max-width);
+  margin: 0 auto;
   min-height: 400px;
   outline: none;
-  font-size: 16px;
-  line-height: 1.8;
-  color: #1a1a1a;
+  font-size: 17px;
+  line-height: 1.85;
+  color: var(--w-text);
 }
 
 :deep(.ProseMirror p) {
-  margin: 0 0 8px;
+  margin: 0 0 14px;
   text-indent: 2em;
 }
 
 :deep(.ProseMirror p.is-empty::before) {
   content: attr(data-placeholder);
-  color: #aaa;
+  color: var(--w-text-tertiary);
   pointer-events: none;
   float: left;
   height: 0;
+  text-indent: 2em;
 }
 
-/* P8-08: AI 内容绿色左边框标识（未接受态）。 */
+:deep(.ProseMirror p.is-empty:last-child::before) {
+  text-indent: 2em;
+}
+
+/* AI 内容标识：左侧细线，默认隐藏 */
 :deep([data-ai="true"]) {
-  border-left: 3px solid #18a058;
-  padding-left: 6px;
-  background: rgba(24, 160, 88, 0.06);
-  border-radius: 0 2px 2px 0;
+  position: relative;
+  border-left: 2px solid var(--w-brand);
+  padding-left: 12px;
+  margin-left: -14px;
+  background: linear-gradient(90deg, var(--w-brand-soft), transparent 60%);
+  border-radius: 0 var(--w-radius-sm) var(--w-radius-sm) 0;
+  transition: all var(--w-transition-base);
+}
+
+:deep([data-ai="true"]:hover) {
+  background: var(--w-brand-soft);
+}
+
+/* 选中文字 */
+:deep(.ProseMirror ::selection) {
+  background: rgba(90, 110, 138, 0.35);
+  color: var(--w-text);
+}
+
+@media (max-width: 767px) {
+  .editor-content {
+    padding: var(--w-space-4) var(--w-space-3);
+  }
+
+  :deep(.ProseMirror) {
+    font-size: 16px;
+  }
 }
 </style>

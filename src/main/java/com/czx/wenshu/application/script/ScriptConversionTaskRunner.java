@@ -110,7 +110,7 @@ public class ScriptConversionTaskRunner {
                     "{\"draftId\":\"" + draftId + "\",\"scenes\":" + totalScenes + "}");
             log.info("[ScriptConversionTaskRunner] 剧本改编完成 draftId={} scenes={}", draftId, totalScenes);
         } catch (Exception e) {
-            log.warn("[ScriptConversionTaskRunner] 剧本改编失败 taskId={} error={}", taskId, e.getMessage());
+            log.warn("[ScriptConversionTaskRunner] 剧本改编失败 taskId={}", taskId, e);
             asyncTaskService.fail(taskId, e.getMessage());
             markDraftFailed(draftId);
         }

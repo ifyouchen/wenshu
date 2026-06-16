@@ -9,9 +9,13 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Anthropic Claude 模型的 LangChain4j 适配，用于创意写作（creative）场景。 */
 public class LangChain4jAnthropicLlmClient implements LlmClient {
+
+    private static final Logger log = LoggerFactory.getLogger(LangChain4jAnthropicLlmClient.class);
 
     private final ChatLanguageModel model;
 
@@ -21,6 +25,8 @@ public class LangChain4jAnthropicLlmClient implements LlmClient {
 
     @Override
     public String chat(String systemPrompt, String userPrompt) {
+        long start = System.currentTimeMillis();
+        int inputTokens = (systemPrompt != null ? systemPrompt.length() : 0) + userPrompt.length();
         try {
             List<dev.langchain4j.data.message.ChatMessage> messages;
             if (systemPrompt != null && !systemPrompt.isBlank()) {
@@ -29,8 +35,12 @@ public class LangChain4jAnthropicLlmClient implements LlmClient {
                 messages = List.of(UserMessage.from(userPrompt));
             }
             Response<AiMessage> response = model.generate(messages);
-            return response.content().text();
+            String result = response.content().text();
+            long elapsed = System.currentTimeMillis() - start;
+            log.info("[AnthropicClient] LLM 调用完成 输入字符={} 输出字符={} 耗时={}ms", inputTokens, result != null ? result.length() : 0, elapsed);
+            return result;
         } catch (Exception e) {
+            log.warn("[AnthropicClient] LLM 调用失败 输入字符={} 耗时={}ms", inputTokens, System.currentTimeMillis() - start);
             throw new ApiException(ErrorCode.INTERNAL_ERROR, "Anthropic LLM 调用失败：" + e.getMessage());
         }
     }
