@@ -178,7 +178,10 @@ public class AuthApplicationService {
         EmailAddress email = new EmailAddress(command.email());
         User user = userRepository.findByEmail(email)
                 .filter(candidate -> !candidate.isDeleted())
-                .orElseThrow(() -> new ApiException(ErrorCode.BAD_REQUEST, "邮箱或密码错误"));
+                .orElseThrow(() -> {
+                    log.warn("[AuthApplicationService] 登录邮箱不存在或已删除 email={}", email.value());
+                    return new ApiException(ErrorCode.BAD_REQUEST, "邮箱或密码错误");
+                });
 
         Instant now = Instant.now(clock);
         if (user.isLockedAt(now)) {
