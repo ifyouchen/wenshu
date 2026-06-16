@@ -27,6 +27,7 @@ import { useKeyboardHelpStore } from '@/stores/keyboardHelp'
 import { useDevice } from '@/composables/useDevice'
 import CommandPalette from '@/components/CommandPalette.vue'
 import KeyboardHelpModal from '@/components/KeyboardHelpModal.vue'
+import UpgradeModal from '@/components/UpgradeModal.vue'
 
 const auth = useAuthStore()
 const quota = useQuotaStore()
@@ -162,6 +163,9 @@ onUnmounted(() => {
 
     <!-- P8-21：快捷键参考面板（全局，始终挂载）。 -->
     <KeyboardHelpModal />
+
+    <!-- P8-19：订阅升级引导弹窗（全局，始终挂载，三场景：quota-chars/quota-adaptations/pro-feature）。 -->
+    <UpgradeModal />
   </NLayout>
 </template>
 

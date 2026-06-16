@@ -1,5 +1,7 @@
 DROP TABLE IF EXISTS team_members;
 DROP TABLE IF EXISTS teams;
+DROP TABLE IF EXISTS project_collaborators;
+DROP TABLE IF EXISTS word_packs;
 DROP TABLE IF EXISTS payment_orders;
 DROP TABLE IF EXISTS content_appeals;
 DROP TABLE IF EXISTS user_subscriptions;
@@ -383,4 +385,26 @@ CREATE TABLE team_members (
     joined_at    TIMESTAMP,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (team_id, user_id)
+);
+
+CREATE TABLE word_packs (
+    id           VARCHAR(36) PRIMARY KEY,
+    user_id      VARCHAR(36) NOT NULL,
+    pack_key     VARCHAR(64) NOT NULL,
+    pack_type    VARCHAR(20) NOT NULL DEFAULT 'topup',
+    chars_total  BIGINT      NOT NULL,
+    chars_used   BIGINT      NOT NULL DEFAULT 0,
+    expires_at   TIMESTAMP,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE project_collaborators (
+    id          VARCHAR(36) PRIMARY KEY,
+    project_id  VARCHAR(36) NOT NULL,
+    user_id     VARCHAR(36) NOT NULL,
+    role        VARCHAR(20) NOT NULL DEFAULT 'editor',
+    added_by    VARCHAR(36),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (project_id, user_id)
 );

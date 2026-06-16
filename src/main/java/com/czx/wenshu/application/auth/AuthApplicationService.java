@@ -1,5 +1,6 @@
 package com.czx.wenshu.application.auth;
 
+import com.czx.wenshu.application.user.WordPackService;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
 import com.czx.wenshu.domain.user.EmailAddress;
@@ -14,6 +15,8 @@ import com.czx.wenshu.domain.user.UserRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthApplicationService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthApplicationService.class);
     private static final Duration VERIFY_EMAIL_TOKEN_TTL = Duration.ofHours(24);
     private static final Duration RESEND_VERIFY_EMAIL_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration PASSWORD_RESET_TOKEN_TTL = Duration.ofHours(24);
@@ -34,6 +38,8 @@ public class AuthApplicationService {
     private final EmailVerificationTokenService emailVerificationTokenService;
     private final VerificationEmailSender verificationEmailSender;
     private final PasswordResetEmailSender passwordResetEmailSender;
+    /** P9-09：注册时自动发放体验额度。 */
+    private final WordPackService wordPackService;
     private final Clock clock;
 
     public AuthApplicationService(
@@ -46,6 +52,7 @@ public class AuthApplicationService {
             EmailVerificationTokenService emailVerificationTokenService,
             VerificationEmailSender verificationEmailSender,
             PasswordResetEmailSender passwordResetEmailSender,
+            WordPackService wordPackService,
             Clock clock
     ) {
         this.userRepository = userRepository;
@@ -57,9 +64,15 @@ public class AuthApplicationService {
         this.emailVerificationTokenService = emailVerificationTokenService;
         this.verificationEmailSender = verificationEmailSender;
         this.passwordResetEmailSender = passwordResetEmailSender;
+        this.wordPackService = wordPackService;
         this.clock = clock;
     }
 
+    /**
+     * 用户注册（P1-03 / P9-09）。
+     *
+     * <p>注册成功后自动发放 5 万字体验额度。</p>
+     */
     @Transactional
     public RegisterResult register(RegisterCommand command) {
         EmailAddress email = new EmailAddress(command.email());
@@ -69,6 +82,10 @@ public class AuthApplicationService {
         userRepository.save(user);
         issueVerificationEmail(user);
         TokenPair tokenPair = authTokenService.issueFor(user);
+
+        // P9-09：新用户自动发放体验额度（5 万字）
+        wordPackService.issueTrial(user.id());
+        log.info("[AuthApplicationService] 新用户注册成功，体验额度已发放 userId={}", user.id());
 
         return new RegisterResult(tokenPair, user);
     }

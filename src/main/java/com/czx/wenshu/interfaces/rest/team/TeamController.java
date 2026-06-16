@@ -1,6 +1,7 @@
 package com.czx.wenshu.interfaces.rest.team;
 
 import com.czx.wenshu.application.team.MemberInfo;
+import com.czx.wenshu.application.team.TeamCollaborationService;
 import com.czx.wenshu.application.team.TeamInfo;
 import com.czx.wenshu.application.team.TeamService;
 import com.czx.wenshu.common.result.Result;
@@ -48,10 +49,14 @@ public class TeamController {
     private static final Logger log = LoggerFactory.getLogger(TeamController.class);
 
     private final TeamService teamService;
+    private final TeamCollaborationService collaborationService;
     private final CurrentUserProvider currentUserProvider;
 
-    public TeamController(TeamService teamService, CurrentUserProvider currentUserProvider) {
+    public TeamController(TeamService teamService,
+                          TeamCollaborationService collaborationService,
+                          CurrentUserProvider currentUserProvider) {
         this.teamService = teamService;
+        this.collaborationService = collaborationService;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -120,6 +125,17 @@ public class TeamController {
         log.info("[TeamController] 用户 {} 修改角色 memberId={} newRole={}", user.id(), memberId, req.role());
         teamService.changeRole(teamId, user.id(), memberId, req.role());
         return Result.ok();
+    }
+
+    // ── P9-08：统一账单与用量 ────────────────────────────────────────────────────
+
+    /** 查询团队整体配额用量（统一账单，P9-08）。 */
+    @Operation(summary = "查询团队用量统计（P9-08）",
+               description = "汇总团队所有活跃成员当月 AI 字符和改编次数用量，需为团队成员。")
+    @GetMapping("/{teamId}/usage")
+    public Result<TeamCollaborationService.TeamUsageInfo> getTeamUsage(@PathVariable UUID teamId) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(collaborationService.getTeamUsage(teamId, user.id()));
     }
 
     // ── 请求 DTO ──────────────────────────────────────────────────────────────

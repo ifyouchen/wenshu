@@ -1,6 +1,7 @@
 package com.czx.wenshu.interfaces.rest.user;
 
 import com.czx.wenshu.application.export.DataExportService;
+import com.czx.wenshu.application.user.WordPackService;
 import java.util.Map;
 import com.czx.wenshu.application.novel.StyleProfileService;
 import com.czx.wenshu.application.novel.UserStyleProfileInfo;
@@ -42,17 +43,20 @@ public class UserController {
     private final UserApplicationService userApplicationService;
     private final StyleProfileService styleProfileService;
     private final QuotaService quotaService;
+    private final WordPackService wordPackService;
     private final DataExportService dataExportService;
     private final CurrentUserProvider currentUserProvider;
 
     public UserController(UserApplicationService userApplicationService,
                            StyleProfileService styleProfileService,
                            QuotaService quotaService,
+                           WordPackService wordPackService,
                            DataExportService dataExportService,
                            CurrentUserProvider currentUserProvider) {
         this.userApplicationService = userApplicationService;
         this.styleProfileService = styleProfileService;
         this.quotaService = quotaService;
+        this.wordPackService = wordPackService;
         this.dataExportService = dataExportService;
         this.currentUserProvider = currentUserProvider;
     }
@@ -126,12 +130,25 @@ public class UserController {
         return Result.ok(userApplicationService.updateGlobalWritingGoal(user.id(), request.dailyCharGoal()));
     }
 
-    @Operation(summary = "获取当月配额详情（P6-05）",
-               description = "返回当月 AI 字符用量和改编/审查次数用量，含剩余额度。配额每次 AI 操作完成后更新。")
+    /**
+     * 获取当月配额详情（P6-05 / P9-09）。
+     *
+     * <p>返回月度配额用量 + 字数包剩余量（trial + topup 叠加展示）。</p>
+     */
+    @Operation(summary = "获取当月配额详情（P6-05/P9-09）",
+               description = "返回月度 AI 字符用量、改编次数用量，以及字数包剩余量（叠加展示）。")
     @GetMapping("/quota")
     public Result<QuotaInfo> getQuota() {
         User user = currentUserProvider.getCurrentUser();
-        return Result.ok(quotaService.getQuotaInfo(user.id()));
+        QuotaInfo monthly = quotaService.getQuotaInfo(user.id());
+        long wordPackRemaining = wordPackService.getTotalRemainingChars(user.id());
+        // P9-09：合并月度配额 + 字数包余量
+        return Result.ok(new QuotaInfo(
+                monthly.yearMonth(),
+                monthly.usedChars(), monthly.limitChars(),
+                monthly.usedAdaptations(), monthly.limitAdaptations(),
+                monthly.remainingChars(), monthly.remainingAdaptations(),
+                wordPackRemaining));
     }
 
     @Operation(summary = "获取文风档案（P5-10）", description = "返回用户的文风样本与分析标签。")

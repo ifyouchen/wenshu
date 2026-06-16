@@ -1,6 +1,7 @@
 package com.czx.wenshu.application.payment;
 
 import com.czx.wenshu.application.user.SubscriptionService;
+import com.czx.wenshu.application.user.WordPackService;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
 import com.czx.wenshu.domain.payment.PaymentOrder;
@@ -38,16 +39,20 @@ public class PaymentService {
     private final PaymentOrderRepository orderRepository;
     private final SubscriptionPlanRepository planRepository;
     private final SubscriptionService subscriptionService;
+    /** P9-09：支付成功后发放字数包。 */
+    private final WordPackService wordPackService;
     private final Clock clock;
 
     /** 构造函数注入。 */
     public PaymentService(PaymentOrderRepository orderRepository,
                           SubscriptionPlanRepository planRepository,
                           SubscriptionService subscriptionService,
+                          WordPackService wordPackService,
                           Clock clock) {
         this.orderRepository = orderRepository;
         this.planRepository = planRepository;
         this.subscriptionService = subscriptionService;
+        this.wordPackService = wordPackService;
         this.clock = clock;
     }
 
@@ -146,12 +151,18 @@ public class PaymentService {
         order.markPaid(channelNo, rawPayload, clock);
         orderRepository.save(order);
 
-        // 更新用户订阅（subscription 类型订单）
+        // 根据商品类型执行对应业务逻辑
         if ("subscription".equals(order.productType())) {
             log.info("[PaymentService] 订阅订单支付成功，更新用户套餐 userId={} planKey={}",
                     order.userId(), order.productKey());
             // TODO：实际更新 user_subscriptions 表中的 plan_key 和 expires_at
             // subscriptionService.updateSubscription(order.userId(), order.productKey(), ...);
+        } else if ("topup".equals(order.productType())) {
+            // P9-09：充值成功后发放字数包
+            long charsToIssue = topupKeyToChars(order.productKey());
+            wordPackService.issueTopup(order.userId(), order.productKey(), charsToIssue);
+            log.info("[PaymentService] 字数包发放成功 userId={} packKey={} chars={}",
+                    order.userId(), order.productKey(), charsToIssue);
         }
 
         log.info("[PaymentService] 支付回调处理完成 orderNo={} status=paid", orderNo);
@@ -202,6 +213,21 @@ public class PaymentService {
         log.warn("[PaymentService] 支付渠道未配置，返回占位 payUrl orderNo={} channel={}",
                 order.orderNo(), channel);
         return "PAYMENT_NOT_CONFIGURED:" + order.orderNo();
+    }
+
+    /**
+     * 将字数包 key 转换为对应字符数（P9-09）。
+     *
+     * @param packKey 字数包 key
+     * @return 对应字符数
+     */
+    private long topupKeyToChars(String packKey) {
+        return switch (packKey) {
+            case "topup_100k" -> 100_000L;
+            case "topup_500k" -> 500_000L;
+            case "topup_2m"   -> 2_000_000L;
+            default           -> 100_000L;  // 默认 10 万
+        };
     }
 
     /**

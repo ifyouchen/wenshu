@@ -17,6 +17,7 @@
 import { ref } from 'vue'
 import { NAlert, NButton, NTooltip, NSpace, NText, useMessage } from 'naive-ui'
 import { submitContentAppeal } from '@/api/safety'
+import { useUpgradeModal } from '@/composables/useUpgradeModal'
 
 const props = withDefaults(defineProps<{
   /** 异常级别：A/B/C/D。 */
@@ -41,6 +42,7 @@ const emit = defineEmits<{
 }>()
 
 const notify = useMessage()
+const { openUpgrade } = useUpgradeModal()
 const appealSubmitting = ref(false)
 const appealDone = ref(false)
 const appealReason = ref('')
@@ -126,7 +128,8 @@ async function handleSubmitAppeal() {
           下月初自动重置，或升级套餐获取更多配额。
         </NText>
         <NSpace :size="8">
-          <NButton size="small" type="primary" @click="$emit('upgrade')">
+          <!-- P8-19：直接触发全局升级引导弹窗 -->
+          <NButton size="small" type="primary" @click="openUpgrade('quota-chars')">
             升级套餐
           </NButton>
           <NButton size="small" @click="$router.push('/settings?tab=sub')">
