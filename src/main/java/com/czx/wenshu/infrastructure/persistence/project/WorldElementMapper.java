@@ -12,13 +12,13 @@ import org.apache.ibatis.annotations.Update;
 public interface WorldElementMapper {
 
     @Select("""
-            SELECT id, project_id, type, name, description, is_locked, created_at
+            SELECT id, project_id, type, name, description, is_locked AS locked, created_at
             FROM world_elements WHERE id = CAST(#{id} AS UUID)
             """)
     WorldElementRecord findById(@Param("id") String id);
 
     @Select("""
-            SELECT id, project_id, type, name, description, is_locked, created_at
+            SELECT id, project_id, type, name, description, is_locked AS locked, created_at
             FROM world_elements WHERE project_id = CAST(#{projectId} AS UUID)
             ORDER BY created_at
             """)

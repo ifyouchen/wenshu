@@ -4,9 +4,9 @@
 
 ## 当前阶段
 
-阶段：`P2 作品、卷章与快照`
+阶段：`P3 角色库与世界观词典`
 
-整体状态：P2 全部完成（7/7），准备进入 P3 角色库与世界观词典。
+整体状态：P3 进行中（3/5），P3-01/P3-02/P3-03 已完成，待做 P3-04/P3-05。
 
 ## 阶段进度
 
@@ -15,7 +15,7 @@
 | P0 后端基础设施 | DONE | 7/7 | 后端基础设施、测试 profile、OpenAPI 已完成 |
 | P1 账号与用户 | DONE | 11/11 | P1 全部完成 |
 | P2 作品、卷章与快照 | DONE | 7/7 | P2 全部完成 |
-| P3 角色库与世界观词典 | TODO | 0/5 | 未开始 |
+| P3 角色库与世界观词典 | DOING | 3/5 | P3-01/P3-02/P3-03 已完成 |
 | P4 导入、搜索替换、写作统计 | TODO | 0/9 | 未开始 |
 | P5 AI 写作与润色 | TODO | 0/10 | 未开始 |
 | P6 一致性审查与锚点 | TODO | 0/7 | 未开始 |
@@ -53,12 +53,28 @@
 - P2-05：大纲树。
 - P2-06：章节保存差量字数统计钩子。
 - P2-07：版本快照创建、列表、恢复。
+- P3-01：角色 CRUD（`/projects/{id}/characters`、`/characters/{id}` CRUD 接口）。
+- P3-02：角色锁定/解锁（`PUT /characters/{id}/lock` 切换锁定状态）。
+- P3-03：世界观要素 CRUD（`/projects/{id}/world-dict`、`/world-dict/{id}` CRUD 接口，支持 location/faction/item/rule 四类）。
 
 ## 当前待办
 
-P2 已全部完成，下一步进入 P3 角色库与世界观词典。
+P3-04（专有名词词典 CRUD）和 P3-05（角色名与词典同步策略）待实现。
 
 ## 实现日志
+
+### 2026-06-16 P3-01~P3-03
+
+- 确认 P2 全部完成，进入 P3 阶段。
+- 验证 commit 90b5618 已包含 P3-01/P3-02/P3-03 的完整实现。
+- **P3-01 角色 CRUD**：`CharacterController`（GET/POST /projects/{id}/characters、GET/PUT/DELETE /characters/{id}）、`CharacterApplicationService`、`Character` 领域模型（含 `toggleLock` 方法）、`CharacterRepository`/`MyBatisCharacterRepository`/`CharacterMapper`/`CharacterRecord`。
+- **P3-02 角色锁定/解锁**：`PUT /characters/{id}/lock` 调用 `CharacterApplicationService.toggleLock()`，锁定状态持久化到 `characters.is_locked` 列。
+- **P3-03 世界观要素 CRUD**：`WorldElementController`（GET/POST /projects/{id}/world-dict、PUT/DELETE /world-dict/{id}）、`WorldElementApplicationService`、`WorldElement` 领域模型（type/name/description/locked 字段）、`WorldElementRepository`/`MyBatisWorldElementRepository`/`WorldElementMapper`/`WorldElementRecord`。
+- AuthInterceptor 已保护 `/api/v1/characters/**` 和 `/api/v1/world-dict/**` 路径。
+- **Bug 修复**：`CharacterMapper` 和 `WorldElementMapper` 的 SELECT 中 `is_locked` 列因 MyBatis `mapUnderscoreToCamelCase` 映射到 `isLocked` 属性，但 Record 的 setter 为 `setLocked()`，导致读取时 locked 始终为 false。修复：在 SELECT 中加别名 `is_locked AS locked`，确保正确映射到 `setLocked()` 方法。
+- 新增 `CharacterControllerTests` 集成测试 7 个用例（P3-01: 5 个，P3-02: 2 个，全部覆盖创建、列表、详情、更新、删除、锁定/解锁、未鉴权 401）。
+- 新增 `WorldElementControllerTests` 集成测试 6 个用例（P3-03: 创建、列表、更新、删除、四类 location/faction/item/rule 验证、未鉴权 401）。
+- 全量回归 55 个测试通过。
 
 ### 2026-06-16
 
@@ -130,10 +146,13 @@ P2 已全部完成，下一步进入 P3 角色库与世界观词典。
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P1-09/P1-10/P1-11：`/user` DELETE、`/user/cancel-restore`、`/user/identity-type`、邮件模板与安全告警，30 个测试通过 |
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P2-01~P2-04：Project/Volume/Chapter 领域模型与 CRUD，39 个测试通过 |
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P2-05~P2-07：大纲树、差量字数统计、版本快照，42 个测试通过 |
+| 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P3-01/P3-02/P3-03：角色 CRUD、锁定/解锁、世界观要素 CRUD，55 个测试通过 |
 
 ## 阻塞记录
 
-- 当前系统 PATH 默认 Java 8，直接执行 `mvn test` 会失败。需先设置 `JAVA_HOME=F:\jdk21`。
+- 当前系统 PATH 默认 Java 8，直接执行 `mvn test` 会失败。
+  - Windows 设置：`$env:JAVA_HOME='F:\jdk21'`
+  - macOS（当前机器）设置：`export JAVA_HOME=/Users/chenzhixia/Library/Java/JavaVirtualMachines/corretto-21.0.11/Contents/Home`
 - 当前机器未识别 `docker` 命令，暂未进行 PostgreSQL/Redis 联调；COS 需真实腾讯云凭证后联调。
 
 ## 决策记录
@@ -220,6 +239,12 @@ P2 已全部完成，下一步进入 P3 角色库与世界观词典。
 - 测试 schema 新增 projects、volumes、chapters 表。
 - 新增 `ProjectControllerTests` 集成测试 9 个用例，全部通过。
 - 全量回归 39 个测试通过。
+
+### 2026-06-16 P3-01~P3-03 Mapper is_locked 映射修复
+
+- `CharacterMapper` 和 `WorldElementMapper` 所有 SELECT 查询中，`is_locked` 列加 `AS locked` 别名。
+- 根因：MyBatis `mapUnderscoreToCamelCase=true` 将 `is_locked` 映射到属性 `isLocked`，而 Record 类的 setter 命名为 `setLocked()`；MyBatis 找不到 `setIsLocked()` 时静默跳过，导致 boolean 字段保持 Java 默认值 `false`，锁定状态无法正确读取。
+- 修复方式：在 SQL 层加别名，令 MyBatis 直接按列名 `locked` 查找 `setLocked()` setter。同样适用于 P2 已有的其它 `is_*` 布尔列（如 `is_email_verified`、`is_deleted` 等），已确认 UserMapper 等已通过别名方式正确处理。
 
 ### 2026-06-16 P2-05~P2-07
 

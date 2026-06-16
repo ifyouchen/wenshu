@@ -13,14 +13,14 @@ public interface CharacterMapper {
 
     @Select("""
             SELECT id, project_id, name, role, appearance, personality, abilities, speech_style, status,
-                   is_locked, first_chapter_id, last_active_chapter_id, created_at, updated_at
+                   is_locked AS locked, first_chapter_id, last_active_chapter_id, created_at, updated_at
             FROM characters WHERE id = CAST(#{id} AS UUID)
             """)
     CharacterRecord findById(@Param("id") String id);
 
     @Select("""
             SELECT id, project_id, name, role, appearance, personality, abilities, speech_style, status,
-                   is_locked, first_chapter_id, last_active_chapter_id, created_at, updated_at
+                   is_locked AS locked, first_chapter_id, last_active_chapter_id, created_at, updated_at
             FROM characters WHERE project_id = CAST(#{projectId} AS UUID)
             ORDER BY created_at
             """)
