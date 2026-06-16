@@ -121,10 +121,13 @@
 - P8-20：账户设置 UI（`SettingsView.vue` 5 个 Tab：个人资料/创作偏好/AI 内容/订阅用量/账户安全；`api/subscription.ts` 新建；`api/user.ts` 扩展 updateAiConsent/setIdentityType/deleteAccount；P9 订阅升级引导为占位提示）。
 - P9-01：配额模型与扣减（Flyway V9 subscription_plans+user_subscriptions；`SubscriptionPlan`/`UserSubscription` 领域；SubscriptionService；QuotaService 新增动态限额重载方法；156 个全量测试通过）。
 - P9-02：订阅方案查询（`SubscriptionController`：GET /subscriptions/plans（无需鉴权）+ GET /subscriptions/current（需 Bearer）；6 个集成测试全通过）。
+- P9-04：数据导出 ZIP（`FileStorageService` 接口；`CosStorageService`+`NoopFileStorageService`+`CosStorageConfig` 凭据有无自动切换；`DataExportTaskRunner` @Async 全量数据 ZIP 打包上传 COS；`POST /user/data/export` 返回 taskId；165 个测试通过）。
+- P9-05：内容安全过滤和申诉入口（Flyway V10 content_appeals；`ContentAppeal` 领域；`ContentSafetyService` 降级桩实现；`ContentSafetyController`：GET /content/policy（无需鉴权）+ POST/GET /content/appeals（需 Bearer））。
+- P9-06：版权免责与 AI 辅助标识（`ScriptExportTaskRunner` @Async 含 "AI 辅助生成" 声明；ScriptService.submitExport 接真实 runner；P8-17 从 BLOCKED 解除，改为 TODO）。
 
 ## 当前待办
 
-P8-17（BLOCKED：依赖 P9-05 内容安全过滤）、P8-19（BLOCKED：依赖 P9 支付与订阅流程）。P9 继续推进：P9-04（数据导出）、P9-03（支付订单）等。
+P8-17（依赖满足，下批可实现：A/B/C/D 级异常状态 UI + 内容替换 Tooltip + 申诉入口）、P8-19（依赖 P9 支付流程 BLOCKED）。P9 继续：P9-03（支付订单与回调验签）、P9-07（团队版成员与共享配额）、P9-08、P9-09。
 
 ## 实现日志
 
