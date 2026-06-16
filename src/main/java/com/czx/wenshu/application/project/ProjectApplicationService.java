@@ -26,16 +26,20 @@ public class ProjectApplicationService {
     private final ChapterRepository chapterRepository;
     private final ChapterSnapshotRepository snapshotRepository;
     private final WritingStatsService writingStatsService;
+    private final CharacterAnchorService characterAnchorService;
     private final Clock clock;
 
     public ProjectApplicationService(ProjectRepository projectRepository, VolumeRepository volumeRepository,
                                       ChapterRepository chapterRepository, ChapterSnapshotRepository snapshotRepository,
-                                      WritingStatsService writingStatsService, Clock clock) {
+                                      WritingStatsService writingStatsService,
+                                      CharacterAnchorService characterAnchorService,
+                                      Clock clock) {
         this.projectRepository = projectRepository;
         this.volumeRepository = volumeRepository;
         this.chapterRepository = chapterRepository;
         this.snapshotRepository = snapshotRepository;
         this.writingStatsService = writingStatsService;
+        this.characterAnchorService = characterAnchorService;
         this.clock = clock;
     }
 
@@ -135,6 +139,8 @@ public class ProjectApplicationService {
         chapter.saveContent(command.title(), command.content(), command.outline(), ChapterStatus.fromValue(command.status()), clock);
         chapterRepository.save(chapter);
         writingStatsService.recordManualDelta(project.userId(), chapter.projectId(), delta);
+        // P6-02：章节保存后自动更新角色锚点（lastActiveChapterId / firstChapterId）
+        characterAnchorService.updateAnchors(chapter.projectId(), chapterId, chapter.content());
         return ChapterInfo.from(chapter);
     }
 

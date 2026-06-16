@@ -1,5 +1,7 @@
 package com.czx.wenshu.interfaces.rest.user;
 
+import com.czx.wenshu.application.novel.StyleProfileService;
+import com.czx.wenshu.application.novel.UserStyleProfileInfo;
 import com.czx.wenshu.application.user.ChangePasswordCommand;
 import com.czx.wenshu.application.user.DeleteAccountResult;
 import com.czx.wenshu.application.user.UpdateAiConsentCommand;
@@ -33,10 +35,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserApplicationService userApplicationService;
+    private final StyleProfileService styleProfileService;
     private final CurrentUserProvider currentUserProvider;
 
-    public UserController(UserApplicationService userApplicationService, CurrentUserProvider currentUserProvider) {
+    public UserController(UserApplicationService userApplicationService,
+                           StyleProfileService styleProfileService,
+                           CurrentUserProvider currentUserProvider) {
         this.userApplicationService = userApplicationService;
+        this.styleProfileService = styleProfileService;
         this.currentUserProvider = currentUserProvider;
     }
 

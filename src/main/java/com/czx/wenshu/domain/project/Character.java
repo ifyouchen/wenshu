@@ -71,6 +71,18 @@ public class Character {
         this.updatedAt = Instant.now(clock);
     }
 
+    /**
+     * P6-02：更新角色在章节中的锚点。
+     * 若 firstChapterId 为空则同时记录为首次出现章节。
+     */
+    public void updateAnchor(UUID chapterId, Clock clock) {
+        this.lastActiveChapterId = chapterId;
+        if (this.firstChapterId == null) {
+            this.firstChapterId = chapterId;
+        }
+        this.updatedAt = Instant.now(clock);
+    }
+
     public UUID id() { return id; }
     public UUID projectId() { return projectId; }
     public String name() { return name; }
