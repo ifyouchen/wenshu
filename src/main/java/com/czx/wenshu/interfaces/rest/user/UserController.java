@@ -1,5 +1,7 @@
 package com.czx.wenshu.interfaces.rest.user;
 
+import com.czx.wenshu.application.export.DataExportService;
+import java.util.Map;
 import com.czx.wenshu.application.novel.StyleProfileService;
 import com.czx.wenshu.application.novel.UserStyleProfileInfo;
 import com.czx.wenshu.application.user.QuotaInfo;
@@ -11,6 +13,7 @@ import com.czx.wenshu.application.user.UpdateProfileCommand;
 import com.czx.wenshu.application.user.UserApplicationService;
 import com.czx.wenshu.application.user.UserInfo;
 import com.czx.wenshu.application.user.UUIDCommand;
+import com.czx.wenshu.domain.task.AsyncTask;
 import com.czx.wenshu.interfaces.rest.project.UpdateWritingGoalRequest;
 import com.czx.wenshu.common.result.Result;
 import com.czx.wenshu.domain.user.IdentityType;
@@ -39,15 +42,18 @@ public class UserController {
     private final UserApplicationService userApplicationService;
     private final StyleProfileService styleProfileService;
     private final QuotaService quotaService;
+    private final DataExportService dataExportService;
     private final CurrentUserProvider currentUserProvider;
 
     public UserController(UserApplicationService userApplicationService,
                            StyleProfileService styleProfileService,
                            QuotaService quotaService,
+                           DataExportService dataExportService,
                            CurrentUserProvider currentUserProvider) {
         this.userApplicationService = userApplicationService;
         this.styleProfileService = styleProfileService;
         this.quotaService = quotaService;
+        this.dataExportService = dataExportService;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -149,5 +155,20 @@ public class UserController {
         User user = currentUserProvider.getCurrentUser();
         styleProfileService.deleteProfile(user.id());
         return Result.ok();
+    }
+
+    /**
+     * 提交用户全量数据导出任务（P9-04）。
+     *
+     * <p>立即返回 taskId，通过 GET /tasks/{taskId}/progress 轮询状态。
+     * 任务完成后 resultJson 中包含 {@code downloadUrl}（60 分钟有效期的腾讯云 COS 预签名 URL）。</p>
+     */
+    @Operation(summary = "提交数据导出任务（P9-04）",
+               description = "异步打包用户全量数据（作品、卷章、角色库、词典）并上传 COS，返回 taskId 供轮询。")
+    @PostMapping("/data/export")
+    public Result<Map<String, String>> submitDataExport() {
+        User user = currentUserProvider.getCurrentUser();
+        AsyncTask task = dataExportService.submitExport(user.id());
+        return Result.ok(Map.of("taskId", task.id().toString()));
     }
 }

@@ -34,6 +34,7 @@ public class ScriptService {
     private final ScriptEpisodeRepository episodeRepository;
     private final ProjectRepository projectRepository;
     private final AsyncTaskService asyncTaskService;
+    private final ScriptExportTaskRunner exportTaskRunner;
     private final Clock clock;
 
     public ScriptService(ScriptDraftRepository draftRepository,
@@ -41,12 +42,14 @@ public class ScriptService {
                           ScriptEpisodeRepository episodeRepository,
                           ProjectRepository projectRepository,
                           AsyncTaskService asyncTaskService,
+                          ScriptExportTaskRunner exportTaskRunner,
                           Clock clock) {
         this.draftRepository = draftRepository;
         this.sceneRepository = sceneRepository;
         this.episodeRepository = episodeRepository;
         this.projectRepository = projectRepository;
         this.asyncTaskService = asyncTaskService;
+        this.exportTaskRunner = exportTaskRunner;
         this.clock = clock;
     }
 
@@ -190,11 +193,24 @@ public class ScriptService {
      * @param format  导出格式（docx/fdx/storyboard）
      * @return 包含 taskId 的 Map
      */
+    /**
+     * 提交剧本导出任务（P7-08 / P9-06）。
+     *
+     * <p>异步生成带 "AI 辅助生成" 声明的导出文件，上传至腾讯云 COS，
+     * 任务完成后 resultJson 包含预签名下载 URL。</p>
+     *
+     * @param draftId 草稿 ID
+     * @param userId  当前用户 ID
+     * @param format  导出格式（docx/fdx/storyboard，当前统一生成 TXT）
+     * @return taskId 和 draftId
+     */
     @Transactional
     public Map<String, String> submitExport(UUID draftId, UUID userId, String format) {
         loadDraftAndVerify(draftId, userId);
         AsyncTask task = asyncTaskService.createTask(userId, null, "script_export");
         log.info("[ScriptService] 提交导出任务 draftId={} format={} taskId={}", draftId, format, task.id());
+        // P9-06：触发真实导出（含 AI 辅助生成声明）
+        exportTaskRunner.run(task.id(), draftId, userId, format);
         return Map.of("taskId", task.id().toString(), "draftId", draftId.toString());
     }
 

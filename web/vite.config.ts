@@ -36,6 +36,15 @@ export default defineConfig({
   build: {
     // P8-22：精细代码分割，减少首屏加载体积
     rollupOptions: {
+      /**
+       * 过滤第三方库产生的已知无害警告。
+       * INVALID_ANNOTATION：@vueuse/core dist 中 `/* #__PURE__ *\/` 注释位置不符合
+       * Rolldown 的严格规范，但不影响运行时行为，仅导致对应表达式无法 tree-shake。
+       */
+      onwarn(warning, defaultHandler) {
+        if (warning.code === 'INVALID_ANNOTATION') return
+        defaultHandler(warning)
+      },
       output: {
         manualChunks(id: string) {
           // TipTap 编辑器相关（仅编辑器路由加载）

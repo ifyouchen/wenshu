@@ -6,7 +6,7 @@
 
 阶段：`P8 前端工作台`
 
-整体状态：P6/P7 全部完成；P8 进行中（20/22，P8-17/P8-19 BLOCKED 等待 P9），P8-01~P8-16 + P8-18~P8-22 已完成；P9 进行中（2/9），P9-01/P9-02 已完成。
+整体状态：P6/P7 全部完成；P8 进行中（20/22，P8-17 解除阻塞/P8-19 等待 P9 支付），P9 进行中（5/9），P9-01~P9-06 已完成。
 
 ## 阶段进度
 
@@ -20,8 +20,8 @@
 | P5 AI 写作与润色 | DONE | 10/10 | P5 全部完成 |
 | P6 一致性审查与锚点 | DONE | 7/7 | P6 全部完成 |
 | P7 小说转剧本 | DONE | 8/8 | P7 全部完成 |
-| P8 前端工作台 | DOING | 20/22 | P8-01~P8-16 + P8-18~P8-22 已完成；P8-17/P8-19 BLOCKED 等待 P9 |
-| P9 商业化与数据安全 | DOING | 2/9 | P9-01/P9-02 已完成 |
+| P8 前端工作台 | DOING | 20/22 | P8-01~P8-16 + P8-18~P8-22 已完成；P8-17 解除阻塞/P8-19 等待 P9 支付 |
+| P9 商业化与数据安全 | DOING | 5/9 | P9-01~P9-06 已完成 |
 | P10 生态与开放能力 | DEFERRED | 0/3 | V2.0/企业生态能力，已登记 |
 
 ## 已完成任务
@@ -127,6 +127,14 @@
 P8-17（BLOCKED：依赖 P9-05 内容安全过滤）、P8-19（BLOCKED：依赖 P9 支付与订阅流程）。P9 继续推进：P9-04（数据导出）、P9-03（支付订单）等。
 
 ## 实现日志
+
+### 2026-06-16 P9-04 / P9-05 / P9-06
+
+- **P9-04 数据导出 ZIP + COS**：`FileStorageService` 应用层端口（upload/generatePresignedUrl/isAvailable）；`CosStorageConfig` 根据凭据注册 `CosStorageService`（真实 COS）或 `NoopFileStorageService`（降级）；`CosStorageService`（PUT Object + GeneratePresignedUrl，可选自定义域名替换）；`NoopFileStorageService`（上传操作抛 UnsupportedOperationException，URL 返回占位符）；`DataExportTaskRunner` @Async（收集用户所有 Project+Volume+Chapter+Character+WorldElement，构建 ZIP，上传 COS，完成任务含 downloadUrl）；`DataExportService`（createTask + 触发 runner）；`UserController` 新增 `POST /user/data/export`（返回 taskId）；P8-17 依赖的 P9-05 完成后该任务解除阻塞。
+- **P9-05 内容安全过滤和申诉入口**：Flyway V10 `content_appeals` 表；`ContentAppeal` 领域对象（create/rehydrate，pending→approved/rejected 状态）；`ContentAppealRepository` 端口 + `MyBatisContentAppealRepository`；`ContentSafetyService`（check 轻量桩实现降级，submitAppeal，listAppeals）；`ContentSafetyResult` record（safe/unsafe 工厂方法，避免与 record 组件名冲突）；`AppealInfo` DTO；`ContentSafetyController`（GET /content/policy 无需鉴权，POST/GET /content/appeals 需 Bearer）；WebMvcConfig 新增 `/content/appeals` 拦截路径。
+- **P9-06 版权免责与 AI 辅助标识**：`ScriptExportTaskRunner` @Async（读取草稿+场景，生成含 "AI 辅助生成" 声明的文本文件，上传 COS，result_json 含 aiAssisted=true + annotation 字段）；`ScriptService.submitExport()` 注入 `ScriptExportTaskRunner` 替换原桩实现；GET /content/policy 策略文档中加入 copyright/exportAnnotation 说明；P8-17 依赖 P9-05（已完成），正式从 BLOCKED 改为 TODO。
+- 测试 schema 新增 content_appeals 表（DROP+CREATE）；`ContentSafetyAndExportTests` 9 个集成测试（策略查询无需鉴权/AI声明字段/四级安全/申诉 401/提交申诉/空内容 400/申诉列表/导出 401/导出返回 taskId）全部通过。
+- 全量回归 **165 个测试**通过。
 
 ### 2026-06-16 P8-20 / P9-01 / P9-02
 
@@ -393,6 +401,7 @@ P8-17（BLOCKED：依赖 P9-05 内容安全过滤）、P8-19（BLOCKED：依赖 
 | 2026-06-16 | `npm run build`（web/）| PASS | P8-14/P8-15/P8-16：移动端响应式/命令面板/Toast 通知系统，TypeScript 无错误，构建成功 |
 | 2026-06-16 | `npm run build`（web/）| PASS | P8-18/P8-21/P8-22：渐进式引导/快捷键面板/代码分割，vendor-core 561→273kB (-52%)，2985 模块，TypeScript 无错误 |
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P9-01/P9-02：订阅套餐模型/方案查询，156 个测试通过 |
+| 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P9-04/P9-05/P9-06：数据导出+COS/内容安全/AI 标识，165 个测试全部通过 |
 | 2026-06-16 | `npm run build`（web/）| PASS | P8-20/P9-01/P9-02：账户设置 UI/订阅套餐/配额动态限额，2987 模块，TypeScript 无错误 |
 
 ## 阻塞记录

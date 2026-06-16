@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS content_appeals;
 DROP TABLE IF EXISTS user_subscriptions;
 DROP TABLE IF EXISTS subscription_plans;
 DROP TABLE IF EXISTS consistency_report_items;
@@ -327,4 +328,15 @@ CREATE TABLE user_subscriptions (
     status     VARCHAR(20) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE content_appeals (
+    id            VARCHAR(36) PRIMARY KEY,
+    user_id       VARCHAR(36) NOT NULL,
+    content       TEXT        NOT NULL,
+    reason        TEXT        NOT NULL,
+    status        VARCHAR(20) NOT NULL DEFAULT 'pending',
+    reviewer_note TEXT,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
