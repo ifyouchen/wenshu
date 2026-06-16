@@ -1,0 +1,13 @@
+请分析以下章节，提取 3-5 个关键事件节点（情节转折、人物冲突、重要抉择、重要揭示等）。
+
+以 JSON 数组格式输出，每个事件包含：
+- eventText: 事件描述（50 字以内）
+- eventType: 类型（conflict/relationship/turning_point/revelation/decision 之一）
+- characters: 涉及角色名称列表（JSON 数组，例如 ["张三","李四"]）
+- importance: 重要程度（0.0~1.0 浮点数）
+
+只输出 JSON 数组，不要解释。
+
+章节标题：{{chapterTitle}}
+章节内容（节选）：
+{{content}}

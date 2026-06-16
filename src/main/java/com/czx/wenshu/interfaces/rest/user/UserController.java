@@ -2,6 +2,8 @@ package com.czx.wenshu.interfaces.rest.user;
 
 import com.czx.wenshu.application.novel.StyleProfileService;
 import com.czx.wenshu.application.novel.UserStyleProfileInfo;
+import com.czx.wenshu.application.user.QuotaInfo;
+import com.czx.wenshu.application.user.QuotaService;
 import com.czx.wenshu.application.user.ChangePasswordCommand;
 import com.czx.wenshu.application.user.DeleteAccountResult;
 import com.czx.wenshu.application.user.UpdateAiConsentCommand;
@@ -36,13 +38,16 @@ public class UserController {
 
     private final UserApplicationService userApplicationService;
     private final StyleProfileService styleProfileService;
+    private final QuotaService quotaService;
     private final CurrentUserProvider currentUserProvider;
 
     public UserController(UserApplicationService userApplicationService,
                            StyleProfileService styleProfileService,
+                           QuotaService quotaService,
                            CurrentUserProvider currentUserProvider) {
         this.userApplicationService = userApplicationService;
         this.styleProfileService = styleProfileService;
+        this.quotaService = quotaService;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -113,6 +118,14 @@ public class UserController {
     public Result<UserInfo> updateWritingGoal(@Valid @RequestBody UpdateWritingGoalRequest request) {
         User user = currentUserProvider.getCurrentUser();
         return Result.ok(userApplicationService.updateGlobalWritingGoal(user.id(), request.dailyCharGoal()));
+    }
+
+    @Operation(summary = "获取当月配额详情（P6-05）",
+               description = "返回当月 AI 字符用量和改编/审查次数用量，含剩余额度。配额每次 AI 操作完成后更新。")
+    @GetMapping("/quota")
+    public Result<QuotaInfo> getQuota() {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(quotaService.getQuotaInfo(user.id()));
     }
 
     @Operation(summary = "获取文风档案（P5-10）", description = "返回用户的文风样本与分析标签。")

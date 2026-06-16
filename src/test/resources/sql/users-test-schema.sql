@@ -1,4 +1,6 @@
 DROP TABLE IF EXISTS user_style_profiles;
+DROP TABLE IF EXISTS chapter_key_events;
+DROP TABLE IF EXISTS quota_usage;
 DROP TABLE IF EXISTS chapter_summaries;
 DROP TABLE IF EXISTS ai_task_progress;
 DROP TABLE IF EXISTS import_parse_sessions;
@@ -209,4 +211,26 @@ CREATE TABLE user_style_profiles (
     analysis_task_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE chapter_key_events (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL,
+    chapter_id UUID NOT NULL,
+    event_text VARCHAR(500) NOT NULL,
+    event_type VARCHAR(30),
+    characters TEXT DEFAULT '[]',
+    importance DECIMAL(3,2) DEFAULT 0.5,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (chapter_id, event_text)
+);
+
+CREATE TABLE quota_usage (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    year_month VARCHAR(7) NOT NULL,
+    used_chars BIGINT DEFAULT 0,
+    used_adaptations INT DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, year_month)
 );
