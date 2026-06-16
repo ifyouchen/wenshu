@@ -13,8 +13,12 @@ spring:
       password: ${WENSHU_REDIS_PASSWORD:}
       timeout: 2s
   flyway:
-    enabled: true
-    locations: classpath:db/migration
+    enabled: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      continue-on-error: true
   thymeleaf:
     check-template-location: false
   jackson:

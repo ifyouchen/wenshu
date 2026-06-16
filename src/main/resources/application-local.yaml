@@ -14,8 +14,7 @@ spring:
       password: ${WENSHU_REDIS_PASSWORD:}
       timeout: 2s
   flyway:
-    enabled: true
-    locations: classpath:db/migration
+    enabled: false
 
 logging:
   level:
