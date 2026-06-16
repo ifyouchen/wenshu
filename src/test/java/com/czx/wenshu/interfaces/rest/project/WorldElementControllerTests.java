@@ -182,6 +182,67 @@ class WorldElementControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
+    // P3-04 tests: aliases 支持
+
+    @Test
+    void createWorldElementWithAliasesReturnsAliases() {
+        Map<String, Object> request = Map.of(
+                "type", "character",
+                "name", "张三",
+                "description", "主角",
+                "aliases", List.of("小三", "三郎")
+        );
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/projects/" + projectId + "/world-dict",
+                HttpMethod.POST,
+                new HttpEntity<>(request, authHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> element = (Map<String, Object>) response.getBody().get("data");
+        assertThat(element.get("name")).isEqualTo("张三");
+        List<String> aliases = (List<String>) element.get("aliases");
+        assertThat(aliases).containsExactly("小三", "三郎");
+    }
+
+    @Test
+    void updateWorldElementAliasesChangesAliases() {
+        String elementId = createElementAndGetId("character", "李白", null);
+
+        Map<String, Object> updateRequest = Map.of(
+                "name", "李白",
+                "aliases", List.of("诗仙", "翰林")
+        );
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/world-dict/" + elementId,
+                HttpMethod.PUT,
+                new HttpEntity<>(updateRequest, authHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> element = (Map<String, Object>) response.getBody().get("data");
+        List<String> aliases = (List<String>) element.get("aliases");
+        assertThat(aliases).containsExactly("诗仙", "翰林");
+    }
+
+    @Test
+    void createWorldElementWithoutAliasesDefaultsToEmpty() {
+        Map<String, String> request = Map.of("type", "item", "name", "魔法剑");
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/projects/" + projectId + "/world-dict",
+                HttpMethod.POST,
+                new HttpEntity<>(request, authHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> element = (Map<String, Object>) response.getBody().get("data");
+        List<String> aliases = (List<String>) element.get("aliases");
+        assertThat(aliases).isEmpty();
+    }
+
     private String createElementAndGetId(String type, String name, String description) {
         Map<String, Object> payload = description != null
                 ? Map.of("type", type, "name", name, "description", description)

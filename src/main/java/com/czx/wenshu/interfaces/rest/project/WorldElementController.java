@@ -48,7 +48,7 @@ public class WorldElementController {
     public Result<WorldElementInfo> createWorldElement(@PathVariable UUID id, @Valid @RequestBody CreateWorldElementRequest request) {
         User user = currentUserProvider.getCurrentUser();
         return Result.ok(worldElementService.createWorldElement(id, user.id(),
-                new CreateWorldElementCommand(request.type(), request.name(), request.description())));
+                new CreateWorldElementCommand(request.type(), request.name(), request.description(), request.aliases())));
     }
 
     @Operation(summary = "更新世界观要素", description = "更新世界观要素信息。")
@@ -56,7 +56,7 @@ public class WorldElementController {
     public Result<WorldElementInfo> updateWorldElement(@PathVariable UUID id, @RequestBody UpdateWorldElementRequest request) {
         User user = currentUserProvider.getCurrentUser();
         return Result.ok(worldElementService.updateWorldElement(id, user.id(),
-                new UpdateWorldElementCommand(request.type(), request.name(), request.description())));
+                new UpdateWorldElementCommand(request.type(), request.name(), request.description(), request.aliases())));
     }
 
     @Operation(summary = "删除世界观要素", description = "删除世界观要素。")

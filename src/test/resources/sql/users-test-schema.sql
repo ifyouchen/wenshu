@@ -157,6 +157,7 @@ CREATE TABLE world_elements (
     type VARCHAR(50),
     name VARCHAR(200),
     description TEXT,
+    aliases TEXT NOT NULL DEFAULT '[]',
     is_locked BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -12,17 +12,24 @@ import org.apache.ibatis.annotations.Update;
 public interface WorldElementMapper {
 
     @Select("""
-            SELECT id, project_id, type, name, description, is_locked AS locked, created_at
+            SELECT id, project_id, type, name, description, aliases, is_locked AS locked, created_at
             FROM world_elements WHERE id = CAST(#{id} AS UUID)
             """)
     WorldElementRecord findById(@Param("id") String id);
 
     @Select("""
-            SELECT id, project_id, type, name, description, is_locked AS locked, created_at
+            SELECT id, project_id, type, name, description, aliases, is_locked AS locked, created_at
             FROM world_elements WHERE project_id = CAST(#{projectId} AS UUID)
             ORDER BY created_at
             """)
     List<WorldElementRecord> findByProjectId(@Param("projectId") String projectId);
+
+    @Select("""
+            SELECT id, project_id, type, name, description, aliases, is_locked AS locked, created_at
+            FROM world_elements WHERE project_id = CAST(#{projectId} AS UUID) AND name = #{name}
+            LIMIT 1
+            """)
+    WorldElementRecord findByProjectIdAndName(@Param("projectId") String projectId, @Param("name") String name);
 
     @Select("""
             SELECT COUNT(1) FROM world_elements WHERE id = CAST(#{id} AS UUID) AND project_id = CAST(#{projectId} AS UUID)
@@ -30,13 +37,14 @@ public interface WorldElementMapper {
     boolean existsByIdAndProjectId(@Param("id") String id, @Param("projectId") String projectId);
 
     @Insert("""
-            INSERT INTO world_elements (id, project_id, type, name, description, is_locked, created_at)
-            VALUES (CAST(#{id} AS UUID), CAST(#{projectId} AS UUID), #{type}, #{name}, #{description}, #{locked}, #{createdAt})
+            INSERT INTO world_elements (id, project_id, type, name, description, aliases, is_locked, created_at)
+            VALUES (CAST(#{id} AS UUID), CAST(#{projectId} AS UUID), #{type}, #{name}, #{description}, #{aliases}, #{locked}, #{createdAt})
             """)
     void insert(WorldElementRecord record);
 
     @Update("""
-            UPDATE world_elements SET type = #{type}, name = #{name}, description = #{description}, is_locked = #{locked}
+            UPDATE world_elements SET type = #{type}, name = #{name}, description = #{description},
+                aliases = #{aliases}, is_locked = #{locked}
             WHERE id = CAST(#{id} AS UUID)
             """)
     void update(WorldElementRecord record);

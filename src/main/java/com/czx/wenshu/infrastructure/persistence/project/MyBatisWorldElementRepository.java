@@ -38,6 +38,12 @@ public class MyBatisWorldElementRepository implements WorldElementRepository {
     }
 
     @Override
+    public Optional<WorldElement> findByProjectIdAndName(UUID projectId, String name) {
+        return Optional.ofNullable(mapper.findByProjectIdAndName(projectId.toString(), name))
+                .map(this::toDomain);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         mapper.deleteById(id.toString());
     }
@@ -49,7 +55,9 @@ public class MyBatisWorldElementRepository implements WorldElementRepository {
 
     private WorldElement toDomain(WorldElementRecord r) {
         return WorldElement.rehydrate(UUID.fromString(r.getId()), UUID.fromString(r.getProjectId()),
-                r.getType(), r.getName(), r.getDescription(), r.isLocked(), r.getCreatedAt());
+                r.getType(), r.getName(), r.getDescription(),
+                r.getAliases() != null ? r.getAliases() : "[]",
+                r.isLocked(), r.getCreatedAt());
     }
 
     private WorldElementRecord toRecord(WorldElement e) {
@@ -59,6 +67,7 @@ public class MyBatisWorldElementRepository implements WorldElementRepository {
         r.setType(e.type());
         r.setName(e.name());
         r.setDescription(e.description());
+        r.setAliases(e.aliases() != null ? e.aliases() : "[]");
         r.setLocked(e.locked());
         r.setCreatedAt(e.createdAt());
         return r;

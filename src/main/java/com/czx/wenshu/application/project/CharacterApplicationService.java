@@ -16,11 +16,16 @@ public class CharacterApplicationService {
 
     private final CharacterRepository characterRepository;
     private final ProjectRepository projectRepository;
+    private final WorldElementApplicationService worldElementApplicationService;
     private final Clock clock;
 
-    public CharacterApplicationService(CharacterRepository characterRepository, ProjectRepository projectRepository, Clock clock) {
+    public CharacterApplicationService(CharacterRepository characterRepository,
+                                        ProjectRepository projectRepository,
+                                        WorldElementApplicationService worldElementApplicationService,
+                                        Clock clock) {
         this.characterRepository = characterRepository;
         this.projectRepository = projectRepository;
+        this.worldElementApplicationService = worldElementApplicationService;
         this.clock = clock;
     }
 
@@ -51,9 +56,14 @@ public class CharacterApplicationService {
         Character character = characterRepository.findById(characterId)
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "角色不存在"));
         verifyProjectOwnership(character.projectId(), userId);
+        String oldName = character.name();
         character.update(command.name(), command.role(), command.appearance(), command.personality(),
                 command.abilities(), command.speechStyle(), command.status(), clock);
         characterRepository.save(character);
+        // P3-05：若角色名发生变化，同步词典中同名条目
+        if (command.name() != null && !command.name().equals(oldName)) {
+            worldElementApplicationService.syncCharacterName(character.projectId(), oldName, character.name());
+        }
         return CharacterInfo.from(character);
     }
 

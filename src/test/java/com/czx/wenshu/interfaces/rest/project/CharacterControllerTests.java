@@ -201,6 +201,58 @@ class CharacterControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
+    // P3-05 test: 角色名更新时同步词典条目
+
+    @Test
+    void updateCharacterNameSyncsMatchingWorldElement() {
+        // 先创建一个与角色同名的词典条目
+        restTemplate.exchange(
+                "/api/v1/projects/" + projectId + "/world-dict",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of("type", "character", "name", "老名字"), authHeaders()),
+                Map.class
+        );
+
+        // 创建角色，命名为"老名字"
+        String characterId = createCharacterAndGetId("老名字", "hero");
+
+        // 更新角色名为"新名字"
+        ResponseEntity<Map> updateResponse = restTemplate.exchange(
+                "/api/v1/characters/" + characterId,
+                HttpMethod.PUT,
+                new HttpEntity<>(Map.of("name", "新名字"), authHeaders()),
+                Map.class
+        );
+        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(((Map<String, Object>) updateResponse.getBody().get("data")).get("name")).isEqualTo("新名字");
+
+        // 验证词典中的同名条目已同步更新
+        ResponseEntity<Map> listResponse = restTemplate.exchange(
+                "/api/v1/projects/" + projectId + "/world-dict",
+                HttpMethod.GET,
+                new HttpEntity<>(authHeaders()),
+                Map.class
+        );
+        List<Map<String, Object>> elements = (List<Map<String, Object>>) listResponse.getBody().get("data");
+        assertThat(elements).hasSize(1);
+        assertThat(elements.get(0).get("name")).isEqualTo("新名字");
+    }
+
+    @Test
+    void updateCharacterNameNoMatchingWordDictEntryIsNoOp() {
+        // 词典中没有同名条目，更新角色名不报错
+        String characterId = createCharacterAndGetId("独立角色", "support");
+
+        ResponseEntity<Map> updateResponse = restTemplate.exchange(
+                "/api/v1/characters/" + characterId,
+                HttpMethod.PUT,
+                new HttpEntity<>(Map.of("name", "独立角色改名"), authHeaders()),
+                Map.class
+        );
+        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(((Map<String, Object>) updateResponse.getBody().get("data")).get("name")).isEqualTo("独立角色改名");
+    }
+
     private String createCharacterAndGetId(String name, String role) {
         ResponseEntity<Map> response = restTemplate.exchange(
                 "/api/v1/projects/" + projectId + "/characters",

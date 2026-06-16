@@ -9,6 +9,7 @@ public class WorldElementRecord {
     private String type;
     private String name;
     private String description;
+    private String aliases;
     private boolean locked;
     private Instant createdAt;
 
@@ -22,6 +23,8 @@ public class WorldElementRecord {
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getAliases() { return aliases; }
+    public void setAliases(String aliases) { this.aliases = aliases; }
     public boolean isLocked() { return locked; }
     public void setLocked(boolean locked) { this.locked = locked; }
     public Instant getCreatedAt() { return createdAt; }
