@@ -6,7 +6,8 @@
  *  - 内容变更自动保存（debounce 1000ms）。
  *  - 字数统计使用 CharacterCount extension。
  */
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import type { Editor } from '@tiptap/vue-3'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -24,6 +25,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** 内容发生变化，携带新的 HTML 内容（debounced）。 */
   change: [content: string]
+  /** 编辑器实例就绪，供父组件监听文本选中状态（P8-08）。 */
+  editorReady: [editor: Editor]
 }>()
 
 /** 自动保存防抖定时器。 */
@@ -71,6 +74,11 @@ function markSaved() { saveStatus.value = 'saved' }
 function markError() { saveStatus.value = 'error' }
 
 defineExpose({ markSaved, markError })
+
+/** 编辑器就绪后通知父组件（P8-08，供 AI 浮窗监听选区）。 */
+onMounted(() => {
+  if (editor.value) emit('editorReady', editor.value)
+})
 
 onBeforeUnmount(() => {
   if (saveTimer) clearTimeout(saveTimer)
@@ -145,5 +153,13 @@ onBeforeUnmount(() => {
   pointer-events: none;
   float: left;
   height: 0;
+}
+
+/* P8-08: AI 内容绿色左边框标识（未接受态）。 */
+:deep([data-ai="true"]) {
+  border-left: 3px solid #18a058;
+  padding-left: 6px;
+  background: rgba(24, 160, 88, 0.06);
+  border-radius: 0 2px 2px 0;
 }
 </style>
