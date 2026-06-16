@@ -11,7 +11,7 @@ import java.util.UUID;
  *
  * <p>状态流转：pending（邀请中）→ active（接受邀请）→ removed（被移除）</p>
  *
- * <p>角色：admin（管理员，可邀请/移除成员）/ member（普通成员）</p>
+ * <p>角色：admin（管理员，可邀请/移除成员）/ editor（编辑）/ writer（写手）</p>
  */
 public class TeamMember {
 
@@ -24,7 +24,7 @@ public class TeamMember {
     /** 成员用户 ID。 */
     private final UUID userId;
 
-    /** 成员角色：admin / member。 */
+    /** 成员角色：admin / editor / writer。 */
     private String role;
 
     /** 成员状态：pending / active / removed。 */
@@ -66,9 +66,15 @@ public class TeamMember {
      * @param clock      时钟
      * @return 新成员记录（pending 状态）
      */
+    /**
+     * 允许的角色列表（P2-6）。
+     */
+    public static final java.util.Set<String> ALLOWED_ROLES =
+            java.util.Set.of("admin", "editor", "writer");
+
     public static TeamMember invite(UUID teamId, UUID userId, UUID invitedBy,
                                     String inviteCode, Clock clock) {
-        return new TeamMember(UUID.randomUUID(), teamId, userId, "member", "pending",
+        return new TeamMember(UUID.randomUUID(), teamId, userId, "writer", "pending",
                 invitedBy, inviteCode, null, clock.instant());
     }
 
@@ -114,11 +120,15 @@ public class TeamMember {
     }
 
     /**
-     * 修改角色（admin ↔ member）。
+     * 修改角色（P2-6：支持 admin / editor / writer 三种角色）。
      *
-     * @param newRole 新角色（admin/member）
+     * @param newRole 新角色（admin / editor / writer）
+     * @throws IllegalArgumentException 若角色值不在允许列表中
      */
     public void changeRole(String newRole) {
+        if (!ALLOWED_ROLES.contains(newRole)) {
+            throw new IllegalArgumentException("不支持的角色：" + newRole + "，允许值：admin, editor, writer");
+        }
         this.role = newRole;
     }
 

@@ -151,6 +151,7 @@ CREATE TABLE writing_daily_stats (
     manual_chars INT DEFAULT 0,
     ai_accepted_chars INT DEFAULT 0,
     total_chars INT DEFAULT 0,
+    peak_hour INT DEFAULT -1,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

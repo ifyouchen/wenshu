@@ -1,5 +1,6 @@
 package com.czx.wenshu.application.imports;
 
+import com.czx.wenshu.application.project.CharacterAnchorService;
 import com.czx.wenshu.application.project.ChapterInfo;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
@@ -25,11 +26,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 文件导入应用服务（P4-01 / P4-02 / P4-03 / P2-4 修复）。
+ */
 @Service
 public class ImportApplicationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ImportApplicationService.class);
 
     /**
      * 章节标题检测正则：支持常见中文网文章节格式和英文 Chapter 格式。
@@ -48,17 +56,30 @@ public class ImportApplicationService {
     private final ProjectRepository projectRepository;
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
+    private final CharacterAnchorService characterAnchorService;
     private final Clock clock;
 
+    /**
+     * 构造导入服务。
+     *
+     * @param sessionRepository    导入解析会话仓储
+     * @param projectRepository    作品仓储
+     * @param volumeRepository     卷仓储
+     * @param chapterRepository    章节仓储
+     * @param characterAnchorService 角色锚点服务（导入后自动提取）
+     * @param clock                时钟
+     */
     public ImportApplicationService(ImportParseSessionRepository sessionRepository,
                                      ProjectRepository projectRepository,
                                      VolumeRepository volumeRepository,
                                      ChapterRepository chapterRepository,
+                                     CharacterAnchorService characterAnchorService,
                                      Clock clock) {
         this.sessionRepository = sessionRepository;
         this.projectRepository = projectRepository;
         this.volumeRepository = volumeRepository;
         this.chapterRepository = chapterRepository;
+        this.characterAnchorService = characterAnchorService;
         this.clock = clock;
     }
 
@@ -111,7 +132,33 @@ public class ImportApplicationService {
             created.add(ChapterInfo.from(chapter));
         }
         sessionRepository.deleteById(parseId);
+        // P2-4：导入完成后，对前 3 章自动提取角色锚点（同步执行）
+        applyImportAnchorExtraction(volume.projectId(), created);
         return created;
+    }
+
+    /**
+     * 导入完成后对前 3 章同步提取角色锚点（P2-4 修复）。
+     *
+     * @param projectId      作品 ID
+     * @param importedChapters 已导入章节列表
+     */
+    private void applyImportAnchorExtraction(UUID projectId, List<ChapterInfo> importedChapters) {
+        int limit = Math.min(3, importedChapters.size());
+        for (int i = 0; i < limit; i++) {
+            ChapterInfo chapterInfo = importedChapters.get(i);
+            try {
+                Chapter chapter = chapterRepository.findById(UUID.fromString(chapterInfo.id())).orElse(null);
+                if (chapter != null) {
+                    characterAnchorService.updateAnchors(projectId, chapter.id(), chapter.content());
+                    log.debug("[ImportApplicationService] 角色锚点提取 chapterId={}", chapter.id());
+                }
+            } catch (Exception e) {
+                log.warn("[ImportApplicationService] 角色锚点提取失败 chapterId={} error={}",
+                        chapterInfo.id(), e.getMessage());
+            }
+        }
+        log.info("[ImportApplicationService] 导入后角色锚点提取完成 projectId={} 处理章节数={}", projectId, limit);
     }
 
     // ── P4-03: 粘贴文本导入（无预览步骤，直接入库）─────────────────────────

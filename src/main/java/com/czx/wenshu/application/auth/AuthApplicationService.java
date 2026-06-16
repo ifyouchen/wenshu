@@ -3,6 +3,7 @@ package com.czx.wenshu.application.auth;
 import com.czx.wenshu.application.user.WordPackService;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
+import com.czx.wenshu.domain.user.AccessTokenRepository;
 import com.czx.wenshu.domain.user.EmailAddress;
 import com.czx.wenshu.domain.user.EmailVerification;
 import com.czx.wenshu.domain.user.EmailVerificationRepository;
@@ -15,6 +16,7 @@ import com.czx.wenshu.domain.user.UserRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +35,7 @@ public class AuthApplicationService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final PasswordResetRepository passwordResetRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final AccessTokenRepository accessTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
     private final EmailVerificationTokenService emailVerificationTokenService;
@@ -47,6 +50,7 @@ public class AuthApplicationService {
             EmailVerificationRepository emailVerificationRepository,
             PasswordResetRepository passwordResetRepository,
             RefreshTokenRepository refreshTokenRepository,
+            AccessTokenRepository accessTokenRepository,
             PasswordEncoder passwordEncoder,
             AuthTokenService authTokenService,
             EmailVerificationTokenService emailVerificationTokenService,
@@ -59,6 +63,7 @@ public class AuthApplicationService {
         this.emailVerificationRepository = emailVerificationRepository;
         this.passwordResetRepository = passwordResetRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.accessTokenRepository = accessTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.authTokenService = authTokenService;
         this.emailVerificationTokenService = emailVerificationTokenService;
@@ -149,6 +154,20 @@ public class AuthApplicationService {
 
     public void logout(String authorizationHeader) {
         // Token persistence and revocation are completed in P1-06.
+    }
+
+    /**
+     * 登出所有设备（P0-4）。
+     * 吊销该用户的所有 Access Token 和 Refresh Token。
+     *
+     * @param userId 用户 ID
+     */
+    @Transactional
+    public void logoutAll(UUID userId) {
+        Instant now = Instant.now(clock);
+        accessTokenRepository.revokeAllForUser(userId, now);
+        refreshTokenRepository.revokeAllForUser(userId, now);
+        log.info("[AuthApplicationService] 已登出所有设备 userId={}", userId);
     }
 
     @Transactional

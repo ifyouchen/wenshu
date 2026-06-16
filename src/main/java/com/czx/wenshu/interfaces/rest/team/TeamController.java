@@ -149,10 +149,10 @@ public class TeamController {
     public record InviteRequest(UUID userId) {
     }
 
-    /** 修改角色请求。 */
+    /** 修改角色请求（P2-6：支持 admin / editor / writer 三种角色）。 */
     public record RoleRequest(
             @NotBlank
-            @Pattern(regexp = "admin|member", message = "角色只能是 admin 或 member")
+            @Pattern(regexp = "admin|editor|writer", message = "角色只能是 admin、editor 或 writer")
             String role) {
     }
 }

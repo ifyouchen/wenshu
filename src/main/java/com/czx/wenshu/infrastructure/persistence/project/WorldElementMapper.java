@@ -36,6 +36,15 @@ public interface WorldElementMapper {
             """)
     boolean existsByIdAndProjectId(@Param("id") String id, @Param("projectId") String projectId);
 
+    /**
+     * 统计指定作品的词典条目数（P1-5：容量限制检查）。
+     *
+     * @param projectId 作品 ID
+     * @return 条目数量
+     */
+    @Select("SELECT COUNT(1) FROM world_elements WHERE project_id = CAST(#{projectId} AS UUID)")
+    int countByProjectId(@Param("projectId") String projectId);
+
     @Insert("""
             INSERT INTO world_elements (id, project_id, type, name, description, aliases, is_locked, created_at)
             VALUES (CAST(#{id} AS UUID), CAST(#{projectId} AS UUID), #{type}, #{name}, #{description}, #{aliases}, #{locked}, #{createdAt})

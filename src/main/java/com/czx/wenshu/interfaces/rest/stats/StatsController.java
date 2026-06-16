@@ -3,6 +3,7 @@ package com.czx.wenshu.interfaces.rest.stats;
 import com.czx.wenshu.application.stats.HeatmapEntry;
 import com.czx.wenshu.application.stats.MonthlySummaryInfo;
 import com.czx.wenshu.application.stats.ProjectProgressInfo;
+import com.czx.wenshu.application.stats.TimeHeatmapEntry;
 import com.czx.wenshu.application.stats.WritingOverviewInfo;
 import com.czx.wenshu.application.stats.WritingStatsQueryService;
 import com.czx.wenshu.common.result.Result;
@@ -62,5 +63,17 @@ public class StatsController {
     public Result<MonthlySummaryInfo> getMonthlySummary(@PathVariable String yearMonth) {
         User user = currentUserProvider.getCurrentUser();
         return Result.ok(statsQueryService.getMonthlySummary(user.id(), yearMonth));
+    }
+
+    /**
+     * 写作时间热力图（P0-1 修复）。
+     * 返回按星期（0=周日...6=周六）和小时（0-23）分组的写作字数，用于时间分布可视化。
+     */
+    @Operation(summary = "写作时间热力图（P0-1）",
+               description = "返回按星期和小时分组的写作字数，用于展示用户高效写作时段。")
+    @GetMapping("/writing/time-heatmap")
+    public Result<List<TimeHeatmapEntry>> getTimeHeatmap() {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(statsQueryService.getTimeHeatmap(user.id()));
     }
 }

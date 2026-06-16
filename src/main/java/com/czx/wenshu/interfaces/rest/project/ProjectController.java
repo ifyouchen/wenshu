@@ -19,6 +19,7 @@ import com.czx.wenshu.interfaces.rest.auth.CurrentUserProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -180,5 +181,24 @@ public class ProjectController {
     public Result<ChapterInfo> restoreSnapshot(@PathVariable UUID id) {
         User user = currentUserProvider.getCurrentUser();
         return Result.ok(projectService.restoreSnapshot(id, user.id()));
+    }
+
+    /**
+     * 接受 AI 生成内容（P0-1）。
+     * 创建接受前快照，更新章节内容，并记录 AI 接受字数到写作统计。
+     */
+    @Operation(summary = "接受 AI 生成内容（P0-1）")
+    @PostMapping("/chapters/{chapterId}/accept-ai")
+    public Result<SnapshotInfo> acceptAiContent(@PathVariable UUID chapterId,
+                                                 @Valid @RequestBody AcceptAiRequest request) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(projectService.acceptAiContent(
+                chapterId, user.id(), request.acceptedChars(), request.content()));
+    }
+
+    /** 接受 AI 内容请求体。 */
+    public record AcceptAiRequest(
+            @Min(1) int acceptedChars,
+            @NotBlank String content) {
     }
 }

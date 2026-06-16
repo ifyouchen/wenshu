@@ -55,7 +55,8 @@ public class MyBatisWritingDailyStatsRepository implements WritingDailyStatsRepo
         return WritingDailyStats.rehydrate(
                 UUID.fromString(r.getId()), UUID.fromString(r.getUserId()),
                 r.getProjectId() != null ? UUID.fromString(r.getProjectId()) : null,
-                r.getStatDate(), r.getManualChars(), r.getAiAcceptedChars(), r.getTotalChars(), r.getUpdatedAt());
+                r.getStatDate(), r.getManualChars(), r.getAiAcceptedChars(), r.getTotalChars(),
+                r.getPeakHour(), r.getUpdatedAt());
     }
 
     private WritingDailyStatsRecord toRecord(WritingDailyStats s) {
@@ -67,6 +68,7 @@ public class MyBatisWritingDailyStatsRepository implements WritingDailyStatsRepo
         r.setManualChars(s.manualChars());
         r.setAiAcceptedChars(s.aiAcceptedChars());
         r.setTotalChars(s.totalChars());
+        r.setPeakHour(s.peakHour());
         r.setUpdatedAt(s.updatedAt());
         return r;
     }

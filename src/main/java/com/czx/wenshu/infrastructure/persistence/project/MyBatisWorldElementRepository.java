@@ -44,6 +44,11 @@ public class MyBatisWorldElementRepository implements WorldElementRepository {
     }
 
     @Override
+    public int countByProjectId(UUID projectId) {
+        return mapper.countByProjectId(projectId.toString());
+    }
+
+    @Override
     public void deleteById(UUID id) {
         mapper.deleteById(id.toString());
     }

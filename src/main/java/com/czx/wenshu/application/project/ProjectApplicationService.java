@@ -3,6 +3,8 @@ package com.czx.wenshu.application.project;
 import com.czx.wenshu.application.stats.WritingStatsService;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.czx.wenshu.domain.project.Chapter;
 import com.czx.wenshu.domain.project.ChapterRepository;
 import com.czx.wenshu.domain.project.ChapterSnapshot;
@@ -18,8 +20,13 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 作品应用服务，处理作品、卷、章节及快照的核心业务逻辑。
+ */
 @Service
 public class ProjectApplicationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProjectApplicationService.class);
 
     private final ProjectRepository projectRepository;
     private final VolumeRepository volumeRepository;
@@ -214,6 +221,38 @@ public class ProjectApplicationService {
         chapterRepository.save(chapter);
         writingStatsService.recordManualDelta(project.userId(), chapter.projectId(), delta);
         return ChapterInfo.from(chapter);
+    }
+
+    /**
+     * 记录用户接受 AI 生成内容（P0-1）。
+     * 创建 auto_before_ai 快照（若 chapterContent 非空），并记录 ai_accepted_chars。
+     *
+     * @param chapterId     章节 ID
+     * @param userId        用户 ID
+     * @param acceptedChars 被接受的 AI 字符数
+     * @param content       接受后的章节内容（含 AI 内容）
+     * @return 创建的快照信息（null 表示章节不存在或无内容）
+     */
+    @Transactional
+    public SnapshotInfo acceptAiContent(UUID chapterId, UUID userId, int acceptedChars, String content) {
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "章节不存在"));
+        // 验证用户归属
+        if (!projectRepository.existsByIdAndUserId(chapter.projectId(), userId)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "无权操作该章节");
+        }
+        // 1. 创建 auto_before_ai 快照（接受前保存当前状态）
+        ChapterSnapshot snapshot = ChapterSnapshot.create(
+                chapterId, chapter.content(), chapter.wordCount(),
+                "auto_before_ai", "接受 AI 内容前自动快照", clock);
+        snapshotRepository.save(snapshot);
+        // 2. 更新章节内容（包含接受后的 AI 内容）
+        chapter.saveContent(chapter.title(), content, chapter.outline(), chapter.status(), clock);
+        chapterRepository.save(chapter);
+        // 3. 记录 ai_accepted_chars 到写作统计
+        writingStatsService.recordAiAcceptedDelta(userId, chapter.projectId(), acceptedChars);
+        log.info("[ProjectApplicationService] 接受 AI 内容 chapterId={} acceptedChars={}", chapterId, acceptedChars);
+        return SnapshotInfo.from(snapshot);
     }
 
     private void verifyProjectOwnership(UUID projectId, UUID userId) {

@@ -6,6 +6,7 @@ import com.czx.wenshu.domain.stats.WritingDailyStats;
 import com.czx.wenshu.domain.stats.WritingDailyStatsRepository;
 import com.czx.wenshu.domain.user.User;
 import com.czx.wenshu.domain.user.UserRepository;
+import com.czx.wenshu.infrastructure.persistence.stats.WritingDailyStatsMapper;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -15,22 +16,41 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 写作统计查询服务（P4-07 / P4-08 / P0-1 修复）。
+ */
 @Service
 public class WritingStatsQueryService {
 
+    private static final Logger log = LoggerFactory.getLogger(WritingStatsQueryService.class);
+
     private final WritingDailyStatsRepository statsRepository;
+    private final WritingDailyStatsMapper statsMapper;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final Clock clock;
 
+    /**
+     * 构造写作统计查询服务。
+     *
+     * @param statsRepository  统计仓储
+     * @param statsMapper      统计 Mapper（用于时间热力图查询）
+     * @param projectRepository 作品仓储
+     * @param userRepository    用户仓储
+     * @param clock             时钟
+     */
     public WritingStatsQueryService(WritingDailyStatsRepository statsRepository,
+                                     WritingDailyStatsMapper statsMapper,
                                      ProjectRepository projectRepository,
                                      UserRepository userRepository,
                                      Clock clock) {
         this.statsRepository = statsRepository;
+        this.statsMapper = statsMapper;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.clock = clock;
@@ -148,6 +168,32 @@ public class WritingStatsQueryService {
             breakdown.add(new HeatmapEntry(d.toString(), dateToChars.getOrDefault(d, 0)));
         }
         return new MonthlySummaryInfo(yearMonthStr, totalChars, activeDays, avg, breakdown);
+    }
+
+    // ── P0-1 修复：时间热力图（weekday × hour）─────────────────────────────
+
+    /**
+     * 获取用户写作时间热力图数据（P0-1 修复）。
+     *
+     * <p>返回 7×24 矩阵，按星期（0=周日...6=周六）和小时（0-23）分组，
+     * 统计该时段的累计写作字数。若无 peak_hour 数据则返回空列表。</p>
+     *
+     * @param userId 用户 ID
+     * @return 时间热力图条目列表
+     */
+    @Transactional(readOnly = true)
+    public List<TimeHeatmapEntry> getTimeHeatmap(UUID userId) {
+        try {
+            List<WritingDailyStatsMapper.TimeHeatmapRecord> records =
+                    statsMapper.findTimeHeatmap(userId.toString());
+            log.debug("[WritingStatsQueryService] 时间热力图查询 userId={} 条目数={}", userId, records.size());
+            return records.stream()
+                    .map(r -> new TimeHeatmapEntry(r.getWeekday(), r.getHour(), r.getTotalChars()))
+                    .toList();
+        } catch (Exception e) {
+            log.warn("[WritingStatsQueryService] 时间热力图查询失败，返回空数据 userId={} error={}", userId, e.getMessage());
+            return List.of();
+        }
     }
 
     // ── 工具方法 ───────────────────────────────────────────────────────────

@@ -101,6 +101,30 @@ public class QuotaService {
     }
 
     /**
+     * 检查并扣减改编/一致性审查配额，使用动态套餐限额（P0-3 修复）。
+     * 超限时抛出 {@code ApiException(RATE_LIMITED)}。
+     *
+     * @param userId          用户 ID
+     * @param adaptationLimit 套餐允许的改编次数上限
+     */
+    @Transactional
+    public void checkAndIncrementAdaptationWithLimit(UUID userId, int adaptationLimit) {
+        String month = currentMonth();
+        QuotaUsage usage = getOrCreateUsage(userId, month);
+        if (usage.usedAdaptations() >= adaptationLimit) {
+            log.warn("[QuotaService] 改编配额已耗尽（动态限额）userId={} month={} used={} limit={}",
+                    userId, month, usage.usedAdaptations(), adaptationLimit);
+            throw new ApiException(ErrorCode.RATE_LIMITED,
+                    String.format("本月改编/审查次数已达套餐上限（%d 次），请升级套餐或等待下月重置。",
+                            adaptationLimit));
+        }
+        usage.incrementAdaptations(clock);
+        quotaUsageRepository.save(usage);
+        log.info("[QuotaService] 改编配额扣减（动态限额）userId={} month={} 剩余={}",
+                userId, month, adaptationLimit - usage.usedAdaptations());
+    }
+
+    /**
      * 检查并扣减 AI 字符配额（P6-05）。
      * 超限时抛出 {@code ApiException(RATE_LIMITED)}。
      *

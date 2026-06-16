@@ -12,6 +12,7 @@ public class WritingDailyStatsRecord {
     private int manualChars;
     private int aiAcceptedChars;
     private int totalChars;
+    private int peakHour;
     private Instant updatedAt;
 
     public String getId() { return id; }
@@ -28,6 +29,8 @@ public class WritingDailyStatsRecord {
     public void setAiAcceptedChars(int aiAcceptedChars) { this.aiAcceptedChars = aiAcceptedChars; }
     public int getTotalChars() { return totalChars; }
     public void setTotalChars(int totalChars) { this.totalChars = totalChars; }
+    public int getPeakHour() { return peakHour; }
+    public void setPeakHour(int peakHour) { this.peakHour = peakHour; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

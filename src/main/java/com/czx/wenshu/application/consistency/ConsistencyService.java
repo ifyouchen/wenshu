@@ -2,6 +2,7 @@ package com.czx.wenshu.application.consistency;
 
 import com.czx.wenshu.application.task.AsyncTaskService;
 import com.czx.wenshu.application.user.QuotaService;
+import com.czx.wenshu.application.user.SubscriptionService;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
 import com.czx.wenshu.domain.consistency.AiOperationLog;
@@ -34,14 +35,28 @@ public class ConsistencyService {
     private final ProjectRepository projectRepository;
     private final AsyncTaskService asyncTaskService;
     private final QuotaService quotaService;
+    private final SubscriptionService subscriptionService;
     private final ConsistencyTaskRunner taskRunner;
     private final Clock clock;
 
+    /**
+     * 构造一致性审查服务。
+     *
+     * @param logRepository       AI 操作日志仓储
+     * @param itemRepository      审查条目仓储
+     * @param projectRepository   作品仓储
+     * @param asyncTaskService    异步任务服务
+     * @param quotaService        配额服务
+     * @param subscriptionService 订阅服务（用于动态获取套餐限额，P0-3）
+     * @param taskRunner          审查任务执行器
+     * @param clock               时钟
+     */
     public ConsistencyService(AiOperationLogRepository logRepository,
                                ConsistencyReportItemRepository itemRepository,
                                ProjectRepository projectRepository,
                                AsyncTaskService asyncTaskService,
                                QuotaService quotaService,
+                               SubscriptionService subscriptionService,
                                ConsistencyTaskRunner taskRunner,
                                Clock clock) {
         this.logRepository = logRepository;
@@ -49,6 +64,7 @@ public class ConsistencyService {
         this.projectRepository = projectRepository;
         this.asyncTaskService = asyncTaskService;
         this.quotaService = quotaService;
+        this.subscriptionService = subscriptionService;
         this.taskRunner = taskRunner;
         this.clock = clock;
     }
@@ -68,8 +84,10 @@ public class ConsistencyService {
             throw new ApiException(ErrorCode.NOT_FOUND, "作品不存在");
         }
 
-        // 检查配额（会扣减次数）
-        quotaService.checkAndIncrementAdaptation(userId);
+        // 检查配额（P0-3：按用户订阅套餐动态限额扣减次数）
+        long[] planLimits = subscriptionService.getUserPlanLimits(userId);
+        int adaptationLimit = (int) planLimits[1];
+        quotaService.checkAndIncrementAdaptationWithLimit(userId, adaptationLimit);
 
         // 创建 AI 操作日志作为报告容器
         AiOperationLog report = AiOperationLog.create(userId, projectId,

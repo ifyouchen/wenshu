@@ -9,6 +9,8 @@ import com.czx.wenshu.application.auth.RegisterResult;
 import com.czx.wenshu.application.auth.ResendVerifyEmailCommand;
 import com.czx.wenshu.application.auth.ResetPasswordCommand;
 import com.czx.wenshu.common.result.Result;
+import com.czx.wenshu.domain.user.User;
+import com.czx.wenshu.interfaces.rest.auth.CurrentUserProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,9 +31,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthApplicationService authApplicationService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public AuthController(AuthApplicationService authApplicationService) {
+    /**
+     * 构造认证控制器。
+     *
+     * @param authApplicationService 认证应用服务
+     * @param currentUserProvider    当前用户提供者
+     */
+    public AuthController(AuthApplicationService authApplicationService,
+                          CurrentUserProvider currentUserProvider) {
         this.authApplicationService = authApplicationService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @Operation(summary = "邮箱密码注册", description = "创建未验证账号并返回 Access Token、Refresh Token 和用户信息。")
@@ -96,5 +107,17 @@ public class AuthController {
         return Result.ok(ResendVerifyEmailResponse.from(authApplicationService.resendVerifyEmail(
                 new ResendVerifyEmailCommand(request.email())
         )));
+    }
+
+    /**
+     * 登出所有设备（P0-4）。
+     * 吊销当前用户的所有 Access Token 和 Refresh Token。
+     */
+    @Operation(summary = "登出所有设备（P0-4）")
+    @PostMapping("/logout-all")
+    public Result<Void> logoutAll() {
+        User user = currentUserProvider.getCurrentUser();
+        authApplicationService.logoutAll(user.id());
+        return Result.ok();
     }
 }
