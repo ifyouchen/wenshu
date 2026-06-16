@@ -110,9 +110,9 @@
 
 | ID | 状态 | 任务 | 依赖 | 验收 |
 | --- | --- | --- | --- | --- |
-| P8-01 | TODO | Vue 3 + Vite + TypeScript + Naive UI 初始化 | P0 | 前端能启动 |
-| P8-02 | TODO | API 客户端、Token 刷新队列锁 | P1 | 401 可静默刷新 |
-| P8-03 | TODO | Pinia auth/quota/task/scriptDraft stores | P1,P5 | 状态和轮询可复用 |
+| P8-01 | DONE | Vue 3 + Vite + TypeScript + Naive UI 初始化 | P0 | 前端能启动 |
+| P8-02 | DONE | API 客户端、Token 刷新队列锁 | P1 | 401 可静默刷新 |
+| P8-03 | DONE | Pinia auth/quota/task/scriptDraft stores | P1,P5 | 状态和轮询可复用 |
 | P8-04 | TODO | 登录/注册/邮箱验证/忘记密码 UI | P1 | 对齐 IDD §0 |
 | P8-05 | TODO | 作品首页、卡片、空状态、配额 Tooltip | P2,P4 | 对齐 IDD §1 |
 | P8-06 | TODO | TipTap 章节编辑器 | P2 | 只加载当前章节 |
