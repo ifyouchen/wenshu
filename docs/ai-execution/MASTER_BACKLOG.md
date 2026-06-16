@@ -76,9 +76,9 @@
 | P5-04 | DONE | 骨架生成 | P5-02,P5-03,P2,P3 | `/novel/skeleton` 返回 taskId |
 | P5-05 | DONE | 骨架应用入库 | P5-04 | `/skeleton/{taskId}/apply` 生成卷章角色 |
 | P5-06 | DONE | 动态上下文组装 | P2,P3 | 锁定角色、摘要、近期原文按预算组装 |
-| P5-07 | TODO | SSE 流式续写 | P5-01,P5-06 | `/novel/continue` 支持首字超时事件 |
-| P5-08 | TODO | 卡点分支建议 | P5-01,P5-06 | `/novel/branch` 返回 3 个方向 |
-| P5-09 | TODO | 基础校正、进阶润色、风格重塑 | P5-01 | polish 接口返回批注或改写文本 |
+| P5-07 | DONE | SSE 流式续写 | P5-01,P5-06 | `/novel/continue` 支持首字超时事件 |
+| P5-08 | DONE | 卡点分支建议 | P5-01,P5-06 | `/novel/branch` 返回 3 个方向 |
+| P5-09 | DONE | 基础校正、进阶润色、风格重塑 | P5-01 | polish 接口返回批注或改写文本 |
 | P5-10 | TODO | 文风档案与即时预览 | P5-09 | 样本保存后异步分析标签 |
 
 ## P6 一致性审查与锚点

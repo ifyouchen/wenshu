@@ -1,6 +1,8 @@
 package com.czx.wenshu.infrastructure.config;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -25,5 +27,16 @@ public class AsyncConfig {
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
+    }
+
+    /** SSE 首字超时定时器（P5-07）。 */
+    @Bean("sseTimeoutScheduler")
+    public ScheduledExecutorService sseTimeoutScheduler() {
+        return Executors.newScheduledThreadPool(4,
+                r -> {
+                    Thread t = new Thread(r, "sse-timeout");
+                    t.setDaemon(true);
+                    return t;
+                });
     }
 }
