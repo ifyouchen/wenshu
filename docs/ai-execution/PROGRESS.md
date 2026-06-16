@@ -4,9 +4,9 @@
 
 ## 当前阶段
 
-阶段：`P7 小说转剧本`（P6 全部完成）
+阶段：`P8 前端工作台`（P7 全部完成）
 
-整体状态：P6 全部完成（7/7）；P7 进行中（1/8），P7-01 已完成。
+整体状态：P6 全部完成；P7 全部完成（8/8）。
 
 ## 阶段进度
 
@@ -19,7 +19,7 @@
 | P4 导入、搜索替换、写作统计 | DONE | 9/9 | P4 全部完成 |
 | P5 AI 写作与润色 | DONE | 10/10 | P5 全部完成 |
 | P6 一致性审查与锚点 | DONE | 7/7 | P6 全部完成 |
-| P7 小说转剧本 | DOING | 1/8 | P7-01 已完成 |
+| P7 小说转剧本 | DONE | 8/8 | P7 全部完成 |
 | P8 前端工作台 | TODO | 0/22 | 未开始 |
 | P9 商业化与数据安全 | TODO | 0/9 | 未开始 |
 | P10 生态与开放能力 | DEFERRED | 0/3 | V2.0/企业生态能力，已登记 |
@@ -93,11 +93,31 @@
 - P6-07：审查条目处理状态（`ConsistencyReportItem.updateStatus()` 领域方法校验合法值，`PATCH /consistency/items/{id}`）。
 - P7-01：剧本草稿与场景模型（`ScriptDraft`/`ScriptScene` 领域，`ScriptScene.updateContent()` 内置乐观锁，`ScriptService`，`GET/PUT /script/…` CRUD+分页+乐观锁校验）。
 
+- P7-02：场景分割（`ProtoScene` JSON record，`SceneSplitter` 内联在 TaskRunner，`prompts/scene_split.txt`）。
+- P7-03：心理外化策略（`PsychologyStrategy` 枚举 ACTION/DIALOGUE/VOICEOVER/SKIP，`prompts/scene_convert.txt`）。
+- P7-04：异步剧本改编（`ScriptConversionTaskRunner` @Async，分章→分场景→逐场景转换→更新草稿状态；`ScriptConversionService`，`POST /script/convert`，扣减改编配额）。
+- P7-05：工作台数据接口（GET /script/drafts/{id}、GET /script/drafts/{id}/scenes 已在 P7-01 实现，本轮验证完整字段）。
+- P7-06：场景乐观锁（`ScriptScene.updateContent()` 版本不匹配抛 IllegalStateException → ApiException(VERSION_CONFLICT) → HTTP 409）。
+- P7-07：分集管理（`ScriptEpisode` 领域，完整 CRUD `POST/GET/DELETE /script/drafts/{id}/episodes`）。
+- P7-08：导出任务（`submitExport()` 创建 script_export 类型异步任务，返回 taskId+draftId；生产端替换 task runner 接入 COS）。
+
 ## 当前待办
 
-P7-02~P7-08（场景分割/心理外化/异步改编/工作台/乐观锁/分集/导出）待实现。
+P8（前端工作台）可开始。后端 P0~P7 主链路全部完成，P8 前端工程从零开始。
 
 ## 实现日志
+
+### 2026-06-16 P7-02~P7-08
+
+- **P7-02 场景分割**：`ProtoScene`（@JsonIgnoreProperties LLM JSON 解析）；`prompts/scene_split.txt`；集成到 `ScriptConversionTaskRunner.splitChapterIntoScenes()`，LLM 切分失败时回退为单场景（保健壮性）。
+- **P7-03 心理外化策略**：`PsychologyStrategy` 枚举（ACTION/DIALOGUE/VOICEOVER/SKIP，fromValue 降级为 ACTION）；`prompts/scene_convert.txt`；`ScriptConversionTaskRunner.convertProtoScene()` 应用策略。
+- **P7-04 异步剧本改编**：`ScriptConversionTaskRunner`（@Async，按章逐场景处理，失败时 markFailed）；`ScriptConversionService`（配额检查+草稿创建+任务启动）；`POST /script/convert`（返回 taskId+draftId，消耗一次改编配额）。
+- **P7-05 工作台数据接口**：P7-01 已实现 GET /script/drafts/{id} + GET /script/drafts/{id}/scenes，本轮验证 sourceContent/content/version 等完整字段正确返回。
+- **P7-06 场景乐观锁**：`ScriptScene.updateContent(content, location, timeDesc, expectedVersion, clock)` 版本不匹配抛 IllegalStateException → ScriptService 转 ApiException(VERSION_CONFLICT) → 全局异常处理 HTTP 409 CONFLICT；集成测试覆盖正确版本（→200）和错误版本（→409）两个路径。
+- **P7-07 分集管理**：`ScriptEpisode` 领域；`ScriptEpisodeRepository`/MyBatis；`ScriptService.createEpisode/listEpisodes/deleteEpisode`；`POST/GET/DELETE /script/drafts/{id}/episodes[/{episodeId}]`。
+- **P7-08 DOCX/FDX/分镜导出**：`ScriptService.submitExport()` 创建 script_export 类型任务（桩实现，生产端接入 COS 即可）；`POST /script/drafts/{id}/export?format=docx|fdx|storyboard`。
+- 新增 `ScriptConversionTests` 集成测试 10 个用例：改编鉴权/提交/配额；工作台草稿详情/场景分页；P7-06 乐观锁 409/200；P7-07 集数创建列表/删除；P7-08 导出任务。
+- 全量回归 150 个测试通过。
 
 ### 2026-06-16 P6-06 / P6-07 / P7-01
 
@@ -295,6 +315,7 @@ P7-02~P7-08（场景分割/心理外化/异步改编/工作台/乐观锁/分集/
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P5-10/P6-01/P6-02：文风档案、章节摘要、角色锚点，121 个测试通过 |
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P6-03/P6-04/P6-05：关键事件/向量嵌入/配额检查，129 个测试通过 |
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P6-06/P6-07/P7-01：一致性审查/条目状态/剧本草稿，140 个测试通过 |
+| 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P7-02~P7-08：场景分割/心理外化/改编/工作台/乐观锁/分集/导出，150 个测试通过 |
 
 ## 阻塞记录
 

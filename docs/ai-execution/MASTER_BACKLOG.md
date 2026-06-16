@@ -98,13 +98,13 @@
 | ID | 状态 | 任务 | 依赖 | 验收 |
 | --- | --- | --- | --- | --- |
 | P7-01 | DONE | 剧本草稿与场景模型 | P2 | draft/scenes 数据可读写 |
-| P7-02 | TODO | 场景分割 | P5 | 原文切为场景列表 |
-| P7-03 | TODO | 心理外化策略 | P5 | ACTION/DIALOGUE/VOICEOVER/SKIP |
-| P7-04 | TODO | 异步剧本改编 | P7-01,P7-02,P7-03 | `/script/convert` 返回 taskId/draftId |
-| P7-05 | TODO | 剧本工作台数据接口 | P7-04 | 草稿详情、场景分页 |
-| P7-06 | TODO | 场景乐观锁 | P7-05 | 版本冲突返回 409 |
-| P7-07 | TODO | 分集管理 | P7-05 | episode CRUD 和场景归属 |
-| P7-08 | TODO | DOCX/FDX/分镜导出 | P7-05 | 导出任务返回预签名 URL |
+| P7-02 | DONE | 场景分割 | P5 | 原文切为场景列表 |
+| P7-03 | DONE | 心理外化策略 | P5 | ACTION/DIALOGUE/VOICEOVER/SKIP |
+| P7-04 | DONE | 异步剧本改编 | P7-01,P7-02,P7-03 | `/script/convert` 返回 taskId/draftId |
+| P7-05 | DONE | 剧本工作台数据接口 | P7-04 | 草稿详情、场景分页 |
+| P7-06 | DONE | 场景乐观锁 | P7-05 | 版本冲突返回 409 |
+| P7-07 | DONE | 分集管理 | P7-05 | episode CRUD 和场景归属 |
+| P7-08 | DONE | DOCX/FDX/分镜导出 | P7-05 | 导出任务返回预签名 URL |
 
 ## P8 前端工作台
 
