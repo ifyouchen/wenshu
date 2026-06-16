@@ -5,6 +5,7 @@ import com.czx.wenshu.domain.task.AsyncTask;
 /** 异步任务进度响应 DTO（P5-03）。 */
 public record TaskProgressInfo(
         String taskId,
+        String projectId,
         String taskType,
         String status,
         int currentStep,
@@ -20,6 +21,7 @@ public record TaskProgressInfo(
     public static TaskProgressInfo from(AsyncTask task) {
         return new TaskProgressInfo(
                 task.id().toString(),
+                task.projectId() != null ? task.projectId().toString() : null,
                 task.taskType(),
                 task.status().value(),
                 task.currentStep(),

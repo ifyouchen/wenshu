@@ -73,9 +73,9 @@
 | P5-01 | DONE | LLM 客户端抽象与降级策略 | P0 | 无 Key 时应用可启动并返回明确错误 |
 | P5-02 | DONE | Prompt 模板目录、填充工具与 JSON 健壮解析 | P5-01 | 模板变量校验，LLM JSON 输出可容错解析 |
 | P5-03 | DONE | 异步任务进度服务 | P0 | `/tasks/{taskId}/progress` 可轮询 |
-| P5-04 | DOING | 骨架生成 | P5-02,P5-03,P2,P3 | `/novel/skeleton` 返回 taskId |
-| P5-05 | DOING | 骨架应用入库 | P5-04 | `/skeleton/{taskId}/apply` 生成卷章角色 |
-| P5-06 | DOING | 动态上下文组装 | P2,P3 | 锁定角色、摘要、近期原文按预算组装 |
+| P5-04 | DONE | 骨架生成 | P5-02,P5-03,P2,P3 | `/novel/skeleton` 返回 taskId |
+| P5-05 | DONE | 骨架应用入库 | P5-04 | `/skeleton/{taskId}/apply` 生成卷章角色 |
+| P5-06 | DONE | 动态上下文组装 | P2,P3 | 锁定角色、摘要、近期原文按预算组装 |
 | P5-07 | TODO | SSE 流式续写 | P5-01,P5-06 | `/novel/continue` 支持首字超时事件 |
 | P5-08 | TODO | 卡点分支建议 | P5-01,P5-06 | `/novel/branch` 返回 3 个方向 |
 | P5-09 | TODO | 基础校正、进阶润色、风格重塑 | P5-01 | polish 接口返回批注或改写文本 |
