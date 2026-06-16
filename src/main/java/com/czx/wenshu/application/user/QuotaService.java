@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 用户配额检查与扣减服务（P6-05）。
- * 免费套餐硬编码限额：每月 10 万 AI 字符，5 次改编/审查。
- * 后续可通过订阅表动态获取用户套餐限额。
+ * 用户配额检查与扣减服务（P6-05 / P9-01）。
+ *
+ * <p>P6-05 硬编码免费套餐限额：每月 10 万 AI 字符，5 次改编/审查。</p>
+ * <p>P9-01 扩展：新增 {@link #getQuotaInfoWithLimits} 支持动态限额，
+ * 由 {@code SubscriptionService} 传入用户套餐对应的限额。</p>
  */
 @Service
 public class QuotaService {
@@ -51,6 +53,28 @@ public class QuotaService {
         log.debug("[QuotaService] 查询配额 userId={} month={} usedChars={} usedAdaptations={}",
                 userId, month, usage.usedChars(), usage.usedAdaptations());
         return buildQuotaInfo(usage, month);
+    }
+
+    /**
+     * 获取用户当月配额详情，使用指定的限额（P9-01）。
+     * 由 {@code SubscriptionService} 调用，传入套餐对应的动态限额。
+     *
+     * @param userId                 用户 ID
+     * @param charLimit              字符月限额
+     * @param adaptationLimit        改编次数月限额
+     * @return 配额摘要（使用指定限额计算剩余量）
+     */
+    @Transactional
+    public QuotaInfo getQuotaInfoWithLimits(UUID userId, long charLimit, int adaptationLimit) {
+        String month = currentMonth();
+        QuotaUsage usage = getOrCreateUsage(userId, month);
+        log.debug("[QuotaService] 查询配额（动态限额）userId={} month={} charLimit={} adaptationLimit={}",
+                userId, month, charLimit, adaptationLimit);
+        long remaining = Math.max(0, charLimit - usage.usedChars());
+        int remainingAdaptations = Math.max(0, adaptationLimit - usage.usedAdaptations());
+        return new QuotaInfo(month, usage.usedChars(), charLimit,
+                usage.usedAdaptations(), adaptationLimit,
+                remaining, remainingAdaptations);
     }
 
     /**

@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS user_subscriptions;
+DROP TABLE IF EXISTS subscription_plans;
 DROP TABLE IF EXISTS consistency_report_items;
 DROP TABLE IF EXISTS ai_operation_logs;
 DROP TABLE IF EXISTS script_scenes;
@@ -298,4 +300,31 @@ CREATE TABLE script_scenes (
     version INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE subscription_plans (
+    id                         VARCHAR(36)  PRIMARY KEY,
+    plan_key                   VARCHAR(32)  UNIQUE NOT NULL,
+    name                       VARCHAR(100) NOT NULL,
+    monthly_char_limit         BIGINT       NOT NULL,
+    monthly_adaptation_limit   INT          NOT NULL,
+    price_per_month            DECIMAL(10,2) NOT NULL DEFAULT 0,
+    description                TEXT,
+    is_active                  BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at                 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO subscription_plans (id, plan_key, name, monthly_char_limit, monthly_adaptation_limit, price_per_month, description) VALUES
+('00000000-0000-0000-0000-000000000001', 'free', '免费版', 100000, 5, 0.00, '体验全部核心写作功能，每月 10 万字 AI 配额，5 次改编/审查'),
+('00000000-0000-0000-0000-000000000002', 'pro', '专业版', 2000000, 50, 39.00, '无限续写，每月 200 万字 AI 配额，50 次改编/审查'),
+('00000000-0000-0000-0000-000000000003', 'enterprise', '企业版', 10000000, 200, 199.00, '团队协作，每月 1000 万字 AI 配额');
+
+CREATE TABLE user_subscriptions (
+    id         VARCHAR(36) PRIMARY KEY,
+    user_id    VARCHAR(36) NOT NULL,
+    plan_key   VARCHAR(32) NOT NULL,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP,
+    status     VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

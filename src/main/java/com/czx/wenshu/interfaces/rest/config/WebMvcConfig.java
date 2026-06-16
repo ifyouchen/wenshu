@@ -32,7 +32,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/v1/skeleton/**",
                         "/api/v1/polish/**",
                         "/api/v1/consistency/**",
-                        "/api/v1/script/**"
+                        "/api/v1/script/**",
+                        "/api/v1/subscriptions/current"
                 )
                 .excludePathPatterns(
                         "/api/v1/user/cancel-restore"
