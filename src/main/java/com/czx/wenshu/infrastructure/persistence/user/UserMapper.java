@@ -14,7 +14,7 @@ public interface UserMapper {
                    ai_train_consent, login_fail_count, locked_until, last_login_at,
                    is_deleted AS deleted, deleted_at, daily_char_goal, created_at, updated_at
             FROM users
-            WHERE id = #{id}
+            WHERE id = CAST(#{id} AS UUID)
             """)
     UserRecord findById(@Param("id") String id);
 

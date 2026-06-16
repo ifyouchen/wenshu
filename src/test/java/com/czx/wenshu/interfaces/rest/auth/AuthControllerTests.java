@@ -46,7 +46,8 @@ class AuthControllerTests {
         Map<String, String> request = Map.of(
                 "email", "Author@Example.com",
                 "password", "password123",
-                "nickname", "新作者"
+                "nickname", "新作者",
+                "verificationCode", sendRegisterCode("Author@Example.com")
         );
 
         ResponseEntity<Map> response = restTemplate.postForEntity("/api/v1/auth/register", request, Map.class);
@@ -63,7 +64,7 @@ class AuthControllerTests {
         assertThat(user.get("email")).isEqualTo("author@example.com");
         assertThat(user.get("nickname")).isEqualTo("新作者");
         assertThat(user.get("identityType")).isEqualTo("new_author");
-        assertThat(user.get("isEmailVerified")).isEqualTo(false);
+        assertThat(user.get("isEmailVerified")).isEqualTo(true);
         assertThat(user.get("aiTrainConsent")).isEqualTo(true);
         assertThat(verificationEmailSender.sentTokens()).hasSize(1);
         assertThat(verificationEmailSender.sentTokens().getFirst().email().value()).isEqualTo("author@example.com");
@@ -76,7 +77,8 @@ class AuthControllerTests {
         Map<String, String> request = Map.of(
                 "email", "duplicate@example.com",
                 "password", "password123",
-                "nickname", "作者"
+                "nickname", "作者",
+                "verificationCode", sendRegisterCode("duplicate@example.com")
         );
 
         restTemplate.postForEntity("/api/v1/auth/register", request, Map.class);
@@ -89,37 +91,31 @@ class AuthControllerTests {
     }
 
     @Test
-    void verifyEmailMarksUserAsVerified() {
+    void registerMarksUserAsVerified() {
         verificationEmailSender.clear();
         Map<String, String> request = Map.of(
                 "email", "verify@example.com",
                 "password", "password123",
-                "nickname", "待验证"
+                "nickname", "待验证",
+                "verificationCode", sendRegisterCode("verify@example.com")
         );
-        restTemplate.postForEntity("/api/v1/auth/register", request, Map.class);
-        String token = verificationEmailSender.sentTokens().getFirst().rawToken();
 
-        ResponseEntity<Map> response = restTemplate.getForEntity("/api/v1/auth/verify-email?token={token}", Map.class, token);
-
+        ResponseEntity<Map> response = restTemplate.postForEntity("/api/v1/auth/register", request, Map.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
-        assertThat(data.get("email")).isEqualTo("verify@example.com");
-        assertThat(data.get("isEmailVerified")).isEqualTo(true);
+        Map<String, Object> user = (Map<String, Object>) data.get("user");
+        assertThat(user.get("email")).isEqualTo("verify@example.com");
+        assertThat(user.get("isEmailVerified")).isEqualTo(true);
         assertThat(userRepository.findByEmail(new EmailAddress("verify@example.com")).orElseThrow().isEmailVerified()).isTrue();
     }
 
     @Test
-    void resendVerifyEmailIsRateLimitedWithinSixtySeconds() {
+    void sendRegisterCodeIsRateLimitedWithinSixtySeconds() {
         verificationEmailSender.clear();
-        Map<String, String> request = Map.of(
-                "email", "limited@example.com",
-                "password", "password123",
-                "nickname", "限流"
-        );
-        restTemplate.postForEntity("/api/v1/auth/register", request, Map.class);
+        sendRegisterCode("limited@example.com");
 
         ResponseEntity<Map> response = restTemplate.postForEntity(
-                "/api/v1/auth/resend-verify",
+                "/api/v1/auth/register/code",
                 Map.of("email", "limited@example.com"),
                 Map.class
         );
@@ -133,11 +129,7 @@ class AuthControllerTests {
     @Test
     void loginReturnsTokenPairAndResetsFailureState() {
         verificationEmailSender.clear();
-        restTemplate.postForEntity("/api/v1/auth/register", Map.of(
-                "email", "login@example.com",
-                "password", "password123",
-                "nickname", "登录用户"
-        ), Map.class);
+        register("login@example.com", "password123", "登录用户");
 
         ResponseEntity<Map> response = restTemplate.postForEntity("/api/v1/auth/login", Map.of(
                 "email", "login@example.com",
@@ -156,11 +148,7 @@ class AuthControllerTests {
     @Test
     void loginLocksAccountAfterFiveFailures() {
         verificationEmailSender.clear();
-        restTemplate.postForEntity("/api/v1/auth/register", Map.of(
-                "email", "locked@example.com",
-                "password", "password123",
-                "nickname", "锁定用户"
-        ), Map.class);
+        register("locked@example.com", "password123", "锁定用户");
 
         for (int i = 0; i < 5; i++) {
             ResponseEntity<Map> failed = restTemplate.postForEntity("/api/v1/auth/login", Map.of(
@@ -192,11 +180,7 @@ class AuthControllerTests {
 
     @Test
     void refreshTokenRotatesAndRevokesOldToken() {
-        ResponseEntity<Map> registerResponse = restTemplate.postForEntity("/api/v1/auth/register", Map.of(
-                "email", "refresh@example.com",
-                "password", "password123",
-                "nickname", "刷新用户"
-        ), Map.class);
+        ResponseEntity<Map> registerResponse = register("refresh@example.com", "password123", "刷新用户");
         Map<String, Object> registerData = (Map<String, Object>) registerResponse.getBody().get("data");
         String oldRefreshToken = (String) registerData.get("refreshToken");
 
@@ -220,11 +204,7 @@ class AuthControllerTests {
     @Test
     void forgotAndResetPasswordRevokesAllRefreshTokens() {
         passwordResetEmailSender.clear();
-        ResponseEntity<Map> registerResponse = restTemplate.postForEntity("/api/v1/auth/register", Map.of(
-                "email", "reset@example.com",
-                "password", "old-password",
-                "nickname", "重置用户"
-        ), Map.class);
+        ResponseEntity<Map> registerResponse = register("reset@example.com", "old-password", "重置用户");
         Map<String, Object> registerData = (Map<String, Object>) registerResponse.getBody().get("data");
         String oldRefreshToken = (String) registerData.get("refreshToken");
 
@@ -274,6 +254,25 @@ class AuthControllerTests {
         Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
         assertThat(data.get("sent")).isEqualTo(false);
         assertThat(passwordResetEmailSender.sentTokens()).isEmpty();
+    }
+
+    private ResponseEntity<Map> register(String email, String password, String nickname) {
+        return restTemplate.postForEntity("/api/v1/auth/register", Map.of(
+                "email", email,
+                "password", password,
+                "nickname", nickname,
+                "verificationCode", sendRegisterCode(email)
+        ), Map.class);
+    }
+
+    private String sendRegisterCode(String email) {
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                "/api/v1/auth/register/code",
+                Map.of("email", email),
+                Map.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return verificationEmailSender.sentTokens().getLast().rawToken();
     }
 
     @TestConfiguration

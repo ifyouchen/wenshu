@@ -1,27 +1,40 @@
 <script setup lang="ts">
 /**
- * 根组件（P8-01 / P8-16）。
- * - P8-16：NMessageProvider placement 响应移动端（顶部居中）/ 桌面端（右下角）。
- * - ToastProvider 在 NMessageProvider 内初始化全局 Toast 单例。
+ * 根组件。
+ * 统一配置 Naive UI 主题覆盖、全局 Provider 和 Toast 初始化。
  */
-import { NConfigProvider, NMessageProvider, NNotificationProvider, NGlobalStyle, zhCN, dateZhCN } from 'naive-ui'
+import {
+  NConfigProvider,
+  NDialogProvider,
+  NGlobalStyle,
+  NMessageProvider,
+  NNotificationProvider,
+  dateZhCN,
+  zhCN,
+} from 'naive-ui'
 import ToastProvider from '@/components/ToastProvider.vue'
 import { useDevice } from '@/composables/useDevice'
+import { useTheme } from '@/composables/useTheme'
 
 const { toastPlacement } = useDevice()
+const { themeOverrides } = useTheme()
 </script>
 
 <template>
-  <NConfigProvider :locale="zhCN" :date-locale="dateZhCN">
+  <NConfigProvider
+    :locale="zhCN"
+    :date-locale="dateZhCN"
+    :theme-overrides="themeOverrides"
+  >
     <NGlobalStyle />
-    <!-- P8-16：placement 动态绑定，移动端顶部居中，桌面端右下角堆叠 -->
     <NMessageProvider :placement="toastPlacement" :max="5">
-      <NNotificationProvider>
-        <!-- 初始化全局 Toast 单例（P8-16） -->
-        <ToastProvider>
-          <RouterView />
-        </ToastProvider>
-      </NNotificationProvider>
+      <NDialogProvider>
+        <NNotificationProvider>
+          <ToastProvider>
+            <RouterView />
+          </ToastProvider>
+        </NNotificationProvider>
+      </NDialogProvider>
     </NMessageProvider>
   </NConfigProvider>
 </template>

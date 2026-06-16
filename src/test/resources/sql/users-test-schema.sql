@@ -27,6 +27,7 @@ DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS access_tokens;
 DROP TABLE IF EXISTS account_restore_tokens;
 DROP TABLE IF EXISTS email_verifications;
+DROP TABLE IF EXISTS registration_email_codes;
 DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS users;
@@ -54,6 +55,15 @@ CREATE TABLE email_verifications (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     token_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE registration_email_codes (
+    id UUID PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    code_hash VARCHAR(128) NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     used_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

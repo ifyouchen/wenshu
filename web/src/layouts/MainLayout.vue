@@ -1,30 +1,33 @@
 <script setup lang="ts">
 /**
- * 主布局（P8-01 / P8-14 / P8-15 / P8-21）。
+ * 主布局 - 顶部导航栏版本。
  *
- * P8-14 移动端响应式：
- *  - 移动端展示底部导航栏，隐藏顶部侧边导航。
- *  - 底部导航包含：首页 / 写作 / 统计 / 设置。
- *
- * P8-15 命令面板：
- *  - 全局监听 Cmd/Ctrl+K 打开命令面板。
- *  - 注册默认导航命令（首页 / 统计 / 设置）。
- *
- * P8-16 Toast：
- *  - NMessageProvider placement 由 App.vue 统一控制，此处无需额外处理。
- *
- * P8-21 快捷键参考面板：
- *  - 全局监听 `?` 键打开面板（输入框内不触发）。
- *  - 注册"快捷键参考"命令到命令面板。
+ * 特性：
+ * - 顶部毛玻璃导航栏
+ * - 全局监听 Cmd/Ctrl+K 打开命令面板
+ * - 全局监听 `?` 键打开快捷键参考面板
+ * - 移动端底部导航栏
  */
-import { onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { NLayout } from 'naive-ui'
+import { computed, h, onMounted, onUnmounted } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
+import { NButton, NDropdown, NIcon, NText } from 'naive-ui'
+import {
+  BookOpen,
+  BarChart3,
+  Settings,
+  Command,
+  Sun,
+  Moon,
+  User,
+  LogOut,
+  Search,
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useCommandPaletteStore } from '@/stores/commandPalette'
 import { useKeyboardHelpStore } from '@/stores/keyboardHelp'
 import { useDevice } from '@/composables/useDevice'
+import { useTheme } from '@/composables/useTheme'
 import CommandPalette from '@/components/CommandPalette.vue'
 import KeyboardHelpModal from '@/components/KeyboardHelpModal.vue'
 import UpgradeModal from '@/components/UpgradeModal.vue'
@@ -34,20 +37,60 @@ const quota = useQuotaStore()
 const router = useRouter()
 const palette = useCommandPaletteStore()
 const kbHelp = useKeyboardHelpStore()
-const { isMobile } = useDevice()
+const { isMobile, isDesktop } = useDevice()
+const { isDark, toggleTheme } = useTheme()
+
+const userName = computed(() => auth.user?.nickname || auth.user?.email || '创作者')
+
+const navItems = [
+  { label: '作品', to: '/', icon: BookOpen },
+  { label: '统计', to: '/stats', icon: BarChart3 },
+  { label: '设置', to: '/settings', icon: Settings },
+]
+
+const userOptions = [
+  {
+    key: 'settings',
+    label: '账户设置',
+    icon: () => h(NIcon, { component: Settings, size: 14 }),
+  },
+  {
+    key: 'theme',
+    label: computed(() => isDark.value ? '切换浅色' : '切换深色'),
+    icon: () => h(NIcon, { component: isDark.value ? Sun : Moon, size: 14 }),
+  },
+  {
+    type: 'divider',
+    key: 'divider',
+  },
+  {
+    key: 'logout',
+    label: '退出登录',
+    icon: () => h(NIcon, { component: LogOut, size: 14 }),
+  },
+]
+
+function handleUserSelect(key: string) {
+  if (key === 'settings') {
+    router.push('/settings')
+  } else if (key === 'theme') {
+    toggleTheme()
+  } else if (key === 'logout') {
+    auth.logoutAction().then(() => router.push('/login'))
+  }
+}
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
   await quota.refresh()
 
-  // 注册全局默认命令（导航类 + 快捷键帮助）
   palette.registerCommands([
     {
       id: 'nav:home',
       label: '首页',
       description: '返回作品列表',
       group: '导航',
-      icon: '🏠',
+      icon: 'H',
       shortcut: '',
       action: () => router.push('/'),
     },
@@ -56,7 +99,7 @@ onMounted(async () => {
       label: '写作统计',
       description: '查看今日字数、趋势和热力图',
       group: '导航',
-      icon: '📊',
+      icon: 'S',
       shortcut: '',
       action: () => router.push('/stats'),
     },
@@ -65,7 +108,7 @@ onMounted(async () => {
       label: '账户设置',
       description: '个人资料、订阅、隐私设置',
       group: '导航',
-      icon: '⚙️',
+      icon: 'A',
       shortcut: '',
       action: () => router.push('/settings'),
     },
@@ -74,7 +117,7 @@ onMounted(async () => {
       label: '快捷键参考',
       description: '查看所有键盘快捷键',
       group: '帮助',
-      icon: '⌨️',
+      icon: '?',
       shortcut: '?',
       action: () => kbHelp.open(),
     },
@@ -83,7 +126,7 @@ onMounted(async () => {
       label: '退出登录',
       description: '登出当前账号',
       group: '账户',
-      icon: '🚪',
+      icon: 'Q',
       shortcut: '',
       action: async () => {
         await auth.logoutAction()
@@ -100,20 +143,13 @@ onUnmounted(() => {
   ])
 })
 
-/**
- * 全局键盘监听：
- * - Cmd/Ctrl+K：打开命令面板
- * - `?`（非输入框内）：打开快捷键参考面板（P8-21）
- */
 function handleGlobalKeydown(e: KeyboardEvent) {
-  // Ctrl/Cmd+K 打开命令面板
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault()
     palette.toggle()
     return
   }
 
-  // `?` 键打开快捷键参考（仅在非输入类元素上触发，避免干扰写作）
   const target = e.target as HTMLElement
   const isInput =
     target.tagName === 'INPUT' ||
@@ -134,55 +170,289 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- 主布局容器（P8-01）。 -->
-  <NLayout style="height: 100vh; overflow: hidden">
-    <RouterView />
+  <div class="app-shell">
+    <!-- 顶部导航栏 -->
+    <header class="app-topbar">
+      <div class="topbar-left">
+        <RouterLink to="/" class="brand">
+          <span class="brand-mark">文</span>
+          <span class="brand-text">
+            <strong>文枢</strong>
+            <small>wenshu</small>
+          </span>
+        </RouterLink>
 
-    <!-- P8-14：移动端底部导航栏（仅移动端显示）。 -->
+        <nav v-if="!isMobile" class="top-nav">
+          <RouterLink
+            v-for="item in navItems"
+            :key="item.to"
+            :to="item.to"
+            class="top-nav-item"
+            active-class="top-nav-item--active"
+          >
+            <NIcon :component="item.icon" :size="16" />
+            <span>{{ item.label }}</span>
+          </RouterLink>
+        </nav>
+      </div>
+
+      <div class="topbar-right">
+        <NButton
+          v-if="isDesktop"
+          quaternary
+          size="small"
+          class="command-btn"
+          @click="palette.toggle()"
+        >
+          <template #icon>
+            <NIcon :component="Search" :size="14" />
+          </template>
+          <span>命令</span>
+          <kbd>Ctrl K</kbd>
+        </NButton>
+
+        <button class="icon-btn" title="切换主题" @click="toggleTheme()">
+          <NIcon :component="isDark ? Sun : Moon" :size="18" />
+        </button>
+
+        <NDropdown
+          trigger="click"
+          :options="userOptions"
+          @select="handleUserSelect"
+        >
+          <button class="user-trigger" title="账户菜单">
+            <div class="user-avatar">
+              <NIcon :component="User" :size="16" />
+            </div>
+            <span v-if="isDesktop" class="user-name">{{ userName }}</span>
+          </button>
+        </NDropdown>
+      </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="app-content">
+      <RouterView />
+    </main>
+
+    <!-- 移动端底部导航栏 -->
     <nav v-if="isMobile" class="mobile-bottom-nav">
-      <RouterLink to="/" class="mobile-nav-item">
-        <span class="mobile-nav-icon">🏠</span>
-        <span class="mobile-nav-label">首页</span>
-      </RouterLink>
-      <RouterLink to="/stats" class="mobile-nav-item">
-        <span class="mobile-nav-icon">📊</span>
-        <span class="mobile-nav-label">统计</span>
+      <RouterLink
+        v-for="item in navItems"
+        :key="item.to"
+        :to="item.to"
+        class="mobile-nav-item"
+        active-class="mobile-nav-item--active"
+      >
+        <NIcon :component="item.icon" :size="20" />
+        <span>{{ item.label }}</span>
       </RouterLink>
       <button class="mobile-nav-item" @click="palette.toggle()">
-        <span class="mobile-nav-icon">⌘</span>
-        <span class="mobile-nav-label">命令</span>
+        <NIcon :component="Command" :size="20" />
+        <span>命令</span>
       </button>
-      <RouterLink to="/settings" class="mobile-nav-item">
-        <span class="mobile-nav-icon">⚙️</span>
-        <span class="mobile-nav-label">设置</span>
-      </RouterLink>
     </nav>
 
-    <!-- P8-15：命令面板（全局，始终挂载，通过 store.visible 控制显隐）。 -->
+    <!-- 全局组件 -->
     <CommandPalette />
-
-    <!-- P8-21：快捷键参考面板（全局，始终挂载）。 -->
     <KeyboardHelpModal />
-
-    <!-- P8-19：订阅升级引导弹窗（全局，始终挂载，三场景：quota-chars/quota-adaptations/pro-feature）。 -->
     <UpgradeModal />
-  </NLayout>
+  </div>
 </template>
 
 <style scoped>
-/* ─── 移动端底部导航栏（P8-14） ─── */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--w-bg);
+}
+
+.app-topbar {
+  height: var(--w-topbar-height);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--w-space-5);
+  background: rgba(12, 12, 14, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--w-border-subtle);
+}
+
+[data-theme='light'] .app-topbar {
+  background: rgba(247, 245, 242, 0.82);
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--w-space-5);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--w-text);
+  text-decoration: none;
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--w-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--w-brand);
+  color: #fff;
+  font-family: var(--w-font-serif);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.brand-text strong {
+  font-family: var(--w-font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.brand-text small {
+  font-size: 10px;
+  color: var(--w-text-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.top-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--w-space-1);
+}
+
+.top-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--w-radius-sm);
+  color: var(--w-text-secondary);
+  font-size: var(--w-text-sm);
+  font-weight: 500;
+  transition: all var(--w-transition-base);
+}
+
+.top-nav-item:hover {
+  color: var(--w-text);
+  background: var(--w-bg-hover);
+}
+
+.top-nav-item--active {
+  color: var(--w-text);
+  background: var(--w-brand-soft);
+}
+
+.topbar-right {
+  gap: var(--w-space-2);
+}
+
+.command-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--w-text-secondary) !important;
+}
+
+.command-btn kbd {
+  margin-left: 4px;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--w-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--w-text-secondary);
+  transition: all var(--w-transition-base);
+}
+
+.icon-btn:hover {
+  color: var(--w-text);
+  background: var(--w-bg-hover);
+}
+
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--w-radius-sm);
+  transition: all var(--w-transition-base);
+}
+
+.user-trigger:hover {
+  background: var(--w-bg-hover);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--w-bg-tertiary);
+  border: 1px solid var(--w-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--w-text-secondary);
+}
+
+.user-name {
+  font-size: var(--w-text-sm);
+  color: var(--w-text-secondary);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 移动端底部导航栏 */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   height: 56px;
-  background: var(--n-color, #fff);
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  background: rgba(12, 12, 14, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--w-border-subtle);
   display: flex;
   align-items: stretch;
   z-index: 1000;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='light'] .mobile-bottom-nav {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .mobile-nav-item {
@@ -192,24 +462,16 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  text-decoration: none;
-  color: inherit;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  padding: 6px 0;
-  transition: background 0.15s;
+  color: var(--w-text-tertiary);
+  font-size: 10px;
+  transition: all var(--w-transition-base);
+}
+
+.mobile-nav-item--active {
+  color: var(--w-brand);
 }
 
 .mobile-nav-item:active {
-  background: rgba(128, 128, 128, 0.1);
+  background: var(--w-bg-hover);
 }
-
-.mobile-nav-item.router-link-active .mobile-nav-icon {
-  transform: scale(1.15);
-}
-
-.mobile-nav-icon { font-size: 20px; line-height: 1; }
-.mobile-nav-label { font-size: 10px; opacity: 0.65; }
 </style>

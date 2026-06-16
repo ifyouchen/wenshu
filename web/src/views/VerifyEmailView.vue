@@ -1,8 +1,9 @@
 <script setup lang="ts">
-/** 邮箱验证页面（P8-04）：用户点击邮件中的链接跳转至此页。 */
-import { ref, onMounted } from 'vue'
+/** 邮箱验证页面：用户点击邮件中的链接跳转至此页。 */
+import { ref, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { NCard, NResult, NButton, NSpin, NSpace } from 'naive-ui'
+import { NCard, NButton, NSpin, NSpace, NIcon } from 'naive-ui'
+import { CheckCircle2, XCircle, ArrowRight } from 'lucide-vue-next'
 import client from '@/api/client'
 import type { ApiResponse } from '@/api/types'
 
@@ -22,7 +23,7 @@ onMounted(async () => {
   try {
     await client.get<ApiResponse<void>>(`/auth/verify-email?token=${token}`)
     status.value = 'success'
-    setTimeout(() => router.push('/'), 2000)
+    setTimeout(() => router.push('/'), 2500)
   } catch (err: unknown) {
     const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
     status.value = 'error'
@@ -33,40 +34,99 @@ onMounted(async () => {
 
 <template>
   <div class="auth-page">
-    <NCard style="width: 400px; text-align: center">
-      <NSpin v-if="status === 'verifying'" size="large" description="正在验证邮箱…" />
-      <NResult
-        v-else-if="status === 'success'"
-        status="success"
-        title="邮箱验证成功！"
-        description="正在跳转到工作台…"
-      >
-        <template #footer>
-          <NButton type="primary" @click="router.push('/')">立即进入</NButton>
+    <NCard class="verify-card" :bordered="false">
+      <div class="verify-content">
+        <NSpin v-if="status === 'verifying'" size="large" description="正在验证邮箱…" />
+
+        <template v-else-if="status === 'success'">
+          <div class="verify-icon verify-icon--success">
+            <NIcon :component="CheckCircle2" :size="48" />
+          </div>
+          <h2 class="verify-title">邮箱验证成功</h2>
+          <p class="verify-desc">你的邮箱已完成验证，正在进入工作台…</p>
+          <NButton type="primary" class="verify-btn" @click="router.push('/')">
+            <span>立即进入</span>
+            <ArrowRight :size="16" />
+          </NButton>
         </template>
-      </NResult>
-      <NResult
-        v-else
-        status="error"
-        title="验证失败"
-        :description="errorMsg"
-      >
-        <template #footer>
+
+        <template v-else>
+          <div class="verify-icon verify-icon--error">
+            <NIcon :component="XCircle" :size="48" />
+          </div>
+          <h2 class="verify-title">验证失败</h2>
+          <p class="verify-desc">{{ errorMsg }}</p>
           <NSpace justify="center">
             <NButton @click="router.push('/login')">返回登录</NButton>
           </NSpace>
         </template>
-      </NResult>
+      </div>
     </NCard>
   </div>
 </template>
 
 <style scoped>
 .auth-page {
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #eef1f5 100%);
+  padding: 24px;
+  background: var(--w-bg);
+}
+
+.verify-card {
+  width: 420px;
+  max-width: 100%;
+  background: var(--w-bg-secondary) !important;
+  border: 1px solid var(--w-border-default) !important;
+  border-radius: var(--w-radius-lg) !important;
+  padding: 12px;
+}
+
+.verify-content {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.verify-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.verify-icon--success {
+  background: var(--w-success-soft);
+  color: var(--w-success);
+}
+
+.verify-icon--error {
+  background: var(--w-danger-soft);
+  color: var(--w-danger);
+}
+
+.verify-title {
+  font-size: var(--w-text-xl);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.verify-desc {
+  color: var(--w-text-secondary);
+  font-size: var(--w-text-base);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.verify-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  height: auto;
 }
 </style>

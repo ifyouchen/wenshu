@@ -7,6 +7,7 @@ import com.czx.wenshu.application.auth.VerificationEmailSender;
 import com.czx.wenshu.application.user.SecurityAlertEmailSender;
 import com.czx.wenshu.domain.user.EmailAddress;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,9 @@ class StatsControllerTests {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Autowired
+    private CapturingVerificationEmailSender verificationEmailSender;
+
     private String accessToken;
     private String projectId;
 
@@ -42,10 +46,12 @@ class StatsControllerTests {
         Map<String, String> registerRequest = Map.of(
                 "email", "writer-stats@example.com",
                 "password", "password123",
-                "nickname", "统计员"
+                "nickname", "统计员",
+                "verificationCode", sendRegisterCode("writer-stats@example.com")
         );
         ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
                 "/api/v1/auth/register", registerRequest, Map.class);
+        assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> data = (Map<String, Object>) registerResponse.getBody().get("data");
         accessToken = (String) data.get("accessToken");
 
@@ -77,6 +83,16 @@ class StatsControllerTests {
         headers.set("Authorization", "Bearer " + accessToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
+    }
+
+    private String sendRegisterCode(String email) {
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                "/api/v1/auth/register/code",
+                Map.of("email", email),
+                Map.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return verificationEmailSender.sentTokens().getLast().rawToken();
     }
 
     // ── P4-07 写作统计总览 ─────────────────────────────────────────────────
@@ -208,8 +224,20 @@ class StatsControllerTests {
     }
 
     static class CapturingVerificationEmailSender implements VerificationEmailSender {
+
+        private final List<SentToken> sentTokens = new ArrayList<>();
+
         @Override
-        public void sendVerificationEmail(EmailAddress email, String rawToken, Instant expiresAt) {}
+        public void sendVerificationEmail(EmailAddress email, String rawToken, Instant expiresAt) {
+            sentTokens.add(new SentToken(email, rawToken, expiresAt));
+        }
+
+        List<SentToken> sentTokens() {
+            return sentTokens;
+        }
+    }
+
+    record SentToken(EmailAddress email, String rawToken, Instant expiresAt) {
     }
 
     static class CapturingPasswordResetEmailSender implements PasswordResetEmailSender {

@@ -74,6 +74,18 @@ CREATE TABLE IF NOT EXISTS email_verifications (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS registration_email_codes (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email      VARCHAR(255) NOT NULL,
+    code_hash  VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at    TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_registration_email_codes_email_created
+    ON registration_email_codes(email, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS password_resets (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

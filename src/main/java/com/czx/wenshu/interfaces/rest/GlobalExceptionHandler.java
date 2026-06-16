@@ -4,6 +4,8 @@ import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
 import com.czx.wenshu.common.result.Result;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<Result<Void>> handleApiException(ApiException exception) {
@@ -45,6 +49,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<Result<Void>> handleUnexpectedException(Exception exception) {
+        log.error("[GlobalExceptionHandler] 未处理异常", exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Result.fail(ErrorCode.INTERNAL_ERROR));
     }

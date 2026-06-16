@@ -35,8 +35,8 @@ export const useAuthStore = defineStore('auth', () => {
    * @param password 密码
    * @param nickname 昵称
    */
-  async function registerAction(email: string, password: string, nickname: string): Promise<void> {
-    const res = await authApi.register(email, password, nickname)
+  async function registerAction(email: string, password: string, nickname: string, verificationCode: string): Promise<void> {
+    const res = await authApi.register(email, password, nickname, verificationCode)
     const data = res.data.data
     saveTokens(data.accessToken, data.refreshToken)
     user.value = data.user

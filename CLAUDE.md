@@ -43,7 +43,7 @@ The codebase strictly follows **DDD four-layer packaging** under `com.czx.wenshu
 |---|---|
 | `domain` | Pure Java — entities, value objects, repository interfaces. No Spring annotations. |
 | `application` | Use-case services, Commands/Results, transaction boundaries (`@Transactional`). |
-| `infrastructure` | Spring beans: MyBatis mappers/repositories, mail senders, config, Flyway migrations. |
+| `infrastructure` | Spring beans: MyBatis mappers/repositories, mail senders, config, storage, LLM, and mail adapters. |
 | `interfaces.rest` | Controllers, request/response DTOs, `AuthInterceptor`, `GlobalExceptionHandler`. |
 
 **Dependency direction**: `interfaces` → `application` → `domain` ← `infrastructure`
@@ -83,7 +83,7 @@ All tunables live under the `wenshu.*` namespace in `application.yaml`, bound by
 
 ### Database
 
-Flyway migrations in `src/main/resources/db/migration/` (V1–V4). Uses `pgvector/pgvector:pg16` image for vector support. MyBatis mappers have `map-underscore-to-camel-case: true`; no XML mapper files are used — all queries are annotation-based.
+Flyway is explicitly disabled and excluded from application auto-configuration. Local schema initialization uses `src/main/resources/db/schema.sql`; the default local PostgreSQL connection is `jdbc:postgresql://localhost:5432/wenshu` with `wenshu/wenshu`, override it through `WENSHU_DATASOURCE_URL`, `WENSHU_DATASOURCE_USERNAME`, and `WENSHU_DATASOURCE_PASSWORD`. Uses `pgvector/pgvector:pg16` image for vector support. MyBatis mappers have `map-underscore-to-camel-case: true`; no XML mapper files are used — all queries are annotation-based.
 
 ### Project domain model hierarchy
 

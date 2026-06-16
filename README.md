@@ -9,7 +9,7 @@
 - Spring Boot 3 + Java 21
 - DDD 四层包结构：`interfaces`、`application`、`domain`、`infrastructure`
 - PostgreSQL 16 + pgvector、Redis 7、腾讯云 COS
-- Flyway 初始数据库迁移
+- `schema.sql` 本地数据库初始化，应用启动时显式禁用 Flyway
 - 统一 API 返回结构和全局异常处理
 - 系统健康探针：`GET /api/v1/system/health`
 
@@ -22,6 +22,12 @@ $env:JAVA_HOME='F:\jdk21'
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
 docker compose up -d
 mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+默认本地数据库连接为 `jdbc:postgresql://localhost:5432/wenshu`，用户名/密码均为 `wenshu`。如果 5432 已经是本机已有 PostgreSQL，请按实际密码覆盖：
+
+```powershell
+$env:WENSHU_DATASOURCE_PASSWORD='your-local-password'
 ```
 
 COS 需要通过环境变量配置：

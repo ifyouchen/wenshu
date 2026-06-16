@@ -17,7 +17,9 @@ public interface WritingDailyStatsMapper {
             SELECT id, user_id, project_id, stat_date, manual_chars, ai_accepted_chars,
                    total_chars, peak_hour, updated_at
             FROM writing_daily_stats
-            WHERE user_id = CAST(#{userId} AS UUID) AND project_id = CAST(#{projectId} AS UUID) AND stat_date = #{statDate}
+            WHERE user_id = CAST(#{userId} AS UUID)
+              AND project_id = CAST(#{projectId} AS UUID)
+              AND stat_date = CAST(#{statDate} AS DATE)
             """)
     WritingDailyStatsRecord findByUserIdAndProjectIdAndStatDate(
             @Param("userId") String userId, @Param("projectId") String projectId, @Param("statDate") String statDate);
@@ -42,7 +44,8 @@ public interface WritingDailyStatsMapper {
             SELECT id, user_id, project_id, stat_date, manual_chars, ai_accepted_chars,
                    total_chars, peak_hour, updated_at
             FROM writing_daily_stats
-            WHERE user_id = CAST(#{userId} AS UUID) AND stat_date BETWEEN #{from} AND #{to}
+            WHERE user_id = CAST(#{userId} AS UUID)
+              AND stat_date BETWEEN CAST(#{from} AS DATE) AND CAST(#{to} AS DATE)
             ORDER BY stat_date
             """)
     List<WritingDailyStatsRecord> findByUserIdAndStatDateBetween(

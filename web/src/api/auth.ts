@@ -11,9 +11,19 @@ export interface RegisterResult {
   user: UserInfo
 }
 
-/** 邮箱密码注册。 */
-export function register(email: string, password: string, nickname: string) {
-  return client.post<ApiResponse<RegisterResult>>('/auth/register', { email, password, nickname })
+/** 发送注册验证码。 */
+export function sendRegisterCode(email: string) {
+  return client.post<ApiResponse<{ sent: boolean; expiresAt: string }>>('/auth/register/code', { email })
+}
+
+/** 邮箱验证码注册。 */
+export function register(email: string, password: string, nickname: string, verificationCode: string) {
+  return client.post<ApiResponse<RegisterResult>>('/auth/register', {
+    email,
+    password,
+    nickname,
+    verificationCode,
+  })
 }
 
 /** 邮箱密码登录。 */

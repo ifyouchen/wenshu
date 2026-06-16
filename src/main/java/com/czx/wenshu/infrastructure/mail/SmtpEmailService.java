@@ -33,13 +33,13 @@ public class SmtpEmailService implements EmailService {
     @Override
     @Async
     public void sendVerificationEmail(EmailAddress email, String rawToken, Instant expiresAt) {
-        String verificationUrl = properties.getBaseUrl() + "/api/v1/auth/verify-email?token=" + rawToken;
         Context context = new Context();
         context.setVariables(Map.of(
-                "verificationUrl", verificationUrl
+                "verificationCode", rawToken,
+                "expiresAt", TIME_FORMATTER.format(expiresAt)
         ));
         String htmlContent = templateEngine.process("mail/verify-email", context);
-        sendHtmlEmail(email.value(), "【文枢】验证您的邮箱", htmlContent);
+        sendHtmlEmail(email.value(), "【文枢】注册验证码", htmlContent);
     }
 
     @Override

@@ -9,10 +9,13 @@ import com.czx.wenshu.domain.user.EmailVerification;
 import com.czx.wenshu.domain.user.EmailVerificationRepository;
 import com.czx.wenshu.domain.user.PasswordReset;
 import com.czx.wenshu.domain.user.PasswordResetRepository;
+import com.czx.wenshu.domain.user.RegistrationEmailCode;
+import com.czx.wenshu.domain.user.RegistrationEmailCodeRepository;
 import com.czx.wenshu.domain.user.RefreshTokenRepository;
 import com.czx.wenshu.domain.user.User;
 import com.czx.wenshu.domain.user.UserRegistrationPolicy;
 import com.czx.wenshu.domain.user.UserRepository;
+import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -27,11 +30,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthApplicationService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthApplicationService.class);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Duration REGISTER_CODE_TTL = Duration.ofMinutes(10);
+    private static final Duration REGISTER_CODE_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration VERIFY_EMAIL_TOKEN_TTL = Duration.ofHours(24);
     private static final Duration RESEND_VERIFY_EMAIL_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration PASSWORD_RESET_TOKEN_TTL = Duration.ofHours(24);
 
     private final UserRepository userRepository;
+    private final RegistrationEmailCodeRepository registrationEmailCodeRepository;
     private final EmailVerificationRepository emailVerificationRepository;
     private final PasswordResetRepository passwordResetRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -47,6 +54,7 @@ public class AuthApplicationService {
 
     public AuthApplicationService(
             UserRepository userRepository,
+            RegistrationEmailCodeRepository registrationEmailCodeRepository,
             EmailVerificationRepository emailVerificationRepository,
             PasswordResetRepository passwordResetRepository,
             RefreshTokenRepository refreshTokenRepository,
@@ -60,6 +68,7 @@ public class AuthApplicationService {
             Clock clock
     ) {
         this.userRepository = userRepository;
+        this.registrationEmailCodeRepository = registrationEmailCodeRepository;
         this.emailVerificationRepository = emailVerificationRepository;
         this.passwordResetRepository = passwordResetRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -82,10 +91,19 @@ public class AuthApplicationService {
     public RegisterResult register(RegisterCommand command) {
         EmailAddress email = new EmailAddress(command.email());
         new UserRegistrationPolicy(userRepository).ensureEmailAvailable(email);
+        RegistrationEmailCode code = registrationEmailCodeRepository
+                .findLatestByEmailAndCodeHash(email, hashRegistrationCode(email, command.verificationCode()))
+                .orElseThrow(() -> new ApiException(ErrorCode.BAD_REQUEST, "验证码错误或已失效"));
+        Instant now = Instant.now(clock);
+        if (!code.isUsableAt(now)) {
+            throw new ApiException(ErrorCode.BAD_REQUEST, "验证码错误或已失效");
+        }
 
         User user = User.register(email.value(), passwordEncoder.encode(command.password()), command.nickname(), clock);
+        user.verifyEmail(clock);
         userRepository.save(user);
-        issueVerificationEmail(user);
+        code.markUsed(now);
+        registrationEmailCodeRepository.markUsed(code.id(), now);
         TokenPair tokenPair = authTokenService.issueFor(user);
 
         // P9-09：新用户自动发放体验额度（5 万字）
@@ -93,6 +111,28 @@ public class AuthApplicationService {
         log.info("[AuthApplicationService] 新用户注册成功，体验额度已发放 userId={}", user.id());
 
         return new RegisterResult(tokenPair, user);
+    }
+
+    @Transactional
+    public SendRegisterCodeResult sendRegisterCode(SendRegisterCodeCommand command) {
+        EmailAddress email = new EmailAddress(command.email());
+        new UserRegistrationPolicy(userRepository).ensureEmailAvailable(email);
+        Instant now = Instant.now(clock);
+        if (registrationEmailCodeRepository.existsUnusedCreatedAfter(email, now.minus(REGISTER_CODE_COOLDOWN))) {
+            throw new ApiException(ErrorCode.RATE_LIMITED, "请 60 秒后再试");
+        }
+
+        String rawCode = generateRegisterCode();
+        Instant expiresAt = now.plus(REGISTER_CODE_TTL);
+        RegistrationEmailCode code = RegistrationEmailCode.issue(
+                email.value(),
+                hashRegistrationCode(email, rawCode),
+                expiresAt,
+                now
+        );
+        registrationEmailCodeRepository.save(code);
+        verificationEmailSender.sendVerificationEmail(email, rawCode, expiresAt);
+        return new SendRegisterCodeResult(true, expiresAt);
     }
 
     @Transactional
@@ -231,5 +271,16 @@ public class AuthApplicationService {
         passwordResetRepository.save(passwordReset);
         passwordResetEmailSender.sendPasswordResetEmail(user.email(), rawToken, expiresAt);
         return new ForgotPasswordResult(true, expiresAt);
+    }
+
+    private String generateRegisterCode() {
+        return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+    }
+
+    private String hashRegistrationCode(EmailAddress email, String rawCode) {
+        if (rawCode == null || rawCode.isBlank()) {
+            throw new ApiException(ErrorCode.BAD_REQUEST, "请输入验证码");
+        }
+        return emailVerificationTokenService.hash(email.value() + ":" + rawCode.trim());
     }
 }

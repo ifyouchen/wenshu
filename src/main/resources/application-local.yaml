@@ -13,6 +13,17 @@ spring:
       port: ${WENSHU_REDIS_PORT:6379}
       password: ${WENSHU_REDIS_PASSWORD:}
       timeout: 2s
+  mail:
+    host: ${WENSHU_SMTP_HOST:}
+    port: ${WENSHU_SMTP_PORT:587}
+    username: ${WENSHU_SMTP_USERNAME:}
+    password: ${WENSHU_SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${WENSHU_SMTP_AUTH:true}
+          starttls:
+            enable: ${WENSHU_SMTP_STARTTLS_ENABLE:true}
   flyway:
     enabled: false
 

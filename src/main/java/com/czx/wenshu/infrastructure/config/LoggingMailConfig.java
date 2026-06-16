@@ -19,7 +19,8 @@ public class LoggingMailConfig {
 
     @Bean
     public VerificationEmailSender verificationEmailSender() {
-        return (email, rawToken, expiresAt) -> log.info("Verification email queued: email={}, expiresAt={}", email.value(), expiresAt);
+        return (email, rawToken, expiresAt) ->
+                log.info("Verification email queued: email={}, codeOrToken={}, expiresAt={}", email.value(), rawToken, expiresAt);
     }
 
     @Bean

@@ -8,6 +8,7 @@ import com.czx.wenshu.application.auth.RegisterCommand;
 import com.czx.wenshu.application.auth.RegisterResult;
 import com.czx.wenshu.application.auth.ResendVerifyEmailCommand;
 import com.czx.wenshu.application.auth.ResetPasswordCommand;
+import com.czx.wenshu.application.auth.SendRegisterCodeCommand;
 import com.czx.wenshu.common.result.Result;
 import com.czx.wenshu.domain.user.User;
 import com.czx.wenshu.interfaces.rest.auth.CurrentUserProvider;
@@ -45,13 +46,22 @@ public class AuthController {
         this.currentUserProvider = currentUserProvider;
     }
 
-    @Operation(summary = "邮箱密码注册", description = "创建未验证账号并返回 Access Token、Refresh Token 和用户信息。")
+    @Operation(summary = "发送注册验证码", description = "向邮箱发送 6 位注册验证码，60 秒内不可重复发送。")
+    @PostMapping("/register/code")
+    public Result<SendRegisterCodeResponse> sendRegisterCode(@Valid @RequestBody SendRegisterCodeRequest request) {
+        return Result.ok(SendRegisterCodeResponse.from(authApplicationService.sendRegisterCode(
+                new SendRegisterCodeCommand(request.email())
+        )));
+    }
+
+    @Operation(summary = "邮箱验证码注册", description = "校验邮箱验证码，创建已验证账号并返回 Access Token、Refresh Token 和用户信息。")
     @PostMapping("/register")
     public Result<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         RegisterResult result = authApplicationService.register(new RegisterCommand(
                 request.email(),
                 request.password(),
-                request.nickname()
+                request.nickname(),
+                request.verificationCode()
         ));
         return Result.ok(RegisterResponse.from(result));
     }

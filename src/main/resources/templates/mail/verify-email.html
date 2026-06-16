@@ -22,13 +22,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 <div class="content">
 <p>您好，</p>
-<p>感谢注册文枢！请点击下方按钮验证您的邮箱地址：</p>
-<p style="text-align: center;">
-<a th:href="${verificationUrl}" class="btn">验证邮箱</a>
+<p>感谢注册文枢！您的注册验证码是：</p>
+<p style="text-align: center; margin: 24px 0;">
+<span style="display:inline-block; letter-spacing: 8px; font-size: 32px; font-weight: 700; color: #4f46e5;" th:text="${verificationCode}">000000</span>
 </p>
-<p>或复制以下链接到浏览器打开：</p>
-<p style="word-break: break-all; color: #6b7280; font-size: 14px;" th:text="${verificationUrl}"></p>
-<p>此链接 24 小时内有效。如果您没有注册文枢账号，请忽略此邮件。</p>
+<p>验证码有效期至 <span th:text="${expiresAt}"></span>。如果您没有注册文枢账号，请忽略此邮件。</p>
 </div>
 <div class="footer">
 <p>此邮件由系统自动发送，请勿回复。</p>
