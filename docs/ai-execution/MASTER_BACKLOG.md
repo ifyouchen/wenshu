@@ -90,14 +90,14 @@
 | P6-03 | DONE | 关键事件时间线 | P2,P5 | 生成 chapter_key_events |
 | P6-04 | DONE | 向量嵌入写入与检索 | P6-03 | pgvector 检索可用 |
 | P6-05 | DONE | 一致性审查配额检查 | P1,P4 | 按套餐限制字数和次数 |
-| P6-06 | DOING | 一致性审查任务 | P5,P6-05 | 返回报告和条目 |
-| P6-07 | DOING | 审查条目处理状态 | P6-06 | open/handled/ignored 可更新 |
+| P6-06 | DONE | 一致性审查任务 | P5,P6-05 | 返回报告和条目 |
+| P6-07 | DONE | 审查条目处理状态 | P6-06 | open/handled/ignored 可更新 |
 
 ## P7 小说转剧本
 
 | ID | 状态 | 任务 | 依赖 | 验收 |
 | --- | --- | --- | --- | --- |
-| P7-01 | DOING | 剧本草稿与场景模型 | P2 | draft/scenes 数据可读写 |
+| P7-01 | DONE | 剧本草稿与场景模型 | P2 | draft/scenes 数据可读写 |
 | P7-02 | TODO | 场景分割 | P5 | 原文切为场景列表 |
 | P7-03 | TODO | 心理外化策略 | P5 | ACTION/DIALOGUE/VOICEOVER/SKIP |
 | P7-04 | TODO | 异步剧本改编 | P7-01,P7-02,P7-03 | `/script/convert` 返回 taskId/draftId |
