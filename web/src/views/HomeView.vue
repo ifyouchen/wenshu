@@ -175,8 +175,8 @@ function formatWords(n: number) {
       </NGi>
     </NGrid>
 
-    <!-- 新建作品弹窗 -->
-    <NModal v-model:show="showCreate" preset="card" title="新建作品" style="width: 480px">
+    <!-- 新建作品弹窗（P8-14：移动端铺满屏幕宽度，桌面端 480px）-->
+    <NModal v-model:show="showCreate" preset="card" title="新建作品" style="width: min(480px, 96vw)">
       <NForm ref="createFormRef" :model="createForm" :rules="createRules">
         <NFormItem label="作品名称 *" path="title">
           <NInput v-model:value="createForm.title" placeholder="请输入作品名称" />
@@ -209,13 +209,37 @@ function formatWords(n: number) {
 </template>
 
 <style scoped>
-.home-page { padding: 32px; max-width: 1200px; margin: 0 auto; }
+/* ─── 页面容器 ─── */
+.home-page {
+  padding: 24px 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  /* P8-14：移动端底部导航栏高 56px，预留内边距避免内容被遮挡 */
+  padding-bottom: 72px;
+}
+
+@media (min-width: 768px) {
+  .home-page {
+    padding: 32px;
+    padding-bottom: 32px;
+  }
+}
+
+/* ─── 顶部操作栏 ─── */
 .home-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
+
+@media (min-width: 768px) {
+  .home-header { margin-bottom: 28px; }
+}
+
+/* ─── 作品卡片 ─── */
 .project-card { cursor: pointer; transition: transform 0.1s; }
 .project-card:hover { transform: translateY(-2px); }
 </style>

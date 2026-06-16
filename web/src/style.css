@@ -50,8 +50,30 @@
   }
 }
 
+/* ─── 全局基础重置 ─── */
 body {
   margin: 0;
+  /* P8-14：禁止移动端双击缩放 */
+  touch-action: manipulation;
+  /* 防止 iOS 横屏时字体自动放大 */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ─── P8-14 移动端底部导航高度补偿 ─── */
+/* 有底部导航的页面（主布局下的视图）在移动端需预留 56px 空间 */
+@media (max-width: 767px) {
+  /* 防止 iOS 橡皮筋效果导致底部导航被遮挡 */
+  #app {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+/* ─── P8-16 Toast 移动端样式优化 ─── */
+/* 移动端顶部展示时，确保 Toast 不被状态栏遮挡 */
+@media (max-width: 767px) {
+  .n-message-container {
+    padding-top: env(safe-area-inset-top, 0) !important;
+  }
 }
 
 h1,

@@ -209,7 +209,8 @@ async function onMonthChange(val: string) {
 
 <template>
   <NLayout style="height: 100vh; background: #f8f8f8">
-    <NLayoutContent style="padding: 24px 32px; overflow-y: auto; max-width: 1100px; margin: 0 auto">
+    <!-- P8-14：移动端缩减 padding 并为底部导航预留空间 -->
+    <NLayoutContent class="stats-content">
 
       <!-- 页头 -->
       <NPageHeader title="写作统计" subtitle="记录每一次坚持" @back="router.back()">
@@ -223,7 +224,7 @@ async function onMonthChange(val: string) {
       <!-- 今日概览 -->
       <NCard title="今日" style="margin-top: 16px">
         <NSpin :show="overviewLoading">
-          <NGrid :cols="4" :x-gap="24">
+          <NGrid :cols="4" :x-gap="16" :y-gap="16">
             <NGridItem>
               <NStatistic label="今日字数">
                 <template #default>
@@ -411,3 +412,23 @@ async function onMonthChange(val: string) {
     </NLayoutContent>
   </NLayout>
 </template>
+
+
+<style scoped>
+/* ─── P8-14 写作统计页移动端适配 ─── */
+.stats-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-width: 1100px;
+  margin: 0 auto;
+  /* 移动端底部导航 56px + 安全区域 */
+  padding-bottom: 72px;
+}
+
+@media (min-width: 768px) {
+  .stats-content {
+    padding: 24px 32px;
+    padding-bottom: 24px;
+  }
+}
+</style>
