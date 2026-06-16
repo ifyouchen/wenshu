@@ -1,3 +1,8 @@
+DROP TABLE IF EXISTS consistency_report_items;
+DROP TABLE IF EXISTS ai_operation_logs;
+DROP TABLE IF EXISTS script_scenes;
+DROP TABLE IF EXISTS script_episodes;
+DROP TABLE IF EXISTS script_drafts;
 DROP TABLE IF EXISTS user_style_profiles;
 DROP TABLE IF EXISTS chapter_key_events;
 DROP TABLE IF EXISTS quota_usage;
@@ -233,4 +238,64 @@ CREATE TABLE quota_usage (
     used_adaptations INT DEFAULT 0,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (user_id, year_month)
+);
+
+CREATE TABLE ai_operation_logs (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    project_id UUID,
+    operation VARCHAR(50),
+    model VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE consistency_report_items (
+    id UUID PRIMARY KEY,
+    report_id UUID NOT NULL,
+    project_id UUID NOT NULL,
+    type VARCHAR(30),
+    character VARCHAR(200),
+    chapter_hint VARCHAR(200),
+    description TEXT NOT NULL,
+    suggestion TEXT,
+    status VARCHAR(20) DEFAULT 'open',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE script_drafts (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    title VARCHAR(200),
+    strategy VARCHAR(30),
+    status VARCHAR(20) DEFAULT 'processing',
+    total_scenes INT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE script_episodes (
+    id UUID PRIMARY KEY,
+    draft_id UUID NOT NULL,
+    episode_no INT NOT NULL,
+    title VARCHAR(200),
+    sort_order INT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE script_scenes (
+    id UUID PRIMARY KEY,
+    draft_id UUID NOT NULL,
+    episode_id UUID,
+    scene_index INT NOT NULL,
+    location VARCHAR(200),
+    time_desc VARCHAR(100),
+    is_interior BOOLEAN,
+    characters TEXT DEFAULT '[]',
+    content TEXT,
+    source_content TEXT,
+    version INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

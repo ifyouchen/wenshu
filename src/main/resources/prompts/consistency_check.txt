@@ -1,0 +1,15 @@
+请对以下小说内容进行一致性审查，检查角色行为/性格前后矛盾、时间线逻辑问题、地点描述不一致、情节逻辑漏洞等。
+
+以 JSON 数组输出，每条问题包含：
+- type: 问题类型（character/timeline/location/plot 之一）
+- character: 相关角色名（无则 null）
+- chapterHint: 涉及章节（无则 null）
+- description: 问题描述（100 字以内）
+- suggestion: 修改建议（50 字以内，无建议可为 null）
+
+无问题时输出空数组 []。只输出 JSON 数组，不要解释。
+
+作品概要：{{synopsis}}
+角色列表：{{characters}}
+近期内容：
+{{content}}
