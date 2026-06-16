@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS user_style_profiles;
+DROP TABLE IF EXISTS chapter_summaries;
 DROP TABLE IF EXISTS ai_task_progress;
 DROP TABLE IF EXISTS import_parse_sessions;
 DROP TABLE IF EXISTS world_elements;
@@ -187,6 +189,24 @@ CREATE TABLE ai_task_progress (
     result_id UUID,
     result_json TEXT,
     error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE chapter_summaries (
+    id UUID PRIMARY KEY,
+    chapter_id UUID NOT NULL UNIQUE,
+    project_id UUID NOT NULL,
+    summary VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_style_profiles (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL UNIQUE,
+    sample_text TEXT,
+    style_tags TEXT NOT NULL DEFAULT '[]',
+    analysis_task_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

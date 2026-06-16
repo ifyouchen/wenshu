@@ -114,4 +114,27 @@ public class UserController {
         User user = currentUserProvider.getCurrentUser();
         return Result.ok(userApplicationService.updateGlobalWritingGoal(user.id(), request.dailyCharGoal()));
     }
+
+    @Operation(summary = "获取文风档案（P5-10）", description = "返回用户的文风样本与分析标签。")
+    @GetMapping("/style-profile")
+    public Result<UserStyleProfileInfo> getStyleProfile() {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(styleProfileService.getProfile(user.id()));
+    }
+
+    @Operation(summary = "保存文风样本并触发异步分析（P5-10）",
+               description = "保存写作样本，异步调用 LLM 提取文风标签，返回 analysisTaskId 供轮询。")
+    @PutMapping("/style-profile")
+    public Result<UserStyleProfileInfo> saveStyleProfile(@Valid @RequestBody StyleProfileRequest request) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(styleProfileService.saveProfile(user.id(), request.sampleText()));
+    }
+
+    @Operation(summary = "删除文风档案（P5-10）", description = "删除用户的文风档案及分析标签。")
+    @DeleteMapping("/style-profile")
+    public Result<Void> deleteStyleProfile() {
+        User user = currentUserProvider.getCurrentUser();
+        styleProfileService.deleteProfile(user.id());
+        return Result.ok();
+    }
 }
