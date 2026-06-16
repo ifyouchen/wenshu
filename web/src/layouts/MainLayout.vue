@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 主布局（P8-01 / P8-14 / P8-15）。
+ * 主布局（P8-01 / P8-14 / P8-15 / P8-21）。
  *
  * P8-14 移动端响应式：
  *  - 移动端展示底部导航栏，隐藏顶部侧边导航。
@@ -12,6 +12,10 @@
  *
  * P8-16 Toast：
  *  - NMessageProvider placement 由 App.vue 统一控制，此处无需额外处理。
+ *
+ * P8-21 快捷键参考面板：
+ *  - 全局监听 `?` 键打开面板（输入框内不触发）。
+ *  - 注册"快捷键参考"命令到命令面板。
  */
 import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -19,19 +23,23 @@ import { NLayout } from 'naive-ui'
 import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useCommandPaletteStore } from '@/stores/commandPalette'
+import { useKeyboardHelpStore } from '@/stores/keyboardHelp'
 import { useDevice } from '@/composables/useDevice'
 import CommandPalette from '@/components/CommandPalette.vue'
+import KeyboardHelpModal from '@/components/KeyboardHelpModal.vue'
 
 const auth = useAuthStore()
 const quota = useQuotaStore()
 const router = useRouter()
 const palette = useCommandPaletteStore()
+const kbHelp = useKeyboardHelpStore()
 const { isMobile } = useDevice()
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
   await quota.refresh()
-  // 注册全局默认命令（导航类）
+
+  // 注册全局默认命令（导航类 + 快捷键帮助）
   palette.registerCommands([
     {
       id: 'nav:home',
@@ -61,6 +69,15 @@ onMounted(async () => {
       action: () => router.push('/settings'),
     },
     {
+      id: 'help:keyboard',
+      label: '快捷键参考',
+      description: '查看所有键盘快捷键',
+      group: '帮助',
+      icon: '⌨️',
+      shortcut: '?',
+      action: () => kbHelp.open(),
+    },
+    {
       id: 'user:logout',
       label: '退出登录',
       description: '登出当前账号',
@@ -76,14 +93,34 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  palette.unregisterCommands(['nav:home', 'nav:stats', 'nav:settings', 'user:logout'])
+  palette.unregisterCommands([
+    'nav:home', 'nav:stats', 'nav:settings',
+    'help:keyboard', 'user:logout',
+  ])
 })
 
-/** 全局键盘监听：Cmd/Ctrl+K 打开命令面板。 */
+/**
+ * 全局键盘监听：
+ * - Cmd/Ctrl+K：打开命令面板
+ * - `?`（非输入框内）：打开快捷键参考面板（P8-21）
+ */
 function handleGlobalKeydown(e: KeyboardEvent) {
+  // Ctrl/Cmd+K 打开命令面板
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault()
     palette.toggle()
+    return
+  }
+
+  // `?` 键打开快捷键参考（仅在非输入类元素上触发，避免干扰写作）
+  const target = e.target as HTMLElement
+  const isInput =
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.contentEditable === 'true'
+  if (e.key === '?' && !isInput && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+    kbHelp.toggle()
   }
 }
 
@@ -122,6 +159,9 @@ onUnmounted(() => {
 
     <!-- P8-15：命令面板（全局，始终挂载，通过 store.visible 控制显隐）。 -->
     <CommandPalette />
+
+    <!-- P8-21：快捷键参考面板（全局，始终挂载）。 -->
+    <KeyboardHelpModal />
   </NLayout>
 </template>
 

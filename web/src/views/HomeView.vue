@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * 作品首页（P8-05）：作品卡片网格、创建弹窗、空状态、配额 Tooltip。
+ * 作品首页（P8-05 / P8-18）：作品卡片网格、创建弹窗、空状态、配额 Tooltip。
+ * P8-18：首次进入且无作品时，展示欢迎引导提示。
  */
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
@@ -13,12 +14,19 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { listProjects, createProject, deleteProject } from '@/api/project'
 import QuotaTooltip from '@/components/QuotaTooltip.vue'
+import OnboardingHint from '@/components/OnboardingHint.vue'
+import { useOnboarding } from '@/composables/useOnboarding'
 import type { ProjectInfo } from '@/api/types'
 
 const router = useRouter()
 const auth = useAuthStore()
 const message = useMessage()
 const dialog = useDialog()
+
+/** P8-18：渐进式引导状态。 */
+const ob = useOnboarding()
+/** 是否显示欢迎引导（首次进入 + 无作品）。 */
+const showWelcomeHint = ref(false)
 
 const projects = ref<ProjectInfo[]>([])
 const loading = ref(false)
@@ -45,6 +53,10 @@ onMounted(async () => {
   try {
     const res = await listProjects()
     projects.value = res.data.data
+    // P8-18：首次访问且无作品时展示欢迎引导
+    if (projects.value.length === 0 && ob.shouldShow('first-home')) {
+      showWelcomeHint.value = true
+    }
   } catch {
     message.error('加载作品列表失败')
   } finally {
@@ -114,6 +126,18 @@ function formatWords(n: number) {
         <NButton text @click="auth.logoutAction().then(() => router.push('/login'))">退出</NButton>
       </NSpace>
     </div>
+
+    <!-- P8-18：首次访问欢迎引导（无作品时展示一次） -->
+    <OnboardingHint
+      v-if="showWelcomeHint"
+      icon="🎉"
+      title="欢迎来到文枢！"
+      description="文枢是专为长篇创作者打造的 AI 写作工作台。点击「新建作品」开始你的第一部小说，或者使用 Ctrl+K（Cmd+K）呼出命令面板快速导航。"
+      action-label="开始创作"
+      variant="welcome"
+      @close="showWelcomeHint = false; ob.markDone('first-home')"
+      @action="showWelcomeHint = false; ob.markDone('first-home'); showCreate = true"
+    />
 
     <!-- 加载中 -->
     <div v-if="loading" style="text-align: center; padding: 60px">
