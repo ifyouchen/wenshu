@@ -55,6 +55,11 @@ const router = createRouter({
           component: () => import('@/views/StatsView.vue'),
         },
         {
+          path: 'consistency/reports/:reportId',
+          name: 'consistency-report',
+          component: () => import('@/views/ConsistencyReportView.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),

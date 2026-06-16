@@ -20,9 +20,12 @@ export function listSnapshots(chapterId: string) {
   return client.get<ApiResponse<SnapshotInfo[]>>(`/chapters/${chapterId}/snapshots`)
 }
 
-/** 手动创建快照。 */
-export function createSnapshot(chapterId: string, label?: string) {
-  return client.post<ApiResponse<SnapshotInfo>>(`/chapters/${chapterId}/snapshots`, { label })
+/** 手动创建快照（snapshotType 默认为 manual）。 */
+export function createSnapshot(chapterId: string, label?: string, snapshotType = 'manual') {
+  return client.post<ApiResponse<SnapshotInfo>>(`/chapters/${chapterId}/snapshots`, {
+    snapshotType,
+    label,
+  })
 }
 
 /** 恢复快照（恢复前自动创建当前状态快照）。 */

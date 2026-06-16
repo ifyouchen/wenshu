@@ -5,38 +5,36 @@
 import client from './client'
 import type {ApiResponse} from './types'
 
-/** 一致性审查报告条目。 */
+/** 一致性审查报告条目（对应后端 ConsistencyItemInfo）。 */
 export interface ConsistencyReportItem {
   id: string
-  reportId: string
   type: string | null
-  description: string | null
-  chapterId: string | null
-  chapterTitle: string | null
-  severity: string | null
+  /** 涉及角色名称。 */
+  character: string | null
+  /** 涉及章节提示（章节标题或描述，非 UUID）。 */
+  chapterHint: string | null
+  description: string
+  suggestion: string | null
   status: 'open' | 'handled' | 'ignored'
   createdAt: string
+  updatedAt: string
 }
 
-/** 一致性审查报告。 */
+/** 一致性审查报告（对应后端 ConsistencyReportInfo）。 */
 export interface ConsistencyReport {
-  id: string
-  projectId: string
-  status: string
-  summary: string | null
-  items: ConsistencyReportItem[]
+  reportId: string
+  projectId: string | null
+  totalItems: number
+  openItems: number
   createdAt: string
-}
-
-/** 提交一致性审查任务请求。 */
-export interface CheckConsistencyRequest {
-  projectId: string
-  scope?: string
+  items: ConsistencyReportItem[]
 }
 
 /** 提交一致性审查任务（异步，返回 taskId 和 reportId）。 */
-export function submitConsistencyCheck(data: CheckConsistencyRequest) {
-  return client.post<ApiResponse<{ taskId: string; reportId: string }>>('/consistency/check', data)
+export function submitConsistencyCheck(projectId: string) {
+  return client.post<ApiResponse<{ taskId: string; reportId: string }>>(
+    `/consistency/check?projectId=${projectId}`,
+  )
 }
 
 /** 查询一致性审查报告。 */

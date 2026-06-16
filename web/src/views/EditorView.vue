@@ -9,11 +9,12 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import type {Editor} from '@tiptap/vue-3'
-import {NEmpty, NInput, NLayout, NLayoutContent, NSpin, useMessage} from 'naive-ui'
+import {NButton, NEmpty, NInput, NLayout, NLayoutContent, NSpace, NSpin, useMessage} from 'naive-ui'
 import ChapterEditor from '@/components/ChapterEditor.vue'
 import EditorSidePanel from '@/components/EditorSidePanel.vue'
 import AiFloatButton from '@/components/AiFloatButton.vue'
 import SearchReplaceBar from '@/components/SearchReplaceBar.vue'
+import SnapshotDrawer from '@/components/SnapshotDrawer.vue'
 import type {ChapterInfo, OutlineInfo} from '@/api/project'
 import {getChapter, getOutline, saveChapter} from '@/api/project'
 
@@ -29,6 +30,8 @@ const editorRef = ref<InstanceType<typeof ChapterEditor> | null>(null)
 
 // P8-08: AI 浮窗状态
 const aiVisible = ref(false)
+// P8-11: 版本快照抽屉
+const showSnapshot = ref(false)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const editorInstance = ref<any>(undefined)
 
@@ -145,15 +148,19 @@ watch(currentChapterId, async (newId) => {
         @jump-to-chapter="handleSelectChapter"
       />
 
-      <!-- 章节标题 -->
-      <div style="padding: 12px 40px 8px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0">
+      <!-- 章节标题 + 工具栏（P8-11 快照入口）-->
+      <div style="padding: 8px 24px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; display: flex; align-items: center; gap: 12px">
         <NInput
           v-model:value="chapterTitle"
           placeholder="章节标题"
           :bordered="false"
-          style="font-size: 20px; font-weight: 600"
+          style="font-size: 20px; font-weight: 600; flex: 1"
           @blur="handleTitleBlur"
         />
+        <NSpace v-if="currentChapterId" :size="8" align="center">
+          <NButton size="small" text title="版本快照与 diff（P8-11）"
+                   @click="showSnapshot = true">🕐 历史</NButton>
+        </NSpace>
       </div>
 
       <!-- 加载中 -->
@@ -194,4 +201,13 @@ watch(currentChapterId, async (newId) => {
 
     </NLayoutContent>
   </NLayout>
+
+  <!-- P8-11 版本快照抽屉（放在 NLayout 外以避免层叠问题）-->
+  <SnapshotDrawer
+    v-if="currentChapterId"
+    v-model:show="showSnapshot"
+    :chapter-id="currentChapterId"
+    :current-content="chapter?.content ?? ''"
+    @restored="() => { if (currentChapterId) loadChapter(currentChapterId) }"
+  />
 </template>

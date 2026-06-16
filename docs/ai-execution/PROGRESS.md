@@ -6,7 +6,7 @@
 
 阶段：`P8 前端工作台`
 
-整体状态：P6/P7 全部完成；P8 进行中（10/22），P8-01~P8-10 已完成。
+整体状态：P6/P7 全部完成；P8 进行中（13/22），P8-01~P8-13 已完成。
 
 ## 阶段进度
 
@@ -20,7 +20,7 @@
 | P5 AI 写作与润色 | DONE | 10/10 | P5 全部完成 |
 | P6 一致性审查与锚点 | DONE | 7/7 | P6 全部完成 |
 | P7 小说转剧本 | DONE | 8/8 | P7 全部完成 |
-| P8 前端工作台 | DOING | 10/22 | P8-01~P8-10 已完成 |
+| P8 前端工作台 | DOING | 13/22 | P8-01~P8-13 已完成 |
 | P9 商业化与数据安全 | TODO | 0/9 | 未开始 |
 | P10 生态与开放能力 | DEFERRED | 0/3 | V2.0/企业生态能力，已登记 |
 
@@ -109,11 +109,22 @@
 - P8-05：作品首页（listProjects 加载，NGrid 3 列卡片，NDropdown 操作菜单含删除确认，NModal 创建弹窗含类型 NSelect，`QuotaTooltip` 组件 60s 缓存 + 进度条）。
 - P8-06：TipTap 章节编辑器（`ChapterEditor.vue`：StarterKit + Placeholder + CharacterCount；debounce 1000ms 自动保存；只加载当前章节不加载全卷；EditorView 左侧大纲章节导航，标题单独保存，章节切换 watch）。
 
+- P8-11：版本快照和 diff（`SnapshotDrawer.vue` 集成进 EditorView，标题栏"🕐历史"按钮打开抽屉；快照列表按时间倒序；自实现逐行 diff（lookAhead=3 近似 LCS），diffOnly 模式仅展示变更行及前后 2 行上下文；支持恢复快照 + 手动创建快照）。
+- P8-12：一致性审查报告（`ConsistencyReportView.vue`，路由 `/consistency/reports/:reportId`；NTabs 按 character/timeline/location/plot/other 分组；每条显示类型/章节提示/角色/描述/建议；NDropdown 更新状态 handled/ignored/open；`api/consistency.ts` 对齐后端 ConsistencyReportInfo/ConsistencyItemInfo 字段）。
+- P8-13：剧本四栏工作台（`ScriptView.vue` 四栏布局：180px 场景目录 + 原文只读区 + NInput textarea 剧本编辑区 + 可收起 AI 建议面板；Ctrl+S 快捷键保存；version 乐观锁冲突提示 409；移动端显示提示横条隐藏工作台）。
+
 ## 当前待办
 
-P8-11（版本快照和 diff）、P8-12（一致性审查报告）待实现。
+P8-14（移动端响应式）、P8-15（命令面板）、P8-16（Toast 系统）待实现。
 
 ## 实现日志
+
+### 2026-06-16 P8-11 / P8-12 / P8-13
+
+- **P8-11 版本快照与 diff**：集成 `SnapshotDrawer.vue` 进入 `EditorView.vue`（标题栏快照按钮，`v-model:show` 控制显隐，`@restored` 事件触发章节重新加载）；`api/snapshot.ts` 补充 `snapshotType` 参数（后端必填，默认 manual）；diff 算法：自实现 lookAhead=3 逐行近似 LCS，"只看差异"模式展示变更行及上下文。
+- **P8-12 一致性审查报告**：新建 `ConsistencyReportView.vue`（路由 `/consistency/reports/:reportId`）；`api/consistency.ts` 对齐后端真实字段（reportId/totalItems/openItems/chapterHint/character/suggestion）；NTabs 按类型分组；NDropdown 更新条目状态；NStatistic 四种类型计数卡；新增路由。
+- **P8-13 剧本四栏工作台**：全量实现 `ScriptView.vue`：① 左侧 180px 场景目录，② 原文只读面板（sourceContent），③ NInput textarea 剧本编辑面板（Ctrl+S 保存，乐观锁 version，409 冲突提示），④ 可收起 AI 建议面板；移动端隐藏四栏并显示警告横条。
+- `npm run build` 通过。
 
 ### 2026-06-16 P8-07 / P8-08 / P8-09 / P8-10
 
@@ -348,6 +359,7 @@ P8-11（版本快照和 diff）、P8-12（一致性审查报告）待实现。
 | 2026-06-16 | `npm run build`（web/）| PASS | P8-04/P8-05/P8-06：登录注册/作品首页/TipTap 编辑器，构建成功 |
 | 2026-06-16 | `npm run build`（web/）| PASS | P8-07/P8-08/P8-09：大纲侧栏/AI 浮窗 SSE/搜索替换横条，2881 模块构建成功 |
 | 2026-06-16 | `npm run build`（web/）| PASS | P8-10：写作统计看板（今日概览/趋势/热力图/作品进度/月度摘要），2954 模块，StatsView 独立分包 8.63kB |
+| 2026-06-16 | `npm run build`（web/）| PASS | P8-11/P8-12/P8-13：快照 diff 集成/一致性审查报告/剧本四栏工作台，构建成功 |
 
 ## 阻塞记录
 
