@@ -6,7 +6,7 @@
 
 阶段：`P8 前端工作台`
 
-整体状态：P6/P7 全部完成；P8 进行中（3/22），P8-01~P8-03 已完成。
+整体状态：P6/P7 全部完成；P8 进行中（6/22），P8-01~P8-06 已完成。
 
 ## 阶段进度
 
@@ -20,7 +20,7 @@
 | P5 AI 写作与润色 | DONE | 10/10 | P5 全部完成 |
 | P6 一致性审查与锚点 | DONE | 7/7 | P6 全部完成 |
 | P7 小说转剧本 | DONE | 8/8 | P7 全部完成 |
-| P8 前端工作台 | DOING | 3/22 | P8-01~P8-03 已完成 |
+| P8 前端工作台 | DOING | 6/22 | P8-01~P8-06 已完成 |
 | P9 商业化与数据安全 | TODO | 0/9 | 未开始 |
 | P10 生态与开放能力 | DEFERRED | 0/3 | V2.0/企业生态能力，已登记 |
 
@@ -105,11 +105,21 @@
 - P8-02：Axios API 客户端含 Token 刷新队列锁（`web/src/api/client.ts`，isRefreshing 标志 + refreshQueue 队列，多 401 并发只发一次 refresh）。
 - P8-03：四个 Pinia Store（auth 用户认证+令牌持久化，quota 配额 60s 缓存，task 2s 轮询异步任务，scriptDraft 草稿/场景/分页状态）。
 
+- P8-04：登录/注册/邮箱验证/忘记密码 UI（NForm 表单验证规则，密码确认二次验证，`/verify-email?token=xxx` 页面调用后端验证接口）。
+- P8-05：作品首页（listProjects 加载，NGrid 3 列卡片，NDropdown 操作菜单含删除确认，NModal 创建弹窗含类型 NSelect，`QuotaTooltip` 组件 60s 缓存 + 进度条）。
+- P8-06：TipTap 章节编辑器（`ChapterEditor.vue`：StarterKit + Placeholder + CharacterCount；debounce 1000ms 自动保存；只加载当前章节不加载全卷；EditorView 左侧大纲章节导航，标题单独保存，章节切换 watch）。
+
 ## 当前待办
 
-P8-04（登录注册 UI 完善）、P8-05（作品首页）、P8-06（TipTap 编辑器）待实现。
+P8-07（大纲/角色/词典侧栏）、P8-08（AI 浮窗/SSE/RAF 批量写入）、P8-09（搜索替换横条）待实现。
 
 ## 实现日志
+
+### 2026-06-16 P8-04 / P8-05 / P8-06
+
+- **P8-04 登录/注册/邮箱验证/忘记密码 UI**：LoginView 使用 `NForm` + `FormRules`（邮箱正则/密码最小长度）；RegisterView 新增确认密码字段和 validator 函数；`VerifyEmailView.vue`（GET /auth/verify-email?token=，三态：verifying/success/error，成功后 2s 跳转）；router 加 `/verify-email` 路由。
+- **P8-05 作品首页**：HomeView 完整实现：`listProjects` 按 updatedAt 排序；`NGrid` 3 列响应式卡片（NCard + NEllipsis + NTag）；NDropdown 卡片菜单（打开/删除），删除使用 `dialog.warning` 二次确认；NModal 创建弹窗（NForm + NSelect 类型 + NInput 简介）；`QuotaTooltip.vue` 组件（NTooltip + NProgress，字符/改编两个维度，60s 缓存刷新）。
+- **P8-06 TipTap 章节编辑器**：`ChapterEditor.vue`（StarterKit 精简版/Placeholder/CharacterCount；debounce 1000ms 触发 change emit；watch chapter prop 切换内容；markSaved/markError 暴露给父组件）；`EditorView.vue`（左侧大纲章节列表 getOutline；路由参数 chapterId 加载单章；标题独立 NInput onBlur 保存；TipTap change 事件触发 saveChapter；章节切换 watch route.params.chapterId）。
 
 ### 2026-06-16 P8-01 / P8-02 / P8-03
 
@@ -327,6 +337,7 @@ P8-04（登录注册 UI 完善）、P8-05（作品首页）、P8-06（TipTap 编
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P6-06/P6-07/P7-01：一致性审查/条目状态/剧本草稿，140 个测试通过 |
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P7-02~P7-08：场景分割/心理外化/改编/工作台/乐观锁/分集/导出，150 个测试通过 |
 | 2026-06-16 | `npm run build`（web/）| PASS | P8-01/P8-02/P8-03：Vite 构建成功，2881 个模块，TipTap/Naive UI/Core 三包分割 |
+| 2026-06-16 | `npm run build`（web/）| PASS | P8-04/P8-05/P8-06：登录注册/作品首页/TipTap 编辑器，构建成功 |
 
 ## 阻塞记录
 
