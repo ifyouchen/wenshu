@@ -10,6 +10,7 @@ public record UserInfo(
         String identityType,
         boolean isEmailVerified,
         boolean aiTrainConsent,
+        int dailyCharGoal,
         String createdAt,
         String updatedAt
 ) {
@@ -23,6 +24,7 @@ public record UserInfo(
                 user.identityType().value(),
                 user.isEmailVerified(),
                 user.isAiTrainConsent(),
+                user.dailyCharGoal(),
                 user.createdAt().toString(),
                 user.updatedAt().toString()
         );

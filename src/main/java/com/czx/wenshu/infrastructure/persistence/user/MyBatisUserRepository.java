@@ -59,6 +59,7 @@ public class MyBatisUserRepository implements UserRepository {
                 record.getLastLoginAt(),
                 record.isDeleted(),
                 record.getDeletedAt(),
+                record.getDailyCharGoal(),
                 record.getCreatedAt(),
                 record.getUpdatedAt()
         );
@@ -79,6 +80,7 @@ public class MyBatisUserRepository implements UserRepository {
         record.setLastLoginAt(user.lastLoginAt());
         record.setDeleted(user.isDeleted());
         record.setDeletedAt(user.deletedAt());
+        record.setDailyCharGoal(user.dailyCharGoal());
         record.setCreatedAt(user.createdAt());
         record.setUpdatedAt(user.updatedAt());
         return record;

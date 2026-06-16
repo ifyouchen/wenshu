@@ -4,6 +4,7 @@ import com.czx.wenshu.domain.stats.WritingDailyStats;
 import com.czx.wenshu.domain.stats.WritingDailyStatsRepository;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -37,6 +38,12 @@ public class MyBatisWritingDailyStatsRepository implements WritingDailyStatsRepo
         return Optional.ofNullable(mapper.findByUserIdAndProjectIdAndStatDate(
                 userId.toString(), projectId != null ? projectId.toString() : null, statDate.toString()))
                 .map(this::toDomain);
+    }
+
+    @Override
+    public List<WritingDailyStats> findByUserIdAndStatDateBetween(UUID userId, LocalDate from, LocalDate to) {
+        return mapper.findByUserIdAndStatDateBetween(userId.toString(), from.toString(), to.toString())
+                .stream().map(this::toDomain).toList();
     }
 
     @Override

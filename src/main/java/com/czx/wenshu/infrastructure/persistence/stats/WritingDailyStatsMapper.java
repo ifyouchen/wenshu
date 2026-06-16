@@ -1,5 +1,6 @@
 package com.czx.wenshu.infrastructure.persistence.stats;
 
+import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -29,4 +30,13 @@ public interface WritingDailyStatsMapper {
             WHERE id = CAST(#{id} AS UUID)
             """)
     void update(WritingDailyStatsRecord record);
+
+    @Select("""
+            SELECT id, user_id, project_id, stat_date, manual_chars, ai_accepted_chars, total_chars, updated_at
+            FROM writing_daily_stats
+            WHERE user_id = CAST(#{userId} AS UUID) AND stat_date BETWEEN #{from} AND #{to}
+            ORDER BY stat_date
+            """)
+    List<WritingDailyStatsRecord> findByUserIdAndStatDateBetween(
+            @Param("userId") String userId, @Param("from") String from, @Param("to") String to);
 }

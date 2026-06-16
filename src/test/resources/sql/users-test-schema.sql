@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS ai_task_progress;
 DROP TABLE IF EXISTS import_parse_sessions;
 DROP TABLE IF EXISTS world_elements;
 DROP TABLE IF EXISTS characters;
@@ -22,6 +23,7 @@ CREATE TABLE users (
     identity_type VARCHAR(20) DEFAULT 'new_author',
     is_email_verified BOOLEAN DEFAULT FALSE,
     ai_train_consent BOOLEAN DEFAULT TRUE,
+    daily_char_goal INT DEFAULT 2000,
     login_fail_count SMALLINT DEFAULT 0,
     locked_until TIMESTAMP WITH TIME ZONE,
     last_login_at TIMESTAMP WITH TIME ZONE,
@@ -170,4 +172,21 @@ CREATE TABLE import_parse_sessions (
     parsed_chapters TEXT NOT NULL DEFAULT '[]',
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE ai_task_progress (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    project_id UUID,
+    task_type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    current_step INT DEFAULT 0,
+    total_steps INT,
+    step_label VARCHAR(200),
+    progress_pct SMALLINT DEFAULT 0,
+    result_id UUID,
+    result_json TEXT,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

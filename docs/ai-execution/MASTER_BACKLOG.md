@@ -59,23 +59,23 @@
 | P4-01 | DONE | TXT/DOCX 导入解析预览 | P2 | `/import/parse` 返回章节切分预览 |
 | P4-02 | DONE | 切分点调整与导入入库 | P4-01 | `/import/{parseId}/apply` 写入章节 |
 | P4-03 | DONE | 粘贴文本导入 | P2 | `/import/paste` 可直接导入 |
-| P4-04 | TODO | 全书搜索 | P2 | `/projects/{id}/search` 分章节返回结果 |
-| P4-05 | TODO | 全书替换与快照保护 | P4-04,P2-07 | 替换前自动快照 |
-| P4-06 | TODO | 角色名联动替换 | P4-05,P3 | 替换角色名时可同步档案 |
-| P4-07 | TODO | 写作统计总览 | P2-06 | `/stats/writing` 返回今日、趋势、连续天数 |
-| P4-08 | TODO | 热力图、作品进度、月度摘要 | P4-07 | 对应统计接口可用 |
-| P4-09 | TODO | 每日目标设置 | P4-07 | 全局和作品目标可更新 |
+| P4-04 | DONE | 全书搜索 | P2 | `/projects/{id}/search` 分章节返回结果 |
+| P4-05 | DONE | 全书替换与快照保护 | P4-04,P2-07 | 替换前自动快照 |
+| P4-06 | DONE | 角色名联动替换 | P4-05,P3 | 替换角色名时可同步档案 |
+| P4-07 | DONE | 写作统计总览 | P2-06 | `/stats/writing` 返回今日、趋势、连续天数 |
+| P4-08 | DONE | 热力图、作品进度、月度摘要 | P4-07 | 对应统计接口可用 |
+| P4-09 | DONE | 每日目标设置 | P4-07 | 全局和作品目标可更新 |
 
 ## P5 AI 写作与润色
 
 | ID | 状态 | 任务 | 依赖 | 验收 |
 | --- | --- | --- | --- | --- |
-| P5-01 | TODO | LLM 客户端抽象与降级策略 | P0 | 无 Key 时应用可启动并返回明确错误 |
-| P5-02 | TODO | Prompt 模板目录、填充工具与 JSON 健壮解析 | P5-01 | 模板变量校验，LLM JSON 输出可容错解析 |
-| P5-03 | TODO | 异步任务进度服务 | P0 | `/tasks/{taskId}/progress` 可轮询 |
-| P5-04 | TODO | 骨架生成 | P5-02,P5-03,P2,P3 | `/novel/skeleton` 返回 taskId |
-| P5-05 | TODO | 骨架应用入库 | P5-04 | `/skeleton/{taskId}/apply` 生成卷章角色 |
-| P5-06 | TODO | 动态上下文组装 | P2,P3 | 锁定角色、摘要、近期原文按预算组装 |
+| P5-01 | DONE | LLM 客户端抽象与降级策略 | P0 | 无 Key 时应用可启动并返回明确错误 |
+| P5-02 | DONE | Prompt 模板目录、填充工具与 JSON 健壮解析 | P5-01 | 模板变量校验，LLM JSON 输出可容错解析 |
+| P5-03 | DONE | 异步任务进度服务 | P0 | `/tasks/{taskId}/progress` 可轮询 |
+| P5-04 | DOING | 骨架生成 | P5-02,P5-03,P2,P3 | `/novel/skeleton` 返回 taskId |
+| P5-05 | DOING | 骨架应用入库 | P5-04 | `/skeleton/{taskId}/apply` 生成卷章角色 |
+| P5-06 | DOING | 动态上下文组装 | P2,P3 | 锁定角色、摘要、近期原文按预算组装 |
 | P5-07 | TODO | SSE 流式续写 | P5-01,P5-06 | `/novel/continue` 支持首字超时事件 |
 | P5-08 | TODO | 卡点分支建议 | P5-01,P5-06 | `/novel/branch` 返回 3 个方向 |
 | P5-09 | TODO | 基础校正、进阶润色、风格重塑 | P5-01 | polish 接口返回批注或改写文本 |

@@ -1,0 +1,26 @@
+你是一位专业的网文策划编辑。请根据以下信息为小说生成故事骨架。
+
+小说类型：{{genre}}
+故事简介：{{synopsis}}
+世界观设定：{{worldview}}
+目标字数（约）：{{targetWords}}
+
+请输出一个 JSON 对象，格式如下：
+{
+  "title": "小说标题",
+  "theme": "核心主题",
+  "volumes": [
+    {
+      "title": "卷标题",
+      "conflict": "本卷核心冲突",
+      "chapters": [
+        {"title": "章节标题", "outline": "本章大纲（100字以内）"}
+      ]
+    }
+  ],
+  "characters": [
+    {"name": "角色名", "role": "主角/配角/反派", "description": "简介"}
+  ]
+}
+
+只输出 JSON，不要其他内容。

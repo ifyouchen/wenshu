@@ -25,7 +25,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/v1/snapshots/**",
                         "/api/v1/characters/**",
                         "/api/v1/world-dict/**",
-                        "/api/v1/import/**"
+                        "/api/v1/import/**",
+                        "/api/v1/stats/**",
+                        "/api/v1/tasks/**"
                 )
                 .excludePathPatterns(
                         "/api/v1/user/cancel-restore"

@@ -20,6 +20,7 @@ public class User {
     private Instant lastLoginAt;
     private boolean deleted;
     private Instant deletedAt;
+    private int dailyCharGoal;
     private final Instant createdAt;
     private Instant updatedAt;
 
@@ -37,6 +38,7 @@ public class User {
             Instant lastLoginAt,
             boolean deleted,
             Instant deletedAt,
+            int dailyCharGoal,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -53,6 +55,7 @@ public class User {
         this.lastLoginAt = lastLoginAt;
         this.deleted = deleted;
         this.deletedAt = deletedAt;
+        this.dailyCharGoal = Math.max(0, dailyCharGoal);
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt must not be null");
         if (deleted && deletedAt == null) {
@@ -76,6 +79,7 @@ public class User {
                 null,
                 false,
                 null,
+                2000,
                 now,
                 now
         );
@@ -95,11 +99,18 @@ public class User {
             Instant lastLoginAt,
             boolean deleted,
             Instant deletedAt,
+            int dailyCharGoal,
             Instant createdAt,
             Instant updatedAt
     ) {
         return new User(id, new EmailAddress(email), passwordHash, nickname, avatarUrl, identityType, emailVerified,
-                aiTrainConsent, loginFailCount, lockedUntil, lastLoginAt, deleted, deletedAt, createdAt, updatedAt);
+                aiTrainConsent, loginFailCount, lockedUntil, lastLoginAt, deleted, deletedAt,
+                dailyCharGoal, createdAt, updatedAt);
+    }
+
+    public void updateDailyCharGoal(int newGoal, Clock clock) {
+        this.dailyCharGoal = Math.max(0, newGoal);
+        this.updatedAt = Instant.now(clock);
     }
 
     public void markDeleted(Clock clock) {
@@ -225,6 +236,10 @@ public class User {
 
     public Instant deletedAt() {
         return deletedAt;
+    }
+
+    public int dailyCharGoal() {
+        return dailyCharGoal;
     }
 
     public Instant createdAt() {

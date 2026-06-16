@@ -17,6 +17,7 @@ public class UserRecord {
     private Instant lastLoginAt;
     private boolean deleted;
     private Instant deletedAt;
+    private int dailyCharGoal;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -122,6 +123,14 @@ public class UserRecord {
 
     public void setDeletedAt(Instant deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public int getDailyCharGoal() {
+        return dailyCharGoal;
+    }
+
+    public void setDailyCharGoal(int dailyCharGoal) {
+        this.dailyCharGoal = dailyCharGoal;
     }
 
     public Instant getCreatedAt() {

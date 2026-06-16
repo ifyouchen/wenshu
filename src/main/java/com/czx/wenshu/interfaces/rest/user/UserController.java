@@ -7,6 +7,7 @@ import com.czx.wenshu.application.user.UpdateProfileCommand;
 import com.czx.wenshu.application.user.UserApplicationService;
 import com.czx.wenshu.application.user.UserInfo;
 import com.czx.wenshu.application.user.UUIDCommand;
+import com.czx.wenshu.interfaces.rest.project.UpdateWritingGoalRequest;
 import com.czx.wenshu.common.result.Result;
 import com.czx.wenshu.domain.user.IdentityType;
 import com.czx.wenshu.domain.user.User;
@@ -99,5 +100,12 @@ public class UserController {
     @PostMapping("/cancel-restore")
     public Result<UserInfo> restoreAccount(@Valid @RequestBody RestoreAccountRequest request) {
         return Result.ok(userApplicationService.restoreAccount(request.restoreToken()));
+    }
+
+    @Operation(summary = "设置全局每日写作目标", description = "设置用户全局每日目标字数，优先级低于作品级别目标。")
+    @PutMapping("/writing-goal")
+    public Result<UserInfo> updateWritingGoal(@Valid @RequestBody UpdateWritingGoalRequest request) {
+        User user = currentUserProvider.getCurrentUser();
+        return Result.ok(userApplicationService.updateGlobalWritingGoal(user.id(), request.dailyCharGoal()));
     }
 }

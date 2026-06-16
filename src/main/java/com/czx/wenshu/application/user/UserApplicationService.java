@@ -121,6 +121,17 @@ public class UserApplicationService {
         return new DeleteAccountResult(rawToken, expiresAt);
     }
 
+    /** P4-09：更新用户全局每日写作目标（字数/天）。 */
+    @Transactional
+    public UserInfo updateGlobalWritingGoal(UUID userId, int dailyCharGoal) {
+        User user = userRepository.findById(userId)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "用户不存在"));
+        user.updateDailyCharGoal(dailyCharGoal, clock);
+        userRepository.save(user);
+        return UserInfo.from(user);
+    }
+
     @Transactional
     public UserInfo restoreAccount(String rawToken) {
         Instant now = Instant.now(clock);
