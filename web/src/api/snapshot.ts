@@ -10,6 +10,8 @@ export interface SnapshotInfo {
   id: string
   chapterId: string
   label: string | null
+  /** 快照类型枚举（P1-2）：manual / auto_before_ai / polish_accepted / auto_before_replace / auto_before_restore */
+  snapshotType: string
   wordCount: number
   content: string | null
   createdAt: string

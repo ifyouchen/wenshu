@@ -18,7 +18,12 @@ export interface WritingOverview {
 /** 单日统计。 */
 export interface DailyStats {
   date: string
+  /** 合计字数。 */
   chars: number
+  /** 手动输入字数（P1-3）。 */
+  manualChars?: number
+  /** AI 辅助接受字数（P1-3）。 */
+  aiAcceptedChars?: number
 }
 
 /** 热力图数据（365天）。 */
@@ -63,5 +68,19 @@ export function getProjectProgress() {
 /** 获取月度摘要（yearMonth 格式：2026-06）。 */
 export function getMonthlySummary(yearMonth: string) {
   return client.get<ApiResponse<MonthlySummary>>(`/stats/writing/monthly/${yearMonth}`)
+}
+
+/** 写作时段热力图条目（小时×星期，P1-1）。 */
+export interface TimeHeatmapEntry {
+  /** 星期几：0=周日...6=周六 */
+  weekday: number
+  /** 小时：0-23 */
+  hour: number
+  totalChars: number
+}
+
+/** 获取写作时段热力图（小时×星期，P1-1）。 */
+export function getWritingTimeHeatmap() {
+  return client.get<ApiResponse<TimeHeatmapEntry[]>>('/stats/writing/time-heatmap')
 }
 

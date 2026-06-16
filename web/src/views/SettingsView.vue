@@ -339,6 +339,17 @@ function fmtChars(n: number): string {
                   <template #header>升级到专业版，获得 200 万字 AI 月配额</template>
                   订阅升级功能正在开发中（P8-19），敬请期待。
                 </NAlert>
+
+                <!-- P2-1：邀请好友赠额度 -->
+                <div class="invite-section" style="margin-top: 16px; padding: 12px; background: rgba(99,102,241,0.05); border-radius: 8px; border: 1px solid rgba(99,102,241,0.15)">
+                  <NText strong style="font-size: 14px">🎁 邀请好友赠额度</NText>
+                  <NText depth="3" style="font-size: 13px; display: block; margin-top: 4px">
+                    每成功邀请一位新用户注册，双方各额外获得 10,000 字体验额度（上限 50,000 字）。
+                  </NText>
+                  <NText depth="3" style="font-size: 12px; display: block; margin-top: 8px; color: #999">
+                    邀请功能即将上线，敬请期待。
+                  </NText>
+                </div>
               </template>
 
               <!-- 加载失败或无数据 -->

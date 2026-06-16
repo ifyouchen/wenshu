@@ -196,6 +196,21 @@ function formatTime(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ` +
     `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+
+/**
+ * 快照类型中文映射（P1-2）。
+ * 将后端枚举值转换为用户可读的中文标签。
+ */
+function snapshotTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    manual: '手动存档',
+    auto_before_ai: 'AI 改编前',
+    polish_accepted: '润色前',
+    auto_before_replace: '替换前',
+    auto_before_restore: '恢复前',
+  }
+  return map[type] ?? type
+}
 </script>
 
 <template>
@@ -222,6 +237,9 @@ function formatTime(iso: string): string {
               {{ snap.label || formatTime(snap.createdAt) }}
             </NText>
             <NTag v-if="snap.label?.startsWith('auto')" size="tiny" type="default">自动</NTag>
+            <NTag v-if="snap.snapshotType" size="tiny" type="info">
+              {{ snapshotTypeLabel(snap.snapshotType) }}
+            </NTag>
           </div>
           <NText depth="3" style="font-size: 12px">
             {{ snap.wordCount }} 字 · {{ formatTime(snap.createdAt) }}

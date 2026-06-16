@@ -11,6 +11,7 @@
 import {computed, h, onMounted, ref} from 'vue'
 import type {DataTableColumns} from 'naive-ui'
 import {
+  NButton,
   NCard,
   NDataTable,
   NEmpty,
@@ -20,6 +21,8 @@ import {
   NLayoutContent,
   NPageHeader,
   NProgress,
+  NRadioButton,
+  NRadioGroup,
   NSelect,
   NSpace,
   NSpin,
@@ -27,8 +30,8 @@ import {
   NTag,
   NText,
 } from 'naive-ui'
-import type {DailyStats, HeatmapData, MonthlySummary, ProjectProgress, WritingOverview} from '@/api/stats'
-import {getMonthlySummary, getProjectProgress, getWritingHeatmap, getWritingOverview,} from '@/api/stats'
+import type {DailyStats, HeatmapData, MonthlySummary, ProjectProgress, TimeHeatmapEntry, WritingOverview} from '@/api/stats'
+import {getMonthlySummary, getProjectProgress, getWritingHeatmap, getWritingOverview, getWritingTimeHeatmap,} from '@/api/stats'
 import {useRouter} from 'vue-router'
 
 const router = useRouter()
@@ -58,6 +61,40 @@ const monthOptions = computed(() => {
   }
   return opts
 })
+
+// --- 时段热力图（P1-1）---
+const timeHeatmapLoading = ref(false)
+const timeHeatmapData = ref<TimeHeatmapEntry[]>([])
+
+/** 时段热力图：构建 weekday×hour 查找 Map。 */
+const timeHeatmapMap = computed<Map<string, number>>(() => {
+  const map = new Map<string, number>()
+  timeHeatmapData.value.forEach(e => map.set(`${e.weekday}-${e.hour}`, e.totalChars))
+  return map
+})
+
+/** 时段热力图最大值（用于归一化颜色级别）。 */
+const timeHeatmapMax = computed(() => {
+  if (!timeHeatmapData.value.length) return 1
+  return Math.max(...timeHeatmapData.value.map(e => e.totalChars), 1)
+})
+
+/** 将时段字数转换为热力图级别（0-4）。 */
+function timeCharsToLevel(chars: number): number {
+  if (chars <= 0) return 0
+  const max = timeHeatmapMax.value
+  if (chars < max * 0.2) return 1
+  if (chars < max * 0.4) return 2
+  if (chars < max * 0.7) return 3
+  return 4
+}
+
+/** 星期标签（周日=0...周六=6）。 */
+const weekdayLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+// --- 趋势维度切换（P1-3）---
+/** 趋势图展示维度：合计 / 手动输入 / AI 辅助。 */
+const trendDimension = ref<'total' | 'manual' | 'ai'>('total')
 
 // --- 热力图渲染 ---
 /** 将 HeatmapData 转换为 Map<date, chars>，便于快速查找。 */
@@ -104,20 +141,48 @@ function charsToLevel(chars: number): number {
 const levelColors = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']
 
 // --- 趋势图（7 日，内联 SVG）---
-/** 生成 7 日趋势的 SVG polyline 路径。 */
+/**
+ * 根据趋势维度从 DailyStats 中取对应字数值（P1-3）。
+ * - total：使用 chars（合计）
+ * - manual：使用 manualChars（手动输入，回退到 chars）
+ * - ai：使用 aiAcceptedChars（AI 辅助，默认 0）
+ */
+function getTrendValue(d: DailyStats): number {
+  if (trendDimension.value === 'manual') return d.manualChars ?? d.chars
+  if (trendDimension.value === 'ai') return d.aiAcceptedChars ?? 0
+  return d.chars
+}
+
+/** 生成 7 日趋势的 SVG polyline 路径（支持维度切换，P1-3）。 */
 const trendSvgPath = computed(() => {
   const trend: DailyStats[] = overview.value?.trend ?? []
   if (!trend.length) return ''
-  const max = Math.max(...trend.map(d => d.chars), 1)
+  const max = Math.max(...trend.map(d => getTrendValue(d)), 1)
   const W = 300
   const H = 80
   const pts = trend.map((d, i) => {
     const x = (i / (trend.length - 1)) * W
-    const y = H - (d.chars / max) * (H - 8) - 4
+    const y = H - (getTrendValue(d) / max) * (H - 8) - 4
     return `${x.toFixed(1)},${y.toFixed(1)}`
   })
   return pts.join(' ')
 })
+
+/**
+ * 下载趋势图为 SVG 文件（P2-3）。
+ */
+function downloadTrendChart() {
+  const svgEl = document.querySelector('.trend-svg') as SVGElement | null
+  if (!svgEl) return
+  const xml = new XMLSerializer().serializeToString(svgEl)
+  const blob = new Blob([xml], { type: 'image/svg+xml' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'writing-trend.svg'
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 // --- 作品进度表格 ---
 /** 作品进度 DataTable 列定义。 */
@@ -196,8 +261,18 @@ async function loadMonthly(ym: string) {
   finally { monthlyLoading.value = false }
 }
 
+/** 加载写作时段热力图（P1-1）。 */
+async function loadTimeHeatmap() {
+  timeHeatmapLoading.value = true
+  try {
+    const res = await getWritingTimeHeatmap()
+    timeHeatmapData.value = res.data.data
+  } catch { /* 静默 */ }
+  finally { timeHeatmapLoading.value = false }
+}
+
 onMounted(async () => {
-  await Promise.all([loadOverview(), loadHeatmap(), loadProjectProgress()])
+  await Promise.all([loadOverview(), loadHeatmap(), loadProjectProgress(), loadTimeHeatmap()])
   await loadMonthly(selectedMonth.value)
 })
 
@@ -267,8 +342,17 @@ async function onMonthChange(val: string) {
 
           <!-- 7 日趋势折线 -->
           <div v-if="overview?.trend?.length" style="margin-top: 20px">
-            <NText depth="3" style="font-size: 12px; display: block; margin-bottom: 6px">近 7 日趋势</NText>
-            <svg width="100%" height="88" viewBox="0 0 300 88" preserveAspectRatio="none">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px">
+              <NText depth="3" style="font-size: 12px">近 7 日趋势</NText>
+              <!-- P1-3：趋势维度切换 -->
+              <NRadioGroup v-model:value="trendDimension" size="small">
+                <NRadioButton value="total">合计</NRadioButton>
+                <NRadioButton value="manual">手动输入</NRadioButton>
+                <NRadioButton value="ai">AI 辅助</NRadioButton>
+              </NRadioGroup>
+            </div>
+            <!-- P2-3：class="trend-svg" 用于下载 -->
+            <svg class="trend-svg" width="100%" height="88" viewBox="0 0 300 88" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stop-color="#18a058" stop-opacity="0.25" />
@@ -295,7 +379,7 @@ async function onMonthChange(val: string) {
                 <circle
                   v-if="overview?.trend"
                   :cx="(i / (overview.trend.length - 1)) * 300"
-                  :cy="88 - (d.chars / Math.max(...overview.trend.map(x => x.chars), 1)) * 76 - 4"
+                  :cy="88 - (getTrendValue(d) / Math.max(...overview.trend.map(x => getTrendValue(x)), 1)) * 76 - 4"
                   r="3"
                   fill="#18a058"
                 />
@@ -306,6 +390,10 @@ async function onMonthChange(val: string) {
               <NText v-for="d in overview?.trend" :key="d.date" depth="3" style="font-size: 10px">
                 {{ d.date.slice(5) }}
               </NText>
+            </div>
+            <!-- P2-3：下载趋势图按钮 -->
+            <div style="text-align: right; margin-top: 4px">
+              <NButton size="tiny" text @click="downloadTrendChart">下载图片</NButton>
             </div>
           </div>
         </NSpin>
@@ -346,6 +434,54 @@ async function onMonthChange(val: string) {
             </NSpace>
           </div>
           <NEmpty v-else description="暂无热力图数据" />
+        </NSpin>
+      </NCard>
+
+      <!-- 写作时段热力图（P1-1）-->
+      <NCard title="写作时段" style="margin-top: 16px">
+        <NSpin :show="timeHeatmapLoading">
+          <div v-if="timeHeatmapData.length" style="overflow-x: auto">
+            <!-- 小时列标签 -->
+            <div style="display: flex; margin-bottom: 4px; padding-left: 36px">
+              <div
+                v-for="h in 24"
+                :key="h - 1"
+                style="flex: 1; text-align: center; font-size: 10px; color: #999; min-width: 14px"
+              >
+                {{ [0, 6, 12, 18, 23].includes(h - 1) ? h - 1 : '' }}
+              </div>
+            </div>
+            <!-- 7 行（周日-周六）× 24 列（0-23 时）-->
+            <div v-for="wd in 7" :key="wd - 1" style="display: flex; align-items: center; margin-bottom: 3px">
+              <!-- 星期标签 -->
+              <div style="width: 32px; font-size: 11px; color: #999; flex-shrink: 0">
+                {{ weekdayLabels[wd - 1] }}
+              </div>
+              <!-- 24 小时格 -->
+              <div
+                v-for="h in 24"
+                :key="h - 1"
+                :title="`${weekdayLabels[wd - 1]} ${h - 1}:00 — ${timeHeatmapMap.get(`${wd - 1}-${h - 1}`) ?? 0} 字`"
+                :style="{
+                  flex: 1,
+                  height: '14px',
+                  minWidth: '14px',
+                  borderRadius: '2px',
+                  background: levelColors[timeCharsToLevel(timeHeatmapMap.get(`${wd - 1}-${h - 1}`) ?? 0)],
+                  cursor: 'default',
+                  marginRight: '2px',
+                }"
+              />
+            </div>
+            <!-- 颜色图例 -->
+            <NSpace :size="6" align="center" style="margin-top: 8px">
+              <NText depth="3" style="font-size: 11px">少</NText>
+              <div v-for="(color, i) in levelColors" :key="i"
+                   :style="{ width: '12px', height: '12px', borderRadius: '2px', background: color }" />
+              <NText depth="3" style="font-size: 11px">多</NText>
+            </NSpace>
+          </div>
+          <NEmpty v-else description="暂无时段数据" />
         </NSpin>
       </NCard>
 

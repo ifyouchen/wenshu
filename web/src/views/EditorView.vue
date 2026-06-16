@@ -20,9 +20,11 @@ import SearchReplaceBar from '@/components/SearchReplaceBar.vue'
 import OnboardingHint from '@/components/OnboardingHint.vue'
 import type {ChapterInfo, OutlineInfo} from '@/api/project'
 import {getChapter, getOutline, saveChapter} from '@/api/project'
+import {getWritingOverview} from '@/api/stats'
 import {useDevice} from '@/composables/useDevice'
 import {useCommandPaletteStore} from '@/stores/commandPalette'
 import {useOnboarding} from '@/composables/useOnboarding'
+import {useEditorHeartbeat} from '@/composables/useEditorHeartbeat'
 
 /**
  * P8-22：SnapshotDrawer 组件级懒加载。
@@ -61,6 +63,11 @@ const showReplace = ref(false)
 // P8-14: 移动端侧栏抽屉状态
 const showMobileSidePanel = ref(false)
 
+// P1-4：连续写作提醒条
+const streakReminderVisible = ref(false)
+const streakDays = ref(0)
+const todayRemainingChars = ref(0)
+
 // P8-18: 渐进式引导
 const ob = useOnboarding()
 /** 首次进入编辑器引导提示。 */
@@ -74,6 +81,9 @@ const maxTrackedChars = ref(0)
 
 const projectId = route.params.projectId as string
 const currentChapterId = computed(() => route.params.chapterId as string | undefined)
+
+// P2-5：多标签页心跳检测（使用当前章节 ID，无章节时传空串）
+const { otherTabEditing } = useEditorHeartbeat(currentChapterId.value ?? '')
 
 async function loadChapter(id: string) {
   loading.value = true
@@ -166,6 +176,21 @@ onMounted(async () => {
   await loadOutline()
   if (currentChapterId.value) await loadChapter(currentChapterId.value)
 
+  // P1-4：加载连续写作提醒条
+  try {
+    const statsRes = await getWritingOverview()
+    const overview = statsRes.data.data
+    if (overview.streak > 0) {
+      const todayProgress = overview.todayChars ?? 0
+      const goal = overview.dailyGoal ?? 2000
+      if (todayProgress < goal) {
+        streakDays.value = overview.streak
+        todayRemainingChars.value = goal - todayProgress
+        streakReminderVisible.value = true
+      }
+    }
+  } catch { /* 静默失败，不影响编辑器功能 */ }
+
   // P8-18：首次进入编辑器时展示使用提示
   if (ob.shouldShow('first-editor')) {
     showFirstEditorHint.value = true
@@ -227,6 +252,17 @@ watch(currentChapterId, async (newId) => {
 
     <!-- 编辑器主区域 -->
     <NLayoutContent style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0">
+
+      <!-- P2-5：多标签页冲突警告 -->
+      <div v-if="otherTabEditing" class="other-tab-warning">
+        ⚠️ 另一个标签页正在编辑本章节，请注意避免内容冲突
+      </div>
+
+      <!-- P1-4：连续写作提醒条 -->
+      <div v-if="streakReminderVisible" class="streak-reminder">
+        📝 你已连续更新 {{ streakDays }} 天，今天还差 {{ todayRemainingChars }} 字
+        <NButton text size="tiny" style="margin-left: 8px" @click="streakReminderVisible = false">×</NButton>
+      </div>
 
       <!-- P8-09 搜索替换横条 -->
       <SearchReplaceBar
@@ -357,6 +393,30 @@ watch(currentChapterId, async (newId) => {
 </template>
 
 <style scoped>
+/* ─── P2-5 多标签页冲突警告 ─── */
+.other-tab-warning {
+  background: #fff7e6;
+  color: #d46b08;
+  font-size: 13px;
+  padding: 5px 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #ffd591;
+  flex-shrink: 0;
+}
+
+/* ─── P1-4 连续写作提醒条 ─── */
+.streak-reminder {
+  background: linear-gradient(90deg, #fef3c7, #fef9e0);
+  color: #92400e;
+  font-size: 13px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #fde68a;
+  flex-shrink: 0;
+}
+
 /* ─── 编辑器工具栏（P8-14 响应式）─── */
 .editor-toolbar {
   padding: 8px 16px;
