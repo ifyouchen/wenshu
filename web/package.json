@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "optionalDependencies": {
-    "@rolldown/binding-darwin-arm64": "1.0.3"
+    "@rolldown/binding-darwin-arm64": "^1.0.3"
   },
   "dependencies": {
     "@tiptap/extension-character-count": "^3.26.1",

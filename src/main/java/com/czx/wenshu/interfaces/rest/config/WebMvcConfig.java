@@ -34,7 +34,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/v1/consistency/**",
                         "/api/v1/script/**",
                         "/api/v1/subscriptions/current",
-                        "/api/v1/content/appeals"
+                        "/api/v1/subscriptions/checkout",
+                        "/api/v1/subscriptions/topup",
+                        "/api/v1/subscriptions/cancel",
+                        "/api/v1/content/appeals",
+                        "/api/v1/teams/**"
                 )
                 .excludePathPatterns(
                         "/api/v1/user/cancel-restore"

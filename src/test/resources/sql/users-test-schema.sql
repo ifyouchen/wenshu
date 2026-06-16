@@ -1,3 +1,6 @@
+DROP TABLE IF EXISTS team_members;
+DROP TABLE IF EXISTS teams;
+DROP TABLE IF EXISTS payment_orders;
 DROP TABLE IF EXISTS content_appeals;
 DROP TABLE IF EXISTS user_subscriptions;
 DROP TABLE IF EXISTS subscription_plans;
@@ -339,4 +342,45 @@ CREATE TABLE content_appeals (
     reviewer_note TEXT,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE payment_orders (
+    id               VARCHAR(36) PRIMARY KEY,
+    user_id          VARCHAR(36) NOT NULL,
+    order_no         VARCHAR(64) UNIQUE NOT NULL,
+    product_type     VARCHAR(32) NOT NULL,
+    product_key      VARCHAR(64) NOT NULL,
+    amount_fen       BIGINT      NOT NULL,
+    currency         VARCHAR(8)  NOT NULL DEFAULT 'CNY',
+    payment_channel  VARCHAR(32),
+    status           VARCHAR(20) NOT NULL DEFAULT 'pending',
+    paid_at          TIMESTAMP,
+    channel_order_no VARCHAR(128),
+    raw_callback     TEXT,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE teams (
+    id                         VARCHAR(36) PRIMARY KEY,
+    owner_id                   VARCHAR(36) NOT NULL,
+    name                       VARCHAR(100) NOT NULL,
+    plan_key                   VARCHAR(32) NOT NULL DEFAULT 'enterprise',
+    monthly_char_limit         BIGINT NOT NULL DEFAULT 10000000,
+    monthly_adaptation_limit   INT    NOT NULL DEFAULT 200,
+    created_at                 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at                 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE team_members (
+    id           VARCHAR(36) PRIMARY KEY,
+    team_id      VARCHAR(36) NOT NULL,
+    user_id      VARCHAR(36) NOT NULL,
+    role         VARCHAR(20) NOT NULL DEFAULT 'member',
+    status       VARCHAR(20) NOT NULL DEFAULT 'pending',
+    invited_by   VARCHAR(36),
+    invite_code  VARCHAR(64) UNIQUE,
+    joined_at    TIMESTAMP,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (team_id, user_id)
 );
