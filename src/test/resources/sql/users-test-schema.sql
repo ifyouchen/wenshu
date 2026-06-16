@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS import_parse_sessions;
 DROP TABLE IF EXISTS world_elements;
 DROP TABLE IF EXISTS characters;
 DROP TABLE IF EXISTS writing_daily_stats;
@@ -159,5 +160,14 @@ CREATE TABLE world_elements (
     description TEXT,
     aliases TEXT NOT NULL DEFAULT '[]',
     is_locked BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE import_parse_sessions (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    parsed_chapters TEXT NOT NULL DEFAULT '[]',
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

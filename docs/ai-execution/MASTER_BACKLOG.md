@@ -56,9 +56,9 @@
 
 | ID | 状态 | 任务 | 依赖 | 验收 |
 | --- | --- | --- | --- | --- |
-| P4-01 | TODO | TXT/DOCX 导入解析预览 | P2 | `/import/parse` 返回章节切分预览 |
-| P4-02 | TODO | 切分点调整与导入入库 | P4-01 | `/import/{parseId}/apply` 写入章节 |
-| P4-03 | TODO | 粘贴文本导入 | P2 | `/import/paste` 可直接导入 |
+| P4-01 | DONE | TXT/DOCX 导入解析预览 | P2 | `/import/parse` 返回章节切分预览 |
+| P4-02 | DONE | 切分点调整与导入入库 | P4-01 | `/import/{parseId}/apply` 写入章节 |
+| P4-03 | DONE | 粘贴文本导入 | P2 | `/import/paste` 可直接导入 |
 | P4-04 | TODO | 全书搜索 | P2 | `/projects/{id}/search` 分章节返回结果 |
 | P4-05 | TODO | 全书替换与快照保护 | P4-04,P2-07 | 替换前自动快照 |
 | P4-06 | TODO | 角色名联动替换 | P4-05,P3 | 替换角色名时可同步档案 |

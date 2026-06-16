@@ -4,9 +4,9 @@
 
 ## 当前阶段
 
-阶段：`P3 角色库与世界观词典`
+阶段：`P4 导入、搜索替换、写作统计`
 
-整体状态：P3 全部完成（5/5），准备进入 P4 导入、搜索替换、写作统计。
+整体状态：P4 进行中（3/9），P4-01/P4-02/P4-03 已完成。
 
 ## 阶段进度
 
@@ -16,7 +16,7 @@
 | P1 账号与用户 | DONE | 11/11 | P1 全部完成 |
 | P2 作品、卷章与快照 | DONE | 7/7 | P2 全部完成 |
 | P3 角色库与世界观词典 | DONE | 5/5 | P3 全部完成 |
-| P4 导入、搜索替换、写作统计 | TODO | 0/9 | P3 完成后下一阶段 |
+| P4 导入、搜索替换、写作统计 | DOING | 3/9 | P4-01/P4-02/P4-03 已完成 |
 | P5 AI 写作与润色 | TODO | 0/10 | 未开始 |
 | P6 一致性审查与锚点 | TODO | 0/7 | 未开始 |
 | P7 小说转剧本 | TODO | 0/8 | 未开始 |
@@ -59,11 +59,34 @@
 - P3-04：专有名词词典别名支持（`aliases` 字段，List<String> API，JSON 字符串存储；Flyway V5 迁移；`WorldElement.syncName()` 为 P3-05 预备）。
 - P3-05：角色名与词典同步策略（`updateCharacter` 检测名称变更后调用 `WorldElementApplicationService.syncCharacterName()`，词典中同名条目自动跟随更新）。
 
+- P4-01：TXT/DOCX 导入解析预览（POST /import/parse，章节正则切分，24 小时解析会话）。
+- P4-02：切分点调整与导入入库（PUT /import/{id}/adjust，POST /import/{id}/apply）。
+- P4-03：粘贴文本导入（POST /import/paste，无预览步骤，直接写入章节）。
+
 ## 当前待办
 
-P3 已全部完成，下一步进入 P4 导入、搜索替换、写作统计。
+P4-04（全书搜索）、P4-05（全书替换）、P4-06（角色名联动替换）、P4-07（写作统计总览）、P4-08（热力图/月度）、P4-09（每日目标）待实现。
 
 ## 实现日志
+
+### 2026-06-16 P4-01~P4-03
+
+- **P4-01 TXT/DOCX 导入解析预览**：
+  - `pom.xml` 新增 `org.apache.poi:poi-ooxml:5.3.0`（DOCX 解析）。
+  - Flyway V6 迁移：创建 `import_parse_sessions` 表（id, project_id, user_id, parsed_chapters TEXT, expires_at, created_at）。
+  - 领域层：`ParsedChapterItem` record、`ImportParseSession` 聚合（24 小时 TTL、`isExpiredAt()`、`updateChapters()`）、`ImportParseSessionRepository` 接口。
+  - 基础设施层：`ImportParseSessionRecord`、`ImportParseSessionMapper`（MyBatis）、`MyBatisImportParseSessionRepository`（用 Jackson ObjectMapper 序列化 chapters JSON）。
+  - 应用层：`ImportApplicationService.parseFile()` 支持 TXT（自动识别 UTF-8/GBK 编码）和 DOCX（Apache POI `XWPFDocument`），章节切分正则支持中文 `第N章/节/回/卷` 和英文 `Chapter N / CHAPTER N`。
+- **P4-02 切分点调整与导入入库**：
+  - `PUT /import/{parseId}/adjust` + `AdjustSplitRequest` → `WorldElementApplicationService.adjustSplitPoints()`（覆写章节列表）。
+  - `POST /import/{parseId}/apply` + `ApplyImportRequest(volumeId)` → `ImportApplicationService.applyImport()`（批量创建 Chapter，wordCount 自动计算）。
+  - 解析会话应用后立即删除。
+- **P4-03 粘贴文本导入**：
+  - `POST /import/paste` + `PasteImportRequest(projectId, volumeId, text)` → 解析 + 直接入库，无预览会话。
+- `WebMvcConfig` 新增 `/api/v1/import/**` 鉴权路径。
+- 测试 schema 新增 `import_parse_sessions` 表。
+- 新增 `ImportControllerTests` 集成测试 6 个用例（粘贴多章节、单章节、未鉴权、章节切分 2 个单元、paste wordCount）全部通过。
+- 全量回归 66 个测试通过。
 
 ### 2026-06-16 P3-04~P3-05
 
@@ -169,6 +192,7 @@ P3 已全部完成，下一步进入 P4 导入、搜索替换、写作统计。
 | 2026-06-16 | `$env:JAVA_HOME="F:\jdk21"; mvn test` | PASS | P2-05~P2-07：大纲树、差量字数统计、版本快照，42 个测试通过 |
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P3-01/P3-02/P3-03：角色 CRUD、锁定/解锁、世界观要素 CRUD，55 个测试通过 |
 | 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P3-04/P3-05：词典别名、角色名同步，60 个测试通过 |
+| 2026-06-16 | `JAVA_HOME=corretto-21.0.11; mvn test` | PASS | P4-01/P4-02/P4-03：TXT/DOCX 导入、切分调整入库、粘贴导入，66 个测试通过 |
 
 ## 阻塞记录
 
@@ -261,6 +285,13 @@ P3 已全部完成，下一步进入 P4 导入、搜索替换、写作统计。
 - 测试 schema 新增 projects、volumes、chapters 表。
 - 新增 `ProjectControllerTests` 集成测试 9 个用例，全部通过。
 - 全量回归 39 个测试通过。
+
+### 2026-06-16 P4-01~P4-03 导入设计决策
+
+- 解析会话使用 PostgreSQL 表（`import_parse_sessions`）而非 Redis 存储，原因：测试 profile 禁用 Redis，DB 方案可无缝支持 H2 测试。TTL 由应用层 `isExpiredAt()` 判断，无后台清理进程（生产环境可加定时任务清理过期会话）。
+- TXT 编码自动识别：先尝试 UTF-8，若有 replacement character（`�`）则退回 GBK，覆盖大多数中文小说 TXT 文件格式。
+- 章节标题正则选取行首 `第N章/节/回/卷/集/部/篇` 模式，匹配任意数字（含汉字数）；英文支持 `Chapter N`/`CHAPTER N`。无法识别章节时退回"全文一章"模式。
+- `pasteImport` 不走会话存储，直接解析并入库，简化快速导入流程。
 
 ### 2026-06-16 P3-04 aliases 设计决策
 
