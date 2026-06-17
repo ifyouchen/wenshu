@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文枢 wenshu - 智能创作平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg-primary:#0a0a0f;--bg-secondary:#12121a;--bg-tertiary:#1a1a24;--bg-elevated:#22222e;--bg-hover:#2a2a38;
+--text-primary:#e4e4e7;--text-secondary:#a1a1aa;--text-tertiary:#71717a;--text-muted:#52525b;
+--accent:#6366f1;--accent-light:#818cf8;--accent-dim:#4f46e5;--accent-glow:rgba(99,102,241,0.15);--accent-surface:rgba(99,102,241,0.08);
+--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--green-text:#86efac;--amber:#f59e0b;--amber-dim:rgba(245,158,11,0.1);--red:#ef4444;--red-dim:rgba(239,68,68,0.1);
+--border:#2a2a35;--border-light:#1f1f2a;
+--shadow-sm:0 1px 3px rgba(0,0,0,0.3);--shadow-md:0 4px 16px rgba(0,0,0,0.4);--shadow-lg:0 8px 32px rgba(0,0,0,0.5);
+--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;
+--font-display:'Noto Serif SC',serif;--font-body:'Inter',-apple-system,sans-serif;--font-mono:'JetBrains Mono',monospace;
+--transition-fast:0.15s cubic-bezier(0.4,0,0.2,1);--transition-normal:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="light"]{
+--bg-primary:#fafafa;--bg-secondary:#ffffff;--bg-tertiary:#f4f4f5;--bg-elevated:#e4e4e7;--bg-hover:#ececef;
+--text-primary:#18181b;--text-secondary:#3f3f46;--text-tertiary:#71717a;--text-muted:#a1a1aa;
+--accent:#4f46e5;--accent-light:#4338ca;--accent-dim:#6366f1;--accent-glow:rgba(79,70,229,0.12);--accent-surface:rgba(79,70,229,0.06);
+--green:#16a34a;--green-dim:rgba(22,163,74,0.08);--green-text:#15803d;--amber:#d97706;--amber-dim:rgba(217,119,6,0.08);--red:#dc2626;--red-dim:rgba(220,38,38,0.06);
+--border:#e4e4e7;--border-light:#f4f4f5;
+--shadow-sm:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 16px rgba(0,0,0,0.08);--shadow-lg:0 8px 32px rgba(0,0,0,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);background:var(--bg-primary);color:var(--text-primary);line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.hidden{display:none!important}
+.page{display:none;width:100%;min-height:100vh}
+.page.active{display:flex}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:var(--radius-md);font-size:0.82rem;font-weight:500;font-family:var(--font-body);cursor:pointer;border:none;transition:var(--transition-fast);gap:5px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-dim)}
+.btn-secondary{background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--text-muted);background:var(--bg-hover)}
+.btn-ghost{background:transparent;color:var(--text-secondary);padding:6px 10px}
+.btn-ghost:hover{color:var(--text-primary);background:var(--bg-hover)}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid transparent}
+.btn-danger:hover{border-color:var(--red)}
+.btn-full{width:100%}
+.btn-sm{padding:5px 10px;font-size:0.76rem}
+
+/* AUTH */
+.auth-page{align-items:center;justify-content:center;background:var(--bg-primary);position:relative;overflow:hidden}
+.auth-page::before{content:'';position:absolute;inset:-50%;background:radial-gradient(ellipse at 30% 20%,rgba(99,102,241,0.04) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(99,102,241,0.02) 0%,transparent 40%);animation:aurora 20s ease infinite alternate}
+@keyframes aurora{from{transform:translate(0,0) rotate(0deg)}to{transform:translate(-2%,1%) rotate(1deg)}}
+.auth-card{position:relative;width:400px;max-width:90vw;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);padding:40px 32px;box-shadow:var(--shadow-lg);animation:fadeUp .5s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.auth-brand{text-align:center;margin-bottom:28px}
+.auth-brand h1{font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:var(--accent-light);letter-spacing:-0.02em}
+.auth-brand p{font-size:0.8rem;color:var(--text-tertiary);margin-top:5px}
+.auth-tabs{display:flex;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.auth-tab{flex:1;padding:10px 0;text-align:center;font-size:0.85rem;font-weight:500;color:var(--text-tertiary);cursor:pointer;border-bottom:2px solid transparent;transition:var(--transition-fast)}
+.auth-tab:hover{color:var(--text-secondary)}
+.auth-tab.active{color:var(--accent-light);border-bottom-color:var(--accent)}
+.auth-form{display:none;flex-direction:column;gap:12px}
+.auth-form.active{display:flex}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:0.76rem;font-weight:500;color:var(--text-secondary)}
+.form-input{width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.85rem;font-family:var(--font-body);transition:var(--transition-fast);outline:none}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.form-input::placeholder{color:var(--text-muted)}
+.form-textarea{width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;font-family:var(--font-body);transition:var(--transition-fast);outline:none;resize:vertical;min-height:80px;line-height:1.6}
+.form-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.auth-footer{text-align:center;font-size:0.7rem;color:var(--text-muted);margin-top:14px}
+.auth-footer a{color:var(--accent-light);text-decoration:none}
+
+/* IDENTITY */
+.identity-page{align-items:center;justify-content:center;flex-direction:column;gap:28px;padding:40px 20px}
+.identity-title{text-align:center}
+.identity-title h2{font-family:var(--font-display);font-size:1.4rem;font-weight:700}
+.identity-title p{color:var(--text-tertiary);font-size:0.8rem;margin-top:5px}
+.identity-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:660px;width:100%}
+.identity-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 16px;text-align:center;cursor:pointer;transition:var(--transition-normal)}
+.identity-card:hover{border-color:var(--accent);background:var(--accent-surface)}
+.identity-card.selected{border-color:var(--accent);background:var(--accent-surface)}
+.identity-card .icon{font-size:1.8rem;margin-bottom:8px;display:block}
+.identity-card h3{font-size:0.9rem;font-weight:600;margin-bottom:5px}
+.identity-card p{font-size:0.76rem;color:var(--text-tertiary);line-height:1.5}
+
+/* HOME */
+.home-page{flex-direction:column}
+.home-header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg-secondary);position:sticky;top:0;z-index:50}
+.home-header .logo{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--accent-light);cursor:pointer}
+.home-header-actions{display:flex;align-items:center;gap:10px}
+.search-input{padding:6px 11px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;width:160px;outline:none;transition:var(--transition-fast)}
+.search-input:focus{border-color:var(--accent);width:220px}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:600;color:#fff;cursor:pointer}
+.icon-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-tertiary);transition:var(--transition-fast);background:none;border:none;font-size:0.9rem}
+.icon-btn:hover{color:var(--text-primary);background:var(--bg-hover)}
+.home-body{flex:1;padding:24px 28px 72px;max-width:1100px;margin:0 auto;width:100%}
+.home-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.home-toolbar h2{font-size:1.1rem;font-weight:600}
+.home-toolbar-right{display:flex;gap:8px;align-items:center}
+.sort-select{padding:5px 10px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);font-size:0.76rem;outline:none;cursor:pointer}
+
+/* Nav tabs in home */
+.home-nav{display:flex;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
+.home-nav-item{padding:8px 14px;font-size:0.82rem;font-weight:500;color:var(--text-tertiary);cursor:pointer;border-bottom:2px solid transparent;transition:var(--transition-fast);margin-bottom:-1px}
+.home-nav-item:hover{color:var(--text-secondary)}
+.home-nav-item.active{color:var(--accent-light);border-bottom-color:var(--accent)}
+
+.works-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.work-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition-normal);cursor:pointer}
+.work-card:hover{border-color:var(--text-muted);box-shadow:var(--shadow-sm)}
+.work-card-bar{height:3px}
+.work-card-body{padding:16px}
+.work-card-genre{display:inline-block;padding:2px 6px;font-size:0.66rem;font-weight:500;border-radius:3px;margin-bottom:7px}
+.work-card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:8px}
+.work-card-meta{font-size:0.76rem;color:var(--text-tertiary);line-height:1.6;margin-bottom:12px}
+.work-card-actions{display:flex;gap:6px}
+.work-card-new{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;min-height:180px;border:1px dashed var(--border);background:transparent}
+.work-card-new:hover{border-color:var(--text-muted);background:var(--bg-tertiary)}
+.work-card-new .plus-icon{width:40px;height:40px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:var(--text-tertiary)}
+.work-card-new span{font-size:0.8rem;color:var(--text-tertiary)}
+.quota-footer{position:fixed;bottom:0;left:0;right:0;padding:8px 24px;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:40}
+.quota-text{font-size:0.76rem;color:var(--text-secondary);white-space:nowrap}
+.quota-track{flex:1;max-width:240px;height:3px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden}
+.quota-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .6s ease}
+.quota-badge{font-size:0.7rem;padding:2px 8px;background:var(--accent-surface);color:var(--accent-light);border-radius:999px;font-weight:500}
+
+/* EDITOR */
+.editor-page{flex-direction:column;height:100vh}
+.editor-topbar{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);gap:6px;font-size:0.8rem}
+.breadcrumb{display:flex;align-items:center;gap:4px;color:var(--text-secondary)}
+.breadcrumb a{color:var(--accent-light);text-decoration:none;cursor:pointer}
+.breadcrumb .sep{color:var(--text-muted)}
+.breadcrumb .current{color:var(--text-primary);font-weight:500}
+.editor-topbar-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.editor-body{flex:1;display:flex;overflow:hidden}
+.editor-sidebar{width:44px;background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0}
+.sidebar-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);color:var(--text-muted);cursor:pointer;font-size:0.78rem;transition:var(--transition-fast);position:relative}
+.sidebar-icon:hover{color:var(--text-secondary);background:var(--bg-hover)}
+.sidebar-icon.active{color:var(--accent-light);background:var(--accent-surface)}
+.sidebar-icon .tip{position:absolute;left:calc(100% + 6px);padding:3px 8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;font-size:0.68rem;white-space:nowrap;opacity:0;pointer-events:none;transition:var(--transition-fast);z-index:10;color:var(--text-secondary)}
+.sidebar-icon:hover .tip{opacity:1}
+.side-panel{width:0;overflow:hidden;background:var(--bg-secondary);border-right:0 solid var(--border);transition:width .25s ease,border-right-width 0s .25s;display:flex;flex-direction:column;flex-shrink:0}
+.side-panel.open{width:240px;border-right-width:1px;transition:width .25s ease,border-right-width 0s 0s}
+.side-panel-header{padding:10px 12px;font-size:0.78rem;font-weight:600;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;color:var(--text-primary);white-space:nowrap}
+.side-panel-header .close-btn{width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:pointer;color:var(--text-muted);background:none;border:none;font-size:0.72rem;transition:var(--transition-fast)}
+.side-panel-header .close-btn:hover{background:var(--bg-hover);color:var(--text-primary)}
+.side-panel-body{flex:1;overflow-y:auto;padding:10px 12px;font-size:0.78rem;color:var(--text-secondary);line-height:1.6}
+.side-panel-body .panel-item{padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition-fast);margin-bottom:2px}
+.side-panel-body .panel-item:hover{background:var(--bg-hover)}
+.side-panel-body .panel-item.active{background:var(--accent-surface);color:var(--accent-light)}
+.editor-main{flex:1;display:flex;flex-direction:column;background:var(--bg-primary);overflow:hidden;min-width:0}
+.editor-content{flex:1;padding:36px 48px;overflow-y:auto;max-width:700px;margin:0 auto;width:100%}
+.chapter-title{font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin-bottom:18px;color:var(--text-primary);border:none;outline:none;background:transparent;width:100%;display:block}
+.chapter-body{font-size:0.92rem;line-height:1.9;color:var(--text-secondary);min-height:300px;outline:none;white-space:pre-wrap}
+.chapter-body:empty::before{content:'开始写作...';color:var(--text-muted);font-style:italic}
+.ai-block{border-left:3px solid var(--green);background:var(--green-dim);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin:12px 0}
+.ai-block-label{font-size:0.68rem;color:var(--green-text);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.ai-block-actions{display:flex;gap:5px;margin-top:8px}
+.ai-block-actions button{padding:3px 9px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);font-size:0.7rem;cursor:pointer;transition:var(--transition-fast)}
+.ai-block-actions button:hover{border-color:var(--text-muted);color:var(--text-primary)}
+.editor-status{padding:4px 48px;font-size:0.7rem;color:var(--text-muted);border-top:1px solid var(--border-light);display:flex;gap:14px;flex-shrink:0}
+.editor-panel{width:220px;background:var(--bg-secondary);border-left:1px solid var(--border);padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;flex-shrink:0}
+.panel-title{font-size:0.72rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.03em}
+.panel-card{background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);padding:9px;font-size:0.78rem;color:var(--text-secondary);line-height:1.5}
+.panel-card .label{font-size:0.68rem;color:var(--accent-light);font-weight:600;margin-bottom:3px}
+.tag{display:inline-block;padding:2px 5px;font-size:0.66rem;background:var(--accent-surface);color:var(--accent-light);border-radius:3px;margin:1px 2px 1px 0}
+.editor-cmdbar{display:flex;align-items:center;padding:8px 12px;border-top:1px solid var(--border);background:var(--bg-secondary);gap:6px;flex-shrink:0;z-index:10}
+.cmd-input{flex:1;padding:7px 11px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;outline:none}
+.cmd-input:focus{border-color:var(--accent)}
+.cmd-btn{padding:6px 10px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-secondary);font-size:0.76rem;font-weight:500;cursor:pointer;transition:var(--transition-fast);white-space:nowrap}
+.cmd-btn:hover{border-color:var(--text-muted);color:var(--text-primary)}
+.cmd-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* WORKBENCH */
+.workbench-page{flex-direction:column;height:100vh}
+.wb-topbar{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);gap:10px;font-size:0.8rem}
+.wb-topbar .title{font-weight:600}
+.wb-topbar-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.wb-body{flex:1;display:flex;overflow:hidden}
+.wb-col{display:flex;flex-direction:column;overflow-y:auto;border-right:1px solid var(--border)}
+.wb-col:last-child{border-right:none}
+.wb-col-header{padding:7px 10px;font-size:0.72rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border-light);background:var(--bg-secondary);position:sticky;top:0;z-index:5}
+.wb-col-body{padding:10px;flex:1;overflow-y:auto}
+.wb-scenes-col{width:160px;background:var(--bg-secondary)}
+.wb-scene-item{padding:6px 8px;border-radius:var(--radius-sm);font-size:0.76rem;cursor:pointer;transition:var(--transition-fast);display:flex;align-items:center;gap:5px;margin-bottom:1px}
+.wb-scene-item:hover{background:var(--bg-hover)}
+.wb-scene-item.active{background:var(--accent-surface);color:var(--accent-light)}
+.wb-scene-status{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.wb-scene-status.done{background:var(--green)}
+.wb-scene-status.editing{background:var(--accent)}
+.wb-scene-status.pending{background:var(--text-muted)}
+.wb-novel-col{flex:1;min-width:220px;background:var(--bg-primary)}
+.wb-novel-text{font-size:0.85rem;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap}
+.wb-novel-text .highlight{background:var(--amber-dim);border-radius:2px;padding:0 2px}
+.wb-script-col{flex:1;min-width:260px;background:var(--bg-primary)}
+.wb-script-text{font-family:var(--font-mono);font-size:0.82rem;line-height:1.7;color:var(--text-primary)}
+.wb-script-text .scene-head{color:var(--accent-light);font-weight:600;text-transform:uppercase}
+.wb-script-text .action{color:var(--text-secondary)}
+.wb-script-text .dialog-char{font-weight:600;text-align:center;margin-top:8px}
+.wb-script-text .dialog-line{margin:0 auto;max-width:360px;color:var(--text-secondary);text-align:center}
+.wb-notes-col{width:200px;background:var(--bg-secondary)}
+.wb-note{padding:8px;margin-bottom:6px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.74rem;color:var(--text-secondary);line-height:1.5}
+.wb-note .note-type{font-size:0.66rem;font-weight:600;color:var(--accent-light);margin-bottom:3px}
+
+/* === MANAGEMENT PAGES (shared) === */
+.mgmt-page{flex-direction:column;height:100vh}
+.mgmt-header{display:flex;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-secondary);gap:10px}
+.mgmt-header .back-btn{font-size:0.8rem;color:var(--text-tertiary);cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm);transition:var(--transition-fast)}
+.mgmt-header .back-btn:hover{color:var(--text-primary);background:var(--bg-hover)}
+.mgmt-header .title{font-size:0.95rem;font-weight:600}
+.mgmt-header .actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.mgmt-body{flex:1;display:flex;overflow:hidden}
+.mgmt-sidebar{width:180px;background:var(--bg-secondary);border-right:1px solid var(--border);padding:12px 8px;overflow-y:auto;flex-shrink:0}
+.mgmt-sidebar .nav-item{padding:7px 10px;font-size:0.78rem;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary);transition:var(--transition-fast);margin-bottom:2px}
+.mgmt-sidebar .nav-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+.mgmt-sidebar .nav-item.active{background:var(--accent-surface);color:var(--accent-light);font-weight:500}
+.mgmt-sidebar .nav-title{font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;padding:4px 10px;margin-top:10px;margin-bottom:4px}
+.mgmt-content{flex:1;padding:20px 24px;overflow-y:auto}
+.mgmt-content h3{font-size:1rem;font-weight:600;margin-bottom:14px}
+.mgmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.mgmt-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;transition:var(--transition-fast);cursor:pointer}
+.mgmt-card:hover{border-color:var(--text-muted)}
+.mgmt-card .card-title{font-weight:600;font-size:0.88rem;margin-bottom:4px}
+.mgmt-card .card-desc{font-size:0.76rem;color:var(--text-tertiary);line-height:1.5;margin-bottom:8px}
+.mgmt-card .card-tags{display:flex;flex-wrap:wrap;gap:4px}
+.mgmt-card .card-meta{font-size:0.7rem;color:var(--text-muted);margin-top:8px}
+.mgmt-card .card-actions{display:flex;gap:5px;margin-top:10px}
+.mgmt-list-item{display:flex;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px;background:var(--bg-secondary);gap:10px;transition:var(--transition-fast)}
+.mgmt-list-item:hover{border-color:var(--text-muted)}
+.mgmt-list-item .item-icon{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--accent-surface);display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0}
+.mgmt-list-item .item-body{flex:1;min-width:0}
+.mgmt-list-item .item-title{font-size:0.82rem;font-weight:500}
+.mgmt-list-item .item-desc{font-size:0.72rem;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mgmt-list-item .item-actions{display:flex;gap:4px;flex-shrink:0}
+
+/* Detail panel */
+.mgmt-detail{width:320px;background:var(--bg-secondary);border-left:1px solid var(--border);padding:16px;overflow-y:auto;flex-shrink:0;display:none}
+.mgmt-detail.open{display:block}
+.mgmt-detail .detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.mgmt-detail .detail-title{font-size:1rem;font-weight:600}
+.mgmt-detail .detail-section{margin-bottom:14px}
+.mgmt-detail .detail-label{font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px}
+.mgmt-detail .detail-value{font-size:0.82rem;color:var(--text-secondary);line-height:1.6}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-xl);padding:24px;width:480px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal h3{font-size:1rem;font-weight:600;margin-bottom:16px}
+.modal .form-row{margin-bottom:12px}
+.modal .form-row label{display:block;font-size:0.76rem;font-weight:500;color:var(--text-secondary);margin-bottom:4px}
+.modal .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* Timeline */
+.timeline{position:relative;padding-left:20px}
+.timeline::before{content:'';position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--border)}
+.timeline-item{position:relative;padding:8px 0;padding-left:14px}
+.timeline-item::before{content:'';position:absolute;left:-17px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--accent);border:2px solid var(--bg-primary)}
+.timeline-item .tl-title{font-size:0.82rem;font-weight:500}
+.timeline-item .tl-desc{font-size:0.74rem;color:var(--text-tertiary)}
+
+/* Relation graph placeholder */
+.relation-graph{width:100%;height:200px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;margin-bottom:14px}
+
+/* Template card */
+.template-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;transition:var(--transition-fast)}
+.template-card:hover{border-color:var(--text-muted)}
+.template-card .tpl-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.template-card .tpl-name{font-weight:600;font-size:0.88rem}
+.template-card .tpl-badge{font-size:0.66rem;padding:2px 6px;border-radius:3px;font-weight:500}
+.template-card .tpl-desc{font-size:0.76rem;color:var(--text-tertiary);line-height:1.5;margin-bottom:8px}
+.template-card .tpl-prompt{font-family:var(--font-mono);font-size:0.72rem;background:var(--bg-tertiary);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:8px;color:var(--text-secondary);line-height:1.5;max-height:80px;overflow:hidden;margin-bottom:8px}
+.template-card .tpl-actions{display:flex;gap:5px}
+
+/* Theme toggle */
+.theme-toggle{position:relative;width:32px;height:18px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:999px;cursor:pointer;transition:var(--transition-fast);flex-shrink:0}
+.theme-toggle::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;background:var(--text-secondary);border-radius:50%;transition:var(--transition-fast)}
+[data-theme="light"] .theme-toggle::after{left:calc(100% - 14px);background:var(--accent)}
+.theme-toggle:hover{border-color:var(--text-muted)}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 16px;font-size:0.78rem;color:var(--text-primary);z-index:1000;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH PAGE ===== -->
+<div id="page-auth" class="page auth-page active">
+<div class="auth-card">
+<div class="auth-brand"><h1>文枢</h1><p>wenshu · 智能创作平台</p></div>
+<div class="auth-tabs">
+<div class="auth-tab active" data-tab="login">登录</div>
+<div class="auth-tab" data-tab="register">注册</div>
+</div>
+<form class="auth-form active" id="form-login">
+<div class="form-group"><label>笔名 / 邮箱</label><input class="form-input" placeholder="输入笔名或邮箱"></div>
+<div class="form-group"><label>密码</label><input class="form-input" type="password" placeholder="输入密码"></div>
+<button type="submit" class="btn btn-primary btn-full" style="margin-top:8px">进入文枢</button>
+</form>
+<form class="auth-form" id="form-register">
+<div class="form-group"><label>笔名</label><input class="form-input" placeholder="你的创作笔名"></div>
+<div class="form-group"><label>邮箱</label><input class="form-input" placeholder="用于找回密码"></div>
+<div class="form-group"><label>密码</label><input class="form-input" type="password" placeholder="至少8位"></div>
+<button type="submit" class="btn btn-primary btn-full" style="margin-top:8px">创建账号</button>
+</form>
+<div class="auth-footer">继续即表示同意 <a href="#">使用条款</a> 和 <a href="#">隐私策略</a></div>
+</div>
+</div>
+
+<!-- ===== IDENTITY PAGE ===== -->
+<div id="page-identity" class="page identity-page">
+<div class="identity-title"><h2>选择你的创作身份</h2><p>这将影响文枢为你提供的AI建议风格</p></div>
+<div class="identity-cards">
+<div class="identity-card" data-role="novelist"><span class="icon">&#9997;</span><h3>小说作者</h3><p>专注小说创作，需要续写、润色、角色建议</p></div>
+<div class="identity-card" data-role="screenwriter"><span class="icon">&#127916;</span><h3>编剧</h3><p>写剧本或将小说转为剧本，需要结构化改编</p></div>
+<div class="identity-card" data-role="editor"><span class="icon">&#128221;</span><h3>编辑/审稿</h3><p>审阅和修改他人作品，需要批注与建议</p></div>
+</div>
+<button class="btn btn-primary" id="btn-start" style="margin-top:16px" disabled>确认并进入工作台</button>
+</div>
+
+<!-- ===== HOME PAGE ===== -->
+<div id="page-home" class="page home-page">
+<div class="home-header">
+<div class="logo" onclick="showPage('page-home')">文枢</div>
+<div class="home-header-actions">
+<input class="search-input" placeholder="搜索...">
+<div class="theme-toggle" onclick="toggleTheme()" title="切换主题"></div>
+<div class="avatar">W</div>
+</div>
+</div>
+<div class="home-body">
+<div class="home-nav">
+<div class="home-nav-item active" data-section="works">我的作品</div>
+<div class="home-nav-item" data-section="characters">角色库</div>
+<div class="home-nav-item" data-section="glossary">词典</div>
+<div class="home-nav-item" data-section="worldview">世界观</div>
+<div class="home-nav-item" data-section="outline">大纲</div>
+<div class="home-nav-item" data-section="templates">风格模板</div>
+</div>
+
+<!-- Section: Works -->
+<div class="home-section" id="section-works">
+<div class="home-toolbar"><h2>我的作品</h2><div class="home-toolbar-right"><select class="sort-select"><option>最近编辑</option><option>创建时间</option></select><button class="btn btn-primary btn-sm" onclick="showPage('page-editor')">+ 新建</button></div></div>
+<div class="works-grid">
+<div class="work-card" onclick="showPage('page-editor')"><div class="work-card-bar" style="background:#7C3AED"></div><div class="work-card-body"><div class="work-card-genre" style="background:rgba(124,58,237,0.12);color:#a78bfa">玄幻</div><div class="work-card-title">万古仙穹</div><div class="work-card-meta">已写 12 章 · 82,400字<br>上次编辑 3小时前</div><div class="work-card-actions"><button class="btn btn-secondary btn-sm">继续写</button><button class="btn btn-ghost btn-sm">转剧本</button></div></div></div>
+<div class="work-card" onclick="showPage('page-workbench')"><div class="work-card-bar" style="background:#E11D48"></div><div class="work-card-body"><div class="work-card-genre" style="background:rgba(225,29,72,0.12);color:#fb7185">言情</div><div class="work-card-title">迟来的告白</div><div class="work-card-meta">已写 8 章 · 34,600字<br>剧本改编中</div><div class="work-card-actions"><button class="btn btn-secondary btn-sm">编辑</button><button class="btn btn-ghost btn-sm">工作台</button></div></div></div>
+<div class="work-card" onclick="showPage('page-editor')"><div class="work-card-bar" style="background:#0891B2"></div><div class="work-card-body"><div class="work-card-genre" style="background:rgba(8,145,178,0.12);color:#67e8f9">科幻</div><div class="work-card-title">银河旅客</div><div class="work-card-meta">已写 3 章 · 15,200字<br>上次编辑 2天前</div><div class="work-card-actions"><button class="btn btn-secondary btn-sm">继续写</button></div></div></div>
+<div class="work-card work-card-new" onclick="showPage('page-editor')"><div class="plus-icon">+</div><span>新建作品</span></div>
+</div>
+</div>
+
+<!-- Section: Characters -->
+<div class="home-section hidden" id="section-characters">
+<div class="home-toolbar"><h2>角色库</h2><div class="home-toolbar-right"><button class="btn btn-primary btn-sm" onclick="openModal('modal-character')">+ 新建角色</button></div></div>
+<div class="mgmt-grid">
+<div class="mgmt-card"><div class="card-title">叶辰</div><div class="card-desc">男主，天才修士，背负轮回之秘。性格坚韧执着，偶尔冲动。外貌清俊，剑眉星目。</div><div class="card-tags"><span class="tag">万古仙穹</span><span class="tag">主角</span><span class="tag">修士</span></div><div class="card-meta">出场 12 章 · 关联角色 5</div><div class="card-actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">关系</button></div></div>
+<div class="mgmt-card"><div class="card-title">凌霜</div><div class="card-desc">女主，冰灵体，剑道天才。外冷内热，与叶辰亦师亦友。白衣如雪，气质清冷。</div><div class="card-tags"><span class="tag">万古仙穹</span><span class="tag">女主</span><span class="tag">冰灵体</span></div><div class="card-meta">出场 8 章 · 关联角色 3</div><div class="card-actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">关系</button></div></div>
+<div class="mgmt-card"><div class="card-title">墨渊</div><div class="card-desc">反派，暗影宗宗主。表面儒雅实则心狠。四十出头，长衫文士形象。</div><div class="card-tags"><span class="tag">万古仙穹</span><span class="tag">反派</span></div><div class="card-meta">出场 5 章 · 关联角色 4</div><div class="card-actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">关系</button></div></div>
+<div class="mgmt-card"><div class="card-title">林晚</div><div class="card-desc">都市女孩，28岁，出版社编辑。温柔内敛，笑起来有小虎牙。</div><div class="card-tags"><span class="tag">迟来的告白</span><span class="tag">女主</span></div><div class="card-meta">出场 8 章 · 关联角色 2</div><div class="card-actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">关系</button></div></div>
+<div class="mgmt-card"><div class="card-title">陆言</div><div class="card-desc">男主，30岁建筑师。沉默寡言但内心细腻，五年前因误会离开。</div><div class="card-tags"><span class="tag">迟来的告白</span><span class="tag">男主</span></div><div class="card-meta">出场 6 章 · 关联角色 2</div><div class="card-actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">关系</button></div></div>
+</div>
+<div class="relation-graph" style="margin-top:20px">角色关系图谱 · 点击角色卡片「关系」按钮查看连接</div>
+</div>
+
+<!-- Section: Glossary -->
+<div class="home-section hidden" id="section-glossary">
+<div class="home-toolbar"><h2>词典</h2><div class="home-toolbar-right"><select class="sort-select"><option>全部分类</option><option>境界体系</option><option>地理</option><option>功法</option><option>势力</option></select><button class="btn btn-primary btn-sm" onclick="openModal('modal-glossary')">+ 新增词条</button></div></div>
+<div class="mgmt-list-item"><div class="item-icon">&#127759;</div><div class="item-body"><div class="item-title">天道轮回</div><div class="item-desc">本书核心设定，修士突破大境界需经历天道试炼，转世重修</div></div><div class="item-actions"><span class="tag">核心设定</span><button class="btn btn-ghost btn-sm">编辑</button></div></div>
+<div class="mgmt-list-item"><div class="item-icon">&#128293;</div><div class="item-body"><div class="item-title">灵核</div><div class="item-desc">丹田中的修炼本源，分九品，品级越高灵力越纯</div></div><div class="item-actions"><span class="tag">境界体系</span><button class="btn btn-ghost btn-sm">编辑</button></div></div>
+<div class="mgmt-list-item"><div class="item-icon">&#9876;</div><div class="item-body"><div class="item-title">暗影宗</div><div class="item-desc">四大宗门之一，擅长暗属性功法，行事诡秘，势力遍布三界</div></div><div class="item-actions"><span class="tag">势力</span><button class="btn btn-ghost btn-sm">编辑</button></div></div>
+<div class="mgmt-list-item"><div class="item-icon">&#10052;</div><div class="item-body"><div class="item-title">冰灵体</div><div class="item-desc">百年一遇的修炼奇体，与冰属性灵气天然亲和，修炼速度五倍</div></div><div class="item-actions"><span class="tag">体质</span><button class="btn btn-ghost btn-sm">编辑</button></div></div>
+<div class="mgmt-list-item"><div class="item-icon">&#127968;</div><div class="item-body"><div class="item-title">天剑城</div><div class="item-desc">东域最大城市，四大宗门议事之地，位于天元大陆中央</div></div><div class="item-actions"><span class="tag">地理</span><button class="btn btn-ghost btn-sm">编辑</button></div></div>
+<div class="mgmt-list-item"><div class="item-icon">&#128218;</div><div class="item-body"><div class="item-title">轮回九式</div><div class="item-desc">叶辰的核心功法，共九式，每式对应一重天道法则</div></div><div class="item-actions"><span class="tag">功法</span><button class="btn btn-ghost btn-sm">编辑</button></div></div>
+<div class="mgmt-list-item"><div class="item-icon">&#9877;</div><div class="item-body"><div class="item-title">炼气 / 筑基 / 金丹 / 元婴 / 化神</div><div class="item-desc">五大基础境界，化神之上为天人合一、大乘、渡劫</div></div><div class="item-actions"><span class="tag">境界体系</span><button class="btn btn-ghost btn-sm">编辑</button></div></div>
+</div>
+
+<!-- Section: World View -->
+<div class="home-section hidden" id="section-worldview">
+<div class="home-toolbar"><h2>世界观</h2><div class="home-toolbar-right"><button class="btn btn-primary btn-sm" onclick="openModal('modal-worldview')">+ 新增设定</button></div></div>
+<div class="mgmt-grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
+<div class="mgmt-card"><div class="card-title">&#127759; 天元大陆 · 地理</div><div class="card-desc">世界由三块大陆组成：东域天元、西域蛮荒、南域海域。天元大陆最为繁华，四大宗门林立。大陆中央为天剑城，东有苍茫山脉，西有无尽沙海。</div><div class="card-tags"><span class="tag">万古仙穹</span><span class="tag">地理</span></div></div>
+<div class="mgmt-card"><div class="card-title">&#9878; 境界体系 · 力量</div><div class="card-desc">修炼体系分八大境界。每突破一个大境界需经历天道轮回试炼。体修、剑修、符修三大流派各有侧重。灵气浓度决定修炼速度。</div><div class="card-tags"><span class="tag">万古仙穹</span><span class="tag">力量体系</span></div></div>
+<div class="mgmt-card"><div class="card-title">&#127970; 势力格局 · 组织</div><div class="card-desc">四大宗门：天剑宗（正道之首）、暗影宗（亦正亦邪）、药王谷（炼丹圣地）、万兽门（驭兽为主）。另有散修联盟和皇朝势力。</div><div class="card-tags"><span class="tag">万古仙穹</span><span class="tag">势力</span></div></div>
+<div class="mgmt-card"><div class="card-title">&#128205; 故事背景 · 都市</div><div class="card-desc">现代都市，北方某二线城市。主要场景：大学城旁的咖啡馆、城南的老街区、海边的灯塔公园。时间跨度五年。</div><div class="card-tags"><span class="tag">迟来的告白</span><span class="tag">背景</span></div></div>
+</div>
+<h3 style="margin-top:24px">时间线</h3>
+<div class="timeline">
+<div class="timeline-item"><div class="tl-title">远古时代</div><div class="tl-desc">天道降世，定下修炼法则。第一批修士诞生。</div></div>
+<div class="timeline-item"><div class="tl-title">万年前 · 仙魔大战</div><div class="tl-desc">正邪两道大战，天元大陆裂为三块。轮回秘法失传。</div></div>
+<div class="timeline-item"><div class="tl-title">千年前 · 四宗建立</div><div class="tl-desc">天剑宗、暗影宗、药王谷、万兽门先后创立。</div></div>
+<div class="timeline-item"><div class="tl-title">五十年前 · 天才陨落</div><div class="tl-desc">叶辰前世突破化神失败，转世重修。暗影宗暗中谋划。</div></div>
+<div class="timeline-item"><div class="tl-title">故事开始</div><div class="tl-desc">叶辰十六岁觉醒前世记忆，开始重修之路。</div></div>
+</div>
+</div>
+
+<!-- Section: Outline -->
+<div class="home-section hidden" id="section-outline">
+<div class="home-toolbar"><h2>大纲管理</h2><div class="home-toolbar-right"><select class="sort-select"><option>万古仙穹</option><option>迟来的告白</option><option>银河旅客</option></select><button class="btn btn-primary btn-sm" onclick="openModal('modal-outline')">+ 新增节点</button></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div>
+<h3 style="font-size:0.88rem;margin-bottom:10px">章节规划</h3>
+<div class="mgmt-list-item"><div class="item-icon" style="background:var(--green-dim);color:var(--green)">&#10003;</div><div class="item-body"><div class="item-title">卷一 · 重生觉醒 (1-5章)</div><div class="item-desc">叶辰转世重修，觉醒记忆，击败学院对手</div></div></div>
+<div class="mgmt-list-item"><div class="item-icon" style="background:var(--green-dim);color:var(--green)">&#10003;</div><div class="item-body"><div class="item-title">卷二 · 入宗历练 (6-12章)</div><div class="item-desc">加入天剑宗，秘境探险，获得轮回残页</div></div></div>
+<div class="mgmt-list-item"><div class="item-icon" style="background:var(--accent-surface);color:var(--accent-light)">&#9998;</div><div class="item-body"><div class="item-title">卷三 · 天道试炼 (13-20章)</div><div class="item-desc">触发天道轮回，经历心魔考验，暗影宗出手</div></div></div>
+<div class="mgmt-list-item"><div class="item-icon" style="background:var(--bg-tertiary);color:var(--text-muted)">&#9679;</div><div class="item-body"><div class="item-title">卷四 · 真相大白 (21-30章)</div><div class="item-desc">身世揭晓，最终对决，新的旅程</div></div></div>
+</div>
+<div>
+<h3 style="font-size:0.88rem;margin-bottom:10px">故事线</h3>
+<div class="mgmt-list-item"><div class="item-icon" style="background:rgba(124,58,237,0.12);color:#a78bfa">&#9733;</div><div class="item-body"><div class="item-title">主线：轮回突破</div><div class="item-desc">叶辰修复轮回秘法，突破化神境界</div></div></div>
+<div class="mgmt-list-item"><div class="item-icon" style="background:rgba(8,145,178,0.12);color:#67e8f9">&#9734;</div><div class="item-body"><div class="item-title">副线：门派政治</div><div class="item-desc">暗影宗渗透天剑宗，内部权力斗争</div></div></div>
+<div class="mgmt-list-item"><div class="item-icon" style="background:rgba(225,29,72,0.12);color:#fb7185">&#9825;</div><div class="item-body"><div class="item-title">感情线</div><div class="item-desc">叶辰与凌霜从对手到知己，渐生情愫</div></div></div>
+<div class="mgmt-list-item"><div class="item-icon" style="background:rgba(245,158,11,0.12);color:#fbbf24">&#63;</div><div class="item-body"><div class="item-title">暗线：身世之谜</div><div class="item-desc">叶辰前世身份逐步揭露，涉及远古大能</div></div></div>
+</div>
+</div>
+<h3 style="font-size:0.88rem;margin-top:20px;margin-bottom:10px">情节节点（第三卷）</h3>
+<div class="timeline">
+<div class="timeline-item"><div class="tl-title">第13章 天道轮回启动</div><div class="tl-desc">叶辰突破触发天道试炼，引起暗影宗注意</div></div>
+<div class="timeline-item"><div class="tl-title">第14章 心魔考验</div><div class="tl-desc">进入心魔幻境，面对前世遗憾。需体现成长</div></div>
+<div class="timeline-item"><div class="tl-title">第15章 凌霜出手</div><div class="tl-desc">暗影宗偷袭，凌霜挡在叶辰面前。感情升温</div></div>
+<div class="timeline-item"><div class="tl-title">第16-17章 反击与追踪</div><div class="tl-desc">击退敌人后追踪暗影宗，发现更大阴谋</div></div>
+<div class="timeline-item"><div class="tl-title">第18-20章 高潮·真相初现</div><div class="tl-desc">对决暗影宗二长老，获取身世线索。卷末悬念</div></div>
+</div>
+</div>
+
+<!-- Section: Templates -->
+<div class="home-section hidden" id="section-templates">
+<div class="home-toolbar"><h2>风格模板</h2><div class="home-toolbar-right"><select class="sort-select"><option>全部</option><option>写作风格</option><option>修改风格</option><option>自定义</option></select><button class="btn btn-primary btn-sm" onclick="openModal('modal-template')">+ 新建模板</button></div></div>
+<div class="mgmt-grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+<!-- Writing styles -->
+<div class="template-card"><div class="tpl-header"><div class="tpl-name">武侠古典风</div><span class="tpl-badge" style="background:rgba(124,58,237,0.12);color:#a78bfa">写作风格</span></div><div class="tpl-desc">模仿金庸/古龙笔法，短句有力，意境深远，善用白描与留白。</div><div class="tpl-prompt">角色：你是一位武侠小说大师。风格要求：短句为主，节奏如刀；善用环境渲染情绪；对话不超过两句；动作描写精简有力；忌用现代词汇。</div><div class="tpl-actions"><button class="btn btn-secondary btn-sm">应用</button><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">复制</button></div></div>
+<div class="template-card"><div class="tpl-header"><div class="tpl-name">都市轻松文</div><span class="tpl-badge" style="background:rgba(225,29,72,0.12);color:#fb7185">写作风格</span></div><div class="tpl-desc">对话驱动，幽默自然，贴近日常生活语感。适合言情/都市题材。</div><div class="tpl-prompt">角色：你是一位都市言情作家。风格要求：对话占比60%以上；语言活泼接地气；善用内心吐槽制造笑点；描写简洁不拖沓；适当使用网络流行语但不过度。</div><div class="tpl-actions"><button class="btn btn-secondary btn-sm">应用</button><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">复制</button></div></div>
+<div class="template-card"><div class="tpl-header"><div class="tpl-name">硬核科幻风</div><span class="tpl-badge" style="background:rgba(8,145,178,0.12);color:#67e8f9">写作风格</span></div><div class="tpl-desc">注重科学逻辑，描写精确冷静，世界观细节丰富。</div><div class="tpl-prompt">角色：你是一位硬科幻作家。风格要求：技术描写准确，可引用真实科学理论；叙事冷静客观；环境描写注重尺度感和物理细节；角色对话理性克制。</div><div class="tpl-actions"><button class="btn btn-secondary btn-sm">应用</button><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">复制</button></div></div>
+<!-- Edit styles -->
+<div class="template-card"><div class="tpl-header"><div class="tpl-name">精简润色</div><span class="tpl-badge" style="background:var(--green-dim);color:var(--green-text)">修改风格</span></div><div class="tpl-desc">删减冗余表达，保留核心信息，使文字更精炼有力。</div><div class="tpl-prompt">任务：精简润色。要求：删除重复描写和冗余修饰词；合并相似表达；缩短过长句子；保持原文风格不变；修改幅度控制在30%以内。</div><div class="tpl-actions"><button class="btn btn-secondary btn-sm">应用</button><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">复制</button></div></div>
+<div class="template-card"><div class="tpl-header"><div class="tpl-name">文学化升级</div><span class="tpl-badge" style="background:var(--green-dim);color:var(--green-text)">修改风格</span></div><div class="tpl-desc">提升文学性，增加修辞和意境，使文字更有文学价值。</div><div class="tpl-prompt">任务：文学化提升。要求：增加比喻、通感等修辞手法；丰富感官描写（视听嗅触）；适当使用排比和对仗；注意节奏韵律感；不改变原文情节和人物。</div><div class="tpl-actions"><button class="btn btn-secondary btn-sm">应用</button><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">复制</button></div></div>
+<div class="template-card"><div class="tpl-header"><div class="tpl-name">节奏加速</div><span class="tpl-badge" style="background:var(--amber-dim);color:var(--amber)">修改风格</span></div><div class="tpl-desc">加快叙事节奏，适用于打斗、追逐等紧张场景。</div><div class="tpl-prompt">任务：加快节奏。要求：将长句拆为短句；删除非关键描写；增加动词密度；对话更短促；段落更紧凑；营造紧迫感和冲突感。</div><div class="tpl-actions"><button class="btn btn-secondary btn-sm">应用</button><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm">复制</button></div></div>
+<!-- Custom -->
+<div class="template-card"><div class="tpl-header"><div class="tpl-name">我的自定义模板</div><span class="tpl-badge" style="background:var(--bg-tertiary);color:var(--text-secondary)">自定义</span></div><div class="tpl-desc">用户自定义的提示词模板，可自由编辑修改。</div><div class="tpl-prompt">你是我的写作助手。请按照以下要求帮我续写/修改：[在此填写你的具体要求]。保持我的写作风格和人物设定不变。</div><div class="tpl-actions"><button class="btn btn-secondary btn-sm">应用</button><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-danger btn-sm">删除</button></div></div>
+</div>
+</div>
+</div>
+<div class="quota-footer"><span class="quota-text">本月 AI 额度</span><div class="quota-track"><div class="quota-fill" style="width:35%"></div></div><span class="quota-badge">Pro</span></div>
+</div>
+
+<!-- ===== EDITOR PAGE ===== -->
+<div id="page-editor" class="page editor-page">
+<div class="editor-topbar">
+<div class="breadcrumb"><a onclick="showPage('page-home')">作品</a><span class="sep">/</span><span class="current">万古仙穹 · 第十三章</span></div>
+<div class="editor-topbar-actions">
+<div class="theme-toggle" onclick="toggleTheme()" title="切换主题"></div>
+<button class="btn btn-ghost btn-sm" onclick="showPage('page-workbench')">转剧本</button>
+<button class="btn btn-secondary btn-sm">保存</button>
+</div>
+</div>
+<div class="editor-body">
+<div class="editor-sidebar">
+<div class="sidebar-icon" data-panel="outline"><span>&#9776;</span><span class="tip">大纲</span></div>
+<div class="sidebar-icon" data-panel="characters"><span>&#128100;</span><span class="tip">角色库</span></div>
+<div class="sidebar-icon" data-panel="glossary"><span>&#128214;</span><span class="tip">词典</span></div>
+<div class="sidebar-icon" data-panel="search"><span>&#128269;</span><span class="tip">搜索</span></div>
+<div class="sidebar-icon" data-panel="stats"><span>&#128202;</span><span class="tip">统计</span></div>
+</div>
+<div class="side-panel" id="side-panel">
+<div class="side-panel-header"><span id="panel-title">大纲</span><button class="close-btn" onclick="closeSidePanel()">&#10005;</button></div>
+<div class="side-panel-body" id="panel-body"></div>
+</div>
+<div class="editor-main">
+<div class="editor-content">
+<input class="chapter-title" value="第十三章 天道轮回">
+<div class="chapter-body" contenteditable="true">苍穹之上，雷云翻涌如墨。叶辰盘坐于悬崖之巅，周身灵力如丝如缕，与天地共鸣。
+
+三年的苦修，他终于触碰到了天道的门槛。丹田中的灵核微微震颤，仿佛有什么东西即将破壳而出。
+
+"轮回之力，凝！"
+
+他低喝一声，双手结印。刹那间，周围百丈之内的灵气如潮水般涌来——</div>
+<div class="ai-block">
+<div class="ai-block-label">&#9679; AI 续写建议</div>
+<div style="font-size:0.85rem;line-height:1.8;color:var(--text-secondary)">一道紫金色的光柱冲天而起，将雷云撕裂出一个巨大的漩涡。叶辰感到体内的经脉如同被烈火灼烧，每一寸都在重塑。远处，几道神识扫过这片山脉——有人注意到了这里的异象。</div>
+<div class="ai-block-actions"><button>&#10003; 采纳</button><button>&#8635; 换一个</button><button>&#9998; 修改</button><button>&#10007; 丢弃</button></div>
+</div>
+</div>
+<div class="editor-status"><span>字数: 2,847</span><span>第13章</span><span>已自动保存</span></div>
+</div>
+<div class="editor-panel">
+<div class="panel-title">AI 助手</div>
+<div class="panel-card"><div class="label">情节建议</div>此处可引入对手角色的伏笔——有人暗中窥探叶辰的突破</div>
+<div class="panel-card"><div class="label">文风评分</div>当前段落节奏 ★★★★☆<br>建议适当增加短句制造紧张感</div>
+<div class="panel-card"><div class="label">角色出场</div><span class="tag">叶辰</span><span class="tag">旁白</span></div>
+<div class="panel-title" style="margin-top:6px">心理外化策略</div>
+<div class="panel-card"><div class="label">内心独白</div>"三年了…终于要成了。" —— 直接展现角色内心期待</div>
+<div class="panel-card"><div class="label">动作映射</div>他攥紧拳头，指节泛白 —— 通过肢体暗示紧张</div>
+</div>
+</div>
+<div class="editor-cmdbar">
+<input class="cmd-input" placeholder="输入指令... 如：续写200字 / 修改文风为幽默 / 生成本章大纲">
+<button class="cmd-btn">续写</button>
+<button class="cmd-btn">润色</button>
+<button class="cmd-btn">缩写</button>
+<button class="cmd-btn">扩写</button>
+<button class="cmd-btn active">发送</button>
+</div>
+</div>
+
+<!-- ===== WORKBENCH PAGE ===== -->
+<div id="page-workbench" class="page workbench-page">
+<div class="wb-topbar">
+<div class="breadcrumb"><a onclick="showPage('page-home')">作品</a><span class="sep">/</span><span class="current">迟来的告白 · 剧本工作台</span></div>
+<div class="wb-topbar-actions">
+<div class="theme-toggle" onclick="toggleTheme()" title="切换主题"></div>
+<button class="btn btn-secondary btn-sm">导出 .fountain</button>
+<button class="btn btn-secondary btn-sm" onclick="showPage('page-editor')">返回编辑</button>
+</div>
+</div>
+<div class="wb-body">
+<div class="wb-col wb-scenes-col"><div class="wb-col-header">场景列表</div><div class="wb-col-body">
+<div class="wb-scene-item active"><span class="wb-scene-status done"></span>S01 咖啡馆重逢</div>
+<div class="wb-scene-item"><span class="wb-scene-status done"></span>S02 雨夜争吵</div>
+<div class="wb-scene-item"><span class="wb-scene-status editing"></span>S03 天台告白</div>
+<div class="wb-scene-item"><span class="wb-scene-status pending"></span>S04 机场离别</div>
+<div class="wb-scene-item"><span class="wb-scene-status pending"></span>S05 五年后</div>
+</div></div>
+<div class="wb-col wb-novel-col"><div class="wb-col-header">原文</div><div class="wb-col-body"><div class="wb-novel-text">林晚推开咖啡馆的门，铃铛发出清脆的声响。她习惯性地扫了一眼角落的位置——
+
+<span class="highlight">那个人竟然还坐在那里。</span>
+
+五年了。他的侧脸依然如记忆中一样清隽，只是眉间多了些许沧桑。手边的美式已经凉了，杯壁上凝着水珠。
+
+她的脚步顿住了。心跳声突然变得清晰可闻。</div></div></div>
+<div class="wb-col wb-script-col"><div class="wb-col-header">剧本</div><div class="wb-col-body"><div class="wb-script-text">
+<div class="scene-head">内景 咖啡馆 - 日</div>
+<div class="action">门铃响起。林晚（28）推门而入，目光扫向角落。</div>
+<div class="action">角落卡座，陆言（30）独坐，面前一杯凉掉的美式。</div>
+<div class="action">林晚的脚步骤然停住。</div>
+<div class="dialog-char">林晚（V.O.）</div>
+<div class="dialog-line">五年了……他怎么会在这里。</div>
+</div></div></div>
+<div class="wb-col wb-notes-col"><div class="wb-col-header">批注</div><div class="wb-col-body">
+<div class="wb-note"><div class="note-type">改编建议</div>原文内心描写较多，剧本中通过 V.O. 保留关键独白</div>
+<div class="wb-note"><div class="note-type">镜头提示</div>推镜头从门口到角落，定格在陆言侧脸 → 林晚特写</div>
+<div class="wb-note"><div class="note-type">音效</div>铃铛声 + 环境白噪音渐弱，突出心跳声</div>
+</div></div>
+</div>
+</div>
+
+<!-- ===== MODALS ===== -->
+<div class="modal-overlay" id="modal-character">
+<div class="modal">
+<h3>新建角色</h3>
+<div class="form-row"><label>角色名称</label><input class="form-input" placeholder="如：张三"></div>
+<div class="form-row"><label>所属作品</label><select class="form-input"><option>万古仙穹</option><option>迟来的告白</option><option>银河旅客</option></select></div>
+<div class="form-row"><label>角色定位</label><select class="form-input"><option>主角</option><option>配角</option><option>反派</option><option>路人</option></select></div>
+<div class="form-row"><label>外貌描写</label><textarea class="form-textarea" placeholder="描述角色的外貌特征..."></textarea></div>
+<div class="form-row"><label>性格特点</label><textarea class="form-textarea" placeholder="描述角色的性格、习惯、口头禅等..."></textarea></div>
+<div class="form-row"><label>背景故事</label><textarea class="form-textarea" placeholder="角色的过往经历..."></textarea></div>
+<div class="form-row"><label>标签</label><input class="form-input" placeholder="用逗号分隔，如：修士, 天才, 男主"></div>
+<div class="form-actions"><button class="btn btn-secondary" onclick="closeModal('modal-character')">取消</button><button class="btn btn-primary" onclick="closeModal('modal-character');showToast('角色已创建')">创建角色</button></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modal-glossary">
+<div class="modal">
+<h3>新增词条</h3>
+<div class="form-row"><label>词条名称</label><input class="form-input" placeholder="如：天道轮回"></div>
+<div class="form-row"><label>分类</label><select class="form-input"><option>核心设定</option><option>境界体系</option><option>地理</option><option>功法</option><option>势力</option><option>体质</option><option>其他</option></select></div>
+<div class="form-row"><label>释义</label><textarea class="form-textarea" placeholder="详细解释这个词条的含义..."></textarea></div>
+<div class="form-row"><label>关联作品</label><select class="form-input"><option>万古仙穹</option><option>迟来的告白</option><option>银河旅客</option><option>通用</option></select></div>
+<div class="form-row"><label>关联角色</label><input class="form-input" placeholder="用逗号分隔相关角色名"></div>
+<div class="form-actions"><button class="btn btn-secondary" onclick="closeModal('modal-glossary')">取消</button><button class="btn btn-primary" onclick="closeModal('modal-glossary');showToast('词条已添加')">添加词条</button></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modal-worldview">
+<div class="modal">
+<h3>新增世界观设定</h3>
+<div class="form-row"><label>设定名称</label><input class="form-input" placeholder="如：魔法体系"></div>
+<div class="form-row"><label>类型</label><select class="form-input"><option>地理</option><option>力量体系</option><option>势力组织</option><option>历史事件</option><option>文化风俗</option><option>科技水平</option><option>其他</option></select></div>
+<div class="form-row"><label>所属作品</label><select class="form-input"><option>万古仙穹</option><option>迟来的告白</option><option>银河旅客</option></select></div>
+<div class="form-row"><label>详细描述</label><textarea class="form-textarea" style="min-height:120px" placeholder="详细描述这项世界观设定..."></textarea></div>
+<div class="form-actions"><button class="btn btn-secondary" onclick="closeModal('modal-worldview')">取消</button><button class="btn btn-primary" onclick="closeModal('modal-worldview');showToast('设定已添加')">添加设定</button></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modal-outline">
+<div class="modal">
+<h3>新增大纲节点</h3>
+<div class="form-row"><label>节点类型</label><select class="form-input"><option>卷/篇章</option><option>章节</option><option>情节点</option><option>故事线</option></select></div>
+<div class="form-row"><label>标题</label><input class="form-input" placeholder="如：第五卷 · 终章"></div>
+<div class="form-row"><label>简要描述</label><textarea class="form-textarea" placeholder="这个节点的核心内容..."></textarea></div>
+<div class="form-row"><label>状态</label><select class="form-input"><option>规划中</option><option>写作中</option><option>已完成</option></select></div>
+<div class="form-row"><label>关联角色</label><input class="form-input" placeholder="涉及的主要角色"></div>
+<div class="form-actions"><button class="btn btn-secondary" onclick="closeModal('modal-outline')">取消</button><button class="btn btn-primary" onclick="closeModal('modal-outline');showToast('节点已添加')">添加节点</button></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modal-template">
+<div class="modal">
+<h3>新建风格模板</h3>
+<div class="form-row"><label>模板名称</label><input class="form-input" placeholder="如：悬疑推理风"></div>
+<div class="form-row"><label>模板类型</label><select class="form-input"><option>写作风格</option><option>修改风格</option><option>自定义</option></select></div>
+<div class="form-row"><label>简要说明</label><input class="form-input" placeholder="一句话描述这个模板的用途"></div>
+<div class="form-row"><label>提示词内容</label><textarea class="form-textarea" style="min-height:140px" placeholder="在此编写你的提示词模板...&#10;&#10;例如：&#10;角色：你是一位[风格]作家。&#10;要求：[具体要求1]；[具体要求2]..."></textarea></div>
+<div class="form-row"><label>适用场景</label><input class="form-input" placeholder="如：玄幻, 仙侠, 武侠"></div>
+<div class="form-actions"><button class="btn btn-secondary" onclick="closeModal('modal-template')">取消</button><button class="btn btn-primary" onclick="closeModal('modal-template');showToast('模板已创建')">创建模板</button></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Page navigation
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// Auth tabs
+document.querySelectorAll('.auth-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
+    document.getElementById('form-'+tab.dataset.tab).classList.add('active');
+  });
+});
+document.querySelectorAll('.auth-form').forEach(f=>{
+  f.addEventListener('submit',e=>{e.preventDefault();showPage('page-identity');});
+});
+
+// Identity
+let selectedRole=null;
+document.querySelectorAll('.identity-card').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('.identity-card').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected');
+    selectedRole=c.dataset.role;
+    document.getElementById('btn-start').disabled=false;
+  });
+});
+document.getElementById('btn-start').addEventListener('click',()=>showPage('page-home'));
+
+// Theme
+function toggleTheme(){
+  const current=document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme',current==='light'?'':'light');
+}
+
+// Home nav
+document.querySelectorAll('.home-nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.home-nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.home-section').forEach(s=>s.classList.add('hidden'));
+    document.getElementById('section-'+item.dataset.section).classList.remove('hidden');
+  });
+});
+
+// Side panel (editor)
+const panelContents={
+  outline:'<div style="margin-bottom:12px"><div style="font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">章节</div><div class="panel-item active">第十三章 天道轮回</div><div class="panel-item">第十二章 暗流涌动</div><div class="panel-item">第十一章 灵脉觉醒</div><div class="panel-item">第十章 古墓探秘</div></div><div><div style="font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">故事线</div><div class="panel-item">主线: 天道突破</div><div class="panel-item">副线: 门派阴谋</div></div>',
+  characters:'<div style="margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-tertiary)"><div style="font-weight:600;margin-bottom:2px">叶辰</div><div style="font-size:0.72rem;color:var(--text-tertiary)">天才修士，背负轮回之秘</div></div><div style="margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-tertiary)"><div style="font-weight:600;margin-bottom:2px">凌霜</div><div style="font-size:0.72rem;color:var(--text-tertiary)">冰灵体，剑道天才</div></div><div style="margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-tertiary)"><div style="font-weight:600;margin-bottom:2px">墨渊</div><div style="font-size:0.72rem;color:var(--text-tertiary)">暗影宗宗主，反派</div></div>',
+  glossary:'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="font-weight:500">天道轮回</span><span style="font-size:0.72rem;color:var(--text-tertiary)">核心设定</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="font-weight:500">灵核</span><span style="font-size:0.72rem;color:var(--text-tertiary)">境界</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="font-weight:500">暗影宗</span><span style="font-size:0.72rem;color:var(--text-tertiary)">势力</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="font-weight:500">冰灵体</span><span style="font-size:0.72rem;color:var(--text-tertiary)">体质</span></div>',
+  search:'<div style="margin-bottom:10px"><input class="form-input" style="width:100%;padding:6px 10px;font-size:0.76rem" placeholder="全文搜索..."></div><div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:6px">最近搜索</div><div class="panel-item">叶辰 (47次)</div><div class="panel-item">灵核 (23次)</div><div class="panel-item">暗影宗 (12次)</div>',
+  stats:'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="color:var(--text-tertiary)">字数</span><span style="font-weight:600;font-family:var(--font-mono)">2,847</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="color:var(--text-tertiary)">段落</span><span style="font-weight:600;font-family:var(--font-mono)">14</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="color:var(--text-tertiary)">对话占比</span><span style="font-weight:600;font-family:var(--font-mono)">18%</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="color:var(--text-tertiary)">总字数</span><span style="font-weight:600;font-family:var(--font-mono)">82,400</span></div>'
+};
+const panelTitles={outline:'大纲',characters:'角色库',glossary:'词典',search:'搜索',stats:'统计'};
+let activePanelKey=null;
+document.querySelectorAll('.sidebar-icon[data-panel]').forEach(icon=>{
+  icon.addEventListener('click',()=>{
+    const key=icon.dataset.panel;
+    if(activePanelKey===key){closeSidePanel();return;}
+    openSidePanel(key);
+  });
+});
+function openSidePanel(key){
+  activePanelKey=key;
+  document.querySelectorAll('.sidebar-icon').forEach(i=>i.classList.remove('active'));
+  document.querySelector('.sidebar-icon[data-panel="'+key+'"]').classList.add('active');
+  document.getElementById('panel-title').textContent=panelTitles[key]||key;
+  document.getElementById('panel-body').innerHTML=panelContents[key]||'';
+  document.getElementById('side-panel').classList.add('open');
+}
+function closeSidePanel(){
+  activePanelKey=null;
+  document.querySelectorAll('.sidebar-icon').forEach(i=>i.classList.remove('active'));
+  document.getElementById('side-panel').classList.remove('open');
+}
+
+// Workbench scenes
+document.querySelectorAll('.wb-scene-item').forEach(s=>{
+  s.addEventListener('click',()=>{
+    document.querySelectorAll('.wb-scene-item').forEach(x=>x.classList.remove('active'));
+    s.classList.add('active');
+  });
+});
+
+// Modals
+function openModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');});
+});
+
+// Toast
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// Cmd bar
+document.querySelector('.editor-cmdbar .cmd-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){showToast('指令已发送: '+e.target.value);e.target.value='';}
+});
+document.querySelectorAll('.cmd-btn').forEach(b=>{
+  b.addEventListener('click',()=>showToast('执行: '+b.textContent));
+});
+document.querySelectorAll('.ai-block-actions button').forEach(btn=>{
+  btn.addEventListener('click',()=>showToast('操作: '+btn.textContent.trim()));
+});
+</script>
+</body>
+</html>
