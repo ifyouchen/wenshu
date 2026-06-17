@@ -10,11 +10,11 @@
  */
 import { computed } from 'vue'
 import { NIcon } from 'naive-ui'
-import { Lightbulb, CheckCircle2, Sparkles, Info, type LucideIcon } from 'lucide-vue-next'
+import { Lightbulb, CheckCircle2, Info, type LucideIcon } from 'lucide-vue-next'
 
 const props = withDefaults(
   defineProps<{
-    icon?: 'lightbulb' | 'check' | 'sparkles' | 'info'
+    icon?: 'lightbulb' | 'check' | 'info'
     title?: string
     description: string
     actionLabel?: string
@@ -35,7 +35,6 @@ const emit = defineEmits<{
 const iconMap: Record<string, LucideIcon> = {
   lightbulb: Lightbulb,
   check: CheckCircle2,
-  sparkles: Sparkles,
   info: Info,
 }
 

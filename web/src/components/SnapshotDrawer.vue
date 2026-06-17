@@ -185,7 +185,7 @@ function formatTime(iso: string): string {
 function snapshotTypeLabel(type: string): string {
   const map: Record<string, string> = {
     manual: '手动存档',
-    auto_before_ai: 'AI 改编前',
+    auto_before_ai: '辅助改编前',
     polish_accepted: '润色前',
     auto_before_replace: '替换前',
     auto_before_restore: '恢复前',

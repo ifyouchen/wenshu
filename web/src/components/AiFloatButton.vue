@@ -1,18 +1,19 @@
 <script setup lang="ts">
 /**
- * AI 浮窗组件。
+ * 创作辅助浮窗组件。
  *
  * - 文本选中时显示，提供续写/润色入口
  * - SSE 续写使用 fetch ReadableStream + RAF 批量写入 TipTap
- * - AI 生成内容带品牌色标识
+ * - 生成内容带低干扰标识
  */
 import { ref } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
 import { NButton, NPopover, NSpace, NInput, NSpin, NIcon, useMessage } from 'naive-ui'
-import { Sparkles, Wand2, Paintbrush, Check, X } from 'lucide-vue-next'
+import { Wand2, Paintbrush, Check, X } from 'lucide-vue-next'
 import { getAccessToken } from '@/api/client'
 import ErrorStateAlert from '@/components/ErrorStateAlert.vue'
 import { acceptAiContent } from '@/api/project'
+import { polishAdvanced, polishBasic, polishStyle, type PolishResult } from '@/api/polish'
 
 const props = defineProps<{
   editor: Editor | undefined
@@ -27,8 +28,12 @@ const emit = defineEmits<{
 
 const message = useMessage()
 const isStreaming = ref(false)
+const polishLoading = ref(false)
 const showOptions = ref(false)
 const instruction = ref('')
+const polishResult = ref<PolishResult | null>(null)
+const selectedRange = ref<{ from: number; to: number } | null>(null)
+const selectedText = ref('')
 
 const aiContentInserted = ref(false)
 const hasPendingAiContent = ref(false)
@@ -99,10 +104,10 @@ async function startContinue() {
     if (!response.ok) {
       const level = inferErrorLevel(`HTTP ${response.status}`, response.status)
       const msg = response.status === 429
-        ? '本月 AI 字符配额已用尽'
+        ? '本月创作辅助字数已用尽'
         : response.status === 503
-          ? 'AI 服务暂时不可用，请稍后重试'
-          : `AI 服务请求失败（${response.status}）`
+          ? '创作辅助服务暂时不可用，请稍后重试'
+          : `创作辅助请求失败（${response.status}）`
       errorLevel.value = level
       errorMessage.value = msg
       return
@@ -151,7 +156,7 @@ async function startContinue() {
     flushTokens()
 
   } catch (err: unknown) {
-    const errMsg = (err as Error).message || 'AI 续写请求失败'
+    const errMsg = (err as Error).message || '续写请求失败'
     errorLevel.value = 'A'
     errorMessage.value = errMsg
   } finally {
@@ -178,9 +183,9 @@ async function handleAcceptAi() {
 
   try {
     await acceptAiContent(props.chapterId, acceptedCharsCount, editorContent)
-    message.success('已接受 AI 内容，快照已创建')
+    message.success('已接受辅助内容，快照已创建')
   } catch {
-    message.warning('接受 AI 内容时记录失败，但内容已保留')
+    message.warning('辅助内容记录失败，但内容已保留')
   }
 
   editorDom.querySelectorAll('span[data-ai]').forEach(span => {
@@ -203,13 +208,63 @@ function handleRejectAi() {
   const newContent = editorDom.innerHTML
   props.editor.commands.setContent(newContent)
 
-  message.info('已放弃 AI 内容')
+  message.info('已放弃辅助内容')
   hasPendingAiContent.value = false
   aiContentInserted.value = false
 }
 
-async function startPolish() {
-  message.info('润色功能开发中')
+function getSelectedText(): string {
+  if (!props.editor) return ''
+  const { from, to } = props.editor.state.selection
+  selectedRange.value = { from, to }
+  selectedText.value = props.editor.state.doc.textBetween(from, to, '\n')
+  return selectedText.value
+}
+
+async function startPolish(mode: 'basic' | 'advanced' | 'style') {
+  if (!props.editor) return
+  const text = getSelectedText()
+  if (!text.trim()) {
+    message.warning('请先选中需要处理的文字')
+    return
+  }
+  polishLoading.value = true
+  showOptions.value = false
+  try {
+    if (mode === 'basic') {
+      const res = await polishBasic(text)
+      polishResult.value = res.data.data
+    } else if (mode === 'advanced') {
+      const res = await polishAdvanced(text, instruction.value || undefined)
+      polishResult.value = res.data.data
+    } else {
+      const res = await polishStyle(text, instruction.value || '更克制、自然、保留原有叙事信息')
+      polishResult.value = res.data.data
+    }
+  } catch {
+    message.error('润色建议生成失败')
+  } finally {
+    polishLoading.value = false
+    instruction.value = ''
+  }
+}
+
+function applyPolishResult() {
+  if (!props.editor || !selectedRange.value || !polishResult.value) return
+  let nextText = polishResult.value.rewritten ?? ''
+
+  if (!nextText && polishResult.value.basicAnnotations?.length) {
+    nextText = selectedText.value
+    polishResult.value.basicAnnotations.forEach(item => {
+      nextText = nextText.replace(item.original, item.suggested)
+    })
+  }
+
+  if (!nextText) return
+  props.editor.commands.insertContentAt(selectedRange.value, nextText)
+  polishResult.value = null
+  selectedRange.value = null
+  message.success('润色建议已应用')
 }
 </script>
 
@@ -241,18 +296,18 @@ async function startPolish() {
             class="ai-main-btn"
           >
             <template #icon>
-              <NIcon :component="Sparkles" :size="14" />
+              <NIcon :component="Wand2" :size="14" />
             </template>
-            AI
+            辅助
           </NButton>
         </template>
 
         <div class="ai-options">
-          <div class="ai-options-title">AI 写作辅助</div>
+          <div class="ai-options-title">创作辅助</div>
           <NInput
             v-model:value="instruction"
             size="small"
-            placeholder="写作指示（可选）"
+            placeholder="写作指示或风格要求（可选）"
             class="ai-instruction-input"
             @keydown.enter="startContinue"
           />
@@ -264,23 +319,30 @@ async function startPolish() {
               </template>
               续写
             </NButton>
-            <NButton size="small" @click="startPolish">
+            <NButton size="small" @click="startPolish('basic')">
+              校正
+            </NButton>
+            <NButton size="small" @click="startPolish('advanced')">
               <template #icon>
                 <NIcon :component="Paintbrush" :size="14" />
               </template>
               润色
             </NButton>
+            <NButton size="small" @click="startPolish('style')">
+              风格
+            </NButton>
           </NSpace>
-          <div class="ai-options-note">AI 内容需手动接受后计入配额</div>
+          <div class="ai-options-note">生成内容需手动接受后融入正文</div>
         </div>
       </NPopover>
 
       <NSpin v-if="isStreaming" size="small" class="ai-loading" />
+      <NSpin v-if="polishLoading" size="small" class="ai-loading" />
     </div>
 
     <div v-if="hasPendingAiContent && !isStreaming" class="ai-accept-bar">
-      <NIcon :component="Sparkles" :size="14" class="ai-accept-icon" />
-      <span class="ai-accept-text">AI 内容已生成</span>
+      <NIcon :component="Wand2" :size="14" class="ai-accept-icon" />
+      <span class="ai-accept-text">辅助内容已生成</span>
       <NButton size="small" type="primary" @click="handleAcceptAi">
         <template #icon>
           <NIcon :component="Check" :size="14" />
@@ -293,6 +355,36 @@ async function startPolish() {
         </template>
         放弃
       </NButton>
+    </div>
+
+    <div v-if="polishResult" class="polish-result-card">
+      <div class="polish-result-head">
+        <strong>润色建议</strong>
+        <button @click="polishResult = null">×</button>
+      </div>
+      <div v-if="polishResult.rewritten" class="polish-rewritten">
+        {{ polishResult.rewritten }}
+      </div>
+      <div v-else class="polish-annotations">
+        <div
+          v-for="(item, index) in polishResult.basicAnnotations ?? []"
+          :key="`${item.original}-${index}`"
+          class="polish-annotation"
+        >
+          <span>{{ item.original }}</span>
+          <strong>{{ item.suggested }}</strong>
+          <small>{{ item.reason }}</small>
+        </div>
+      </div>
+      <div class="polish-result-actions">
+        <NButton size="small" type="primary" @click="applyPolishResult">
+          <template #icon>
+            <NIcon :component="Check" :size="14" />
+          </template>
+          应用建议
+        </NButton>
+        <NButton size="small" @click="polishResult = null">放弃</NButton>
+      </div>
     </div>
   </div>
 </template>
@@ -381,6 +473,87 @@ async function startPolish() {
 
 .ai-reject-btn:hover {
   color: var(--w-danger) !important;
+}
+
+.polish-result-card {
+  width: min(380px, calc(100vw - 24px));
+  background: var(--w-bg-elevated);
+  border: 1px solid var(--w-annotation-border);
+  border-radius: var(--w-radius-md);
+  box-shadow: var(--w-shadow-md);
+  overflow: hidden;
+}
+
+.polish-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--w-border-subtle);
+}
+
+.polish-result-head strong {
+  font-size: var(--w-text-sm);
+}
+
+.polish-result-head button {
+  width: 24px;
+  height: 24px;
+  color: var(--w-text-tertiary);
+  border-radius: var(--w-radius-sm);
+}
+
+.polish-result-head button:hover {
+  color: var(--w-text);
+  background: var(--w-bg-hover);
+}
+
+.polish-rewritten {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 12px;
+  color: var(--w-text-secondary);
+  font-size: var(--w-text-sm);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.polish-annotations {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.polish-annotation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--w-border-subtle);
+  font-size: var(--w-text-xs);
+}
+
+.polish-annotation span {
+  color: var(--w-danger);
+}
+
+.polish-annotation strong {
+  color: var(--w-success);
+  font-weight: 600;
+}
+
+.polish-annotation small {
+  grid-column: 1 / -1;
+  color: var(--w-text-tertiary);
+  line-height: 1.5;
+}
+
+.polish-result-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--w-border-subtle);
 }
 
 @media (max-width: 767px) {

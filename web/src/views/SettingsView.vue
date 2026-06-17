@@ -5,7 +5,7 @@
  * 五个分区：
  * - 个人资料：昵称、头像链接、邮箱（只读）
  * - 创作偏好：每日目标字数、身份类型
- * - AI 内容：AI 训练授权开关
+ * - 隐私授权：内容改进授权开关
  * - 订阅用量：当前套餐 + 当月配额用量（P9-01/P9-02）
  * - 账户安全：修改密码、注销账号
  */
@@ -19,9 +19,9 @@ import {
 import {
   User,
   Pencil,
-  Bot,
   Gem,
   Shield,
+  LockKeyhole,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { getMe, updateProfile, changePassword, setWritingGoal, updateAiConsent, setIdentityType, deleteAccount } from '@/api/user'
@@ -53,7 +53,7 @@ const identityOptions = [
   { label: '新人作者', value: 'new_author' },
 ]
 
-// AI 授权开关
+// 内容改进授权开关
 const aiConsent = ref(false)
 const aiConsentSaving = ref(false)
 
@@ -80,9 +80,9 @@ onMounted(async () => {
     user.value = res.data.data
     profileForm.nickname = user.value.nickname ?? ''
     profileForm.avatarUrl = user.value.avatarUrl ?? ''
-    goalForm.dailyCharGoal = (user.value as any).dailyCharGoal ?? 2000
-    goalForm.identityType = (user.value as any).identityType ?? ''
-    aiConsent.value = (user.value as any).aiTrainingConsent ?? false
+    goalForm.dailyCharGoal = user.value.dailyCharGoal ?? 2000
+    goalForm.identityType = user.value.identityType ?? ''
+    aiConsent.value = user.value.aiTrainConsent ?? false
   } catch {
     message.error('加载用户信息失败')
   } finally {
@@ -135,7 +135,7 @@ async function handleAiConsentChange(val: boolean) {
   try {
     await updateAiConsent(val)
     aiConsent.value = val
-    message.success(val ? 'AI 训练授权已开启' : 'AI 训练授权已关闭')
+    message.success(val ? '隐私授权已开启' : '隐私授权已关闭')
   } catch {
     aiConsent.value = !val
     message.error('设置失败，请重试')
@@ -252,14 +252,14 @@ function tabLabel(icon: any, label: string) {
           </NForm>
         </NTabPane>
 
-        <NTabPane name="ai" :tab="tabLabel(Bot, 'AI 内容')">
+        <NTabPane name="ai" :tab="tabLabel(LockKeyhole, '隐私授权')">
           <div class="settings-form">
             <NAlert type="info" style="margin-bottom: 16px">
-              开启后，你的写作内容可能被用于改善 AI 模型（经过去标识化处理）。
+              开启后，你的写作内容可能被用于改善创作辅助效果（经过去标识化处理）。
               你可以随时关闭，关闭后立即生效。
             </NAlert>
 
-            <NFormItem label="AI 训练授权" label-placement="left" label-width="130">
+            <NFormItem label="内容改进授权" label-placement="left" label-width="130">
               <NSwitch
                 :value="aiConsent"
                 :loading="aiConsentSaving"
@@ -289,7 +289,7 @@ function tabLabel(icon: any, label: string) {
 
                 <div class="quota-row">
                   <div class="quota-label">
-                    <NText style="font-size: 14px; font-weight: 500">AI 字符用量</NText>
+                    <NText style="font-size: 14px; font-weight: 500">创作辅助字数</NText>
                     <NText depth="3" style="font-size: 12px">
                       {{ fmtChars(subscription.quota.usedChars) }} /
                       {{ fmtChars(subscription.quota.limitChars) }} 字
@@ -324,7 +324,7 @@ function tabLabel(icon: any, label: string) {
                   type="warning"
                   style="margin-top: 16px"
                 >
-                  <template #header>升级到专业版，获得 200 万字 AI 月配额</template>
+                  <template #header>升级到专业版，获得 200 万字月度额度</template>
                   订阅升级功能正在开发中（P8-19），敬请期待。
                 </NAlert>
 

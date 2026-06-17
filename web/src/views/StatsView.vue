@@ -324,7 +324,7 @@ function formatNumber(n: number) {
               <NRadioGroup v-model:value="trendDimension" size="small">
                 <NRadioButton value="total">合计</NRadioButton>
                 <NRadioButton value="manual">手动输入</NRadioButton>
-                <NRadioButton value="ai">AI 辅助</NRadioButton>
+                <NRadioButton value="ai">辅助生成</NRadioButton>
               </NRadioGroup>
             </div>
             <svg class="trend-svg" width="100%" height="100" viewBox="0 0 300 100" preserveAspectRatio="none">

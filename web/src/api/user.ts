@@ -27,9 +27,9 @@ export function setWritingGoal(dailyCharGoal: number) {
   return client.put<ApiResponse<UserInfo>>('/user/writing-goal', { dailyCharGoal })
 }
 
-/** 更新 AI 训练授权开关。 */
-export function updateAiConsent(aiTrainingConsent: boolean) {
-  return client.put<ApiResponse<UserInfo>>('/user/ai-consent', { aiTrainingConsent })
+/** 更新内容改进授权开关。 */
+export function updateAiConsent(aiTrainConsent: boolean) {
+  return client.put<ApiResponse<UserInfo>>('/user/ai-consent', { aiTrainConsent })
 }
 
 /** 设置首次登录身份类型与入口偏好。 */

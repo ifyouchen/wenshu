@@ -6,8 +6,8 @@
  *
  * 引导触发场景：
  * - first-home：首次进入首页（无作品时展示欢迎引导）
- * - first-editor：首次进入编辑器（展示 "选中文字可唤起 AI" 提示）
- * - first-ai-select：首次选中文字（展示 AI 浮窗使用说明）
+ * - first-editor：首次进入编辑器（展示基础写作提示）
+ * - first-ai-select：首次选中文字（展示创作辅助使用说明）
  * - char-milestone-3000：写作累计超过 3000 字里程碑（显示鼓励提示）
  * - first-snapshot：首次创建快照（展示版本历史说明）
  *

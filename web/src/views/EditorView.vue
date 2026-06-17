@@ -5,7 +5,7 @@
  * 特性：
  * - TipTap 编辑器，只加载当前章节，auto-save debounce 1s
  * - 左侧图标面板（大纲/角色库/词典侧栏）
- * - AI 浮窗 + SSE 续写
+ * - 创作辅助浮窗 + SSE 续写
  * - 全书搜索替换横条
  * - 移动端响应式
  * - 渐进式用户引导
@@ -20,12 +20,14 @@ import {
   History,
   AlertTriangle,
   Flame,
+  FileUp,
 } from 'lucide-vue-next'
 import ChapterEditor from '@/components/ChapterEditor.vue'
 import EditorSidePanel from '@/components/EditorSidePanel.vue'
 import AiFloatButton from '@/components/AiFloatButton.vue'
 import SearchReplaceBar from '@/components/SearchReplaceBar.vue'
 import OnboardingHint from '@/components/OnboardingHint.vue'
+import ImportContentDrawer from '@/components/ImportContentDrawer.vue'
 import type { ChapterInfo, OutlineInfo } from '@/api/project'
 import { getChapter, getOutline, saveChapter } from '@/api/project'
 import { getWritingOverview } from '@/api/stats'
@@ -58,6 +60,7 @@ const editorInstance = ref<any>(undefined)
 
 const showSearch = ref(false)
 const showReplace = ref(false)
+const showImport = ref(false)
 
 const showMobileSidePanel = ref(false)
 
@@ -161,6 +164,7 @@ onMounted(async () => {
   document.addEventListener('keydown', handleGlobalKeydown)
   await loadOutline()
   if (currentChapterId.value) await loadChapter(currentChapterId.value)
+  if (route.query.import === '1') showImport.value = true
 
   try {
     const statsRes = await getWritingOverview()
@@ -181,6 +185,15 @@ onMounted(async () => {
   }
 
   palette.registerCommands([
+    {
+      id: 'editor:import',
+      label: '导入稿件',
+      description: '上传或粘贴已有正文，切分为章节',
+      group: '写作',
+      icon: 'I',
+      shortcut: '',
+      action: () => { showImport.value = true },
+    },
     {
       id: 'editor:search',
       label: '搜索替换',
@@ -213,7 +226,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleGlobalKeydown)
-  palette.unregisterCommands(['editor:search', 'editor:snapshot', 'editor:side-panel'])
+  palette.unregisterCommands(['editor:import', 'editor:search', 'editor:snapshot', 'editor:side-panel'])
 })
 
 watch(currentChapterId, async (newId) => {
@@ -230,6 +243,8 @@ watch(currentChapterId, async (newId) => {
       :chapter-id="currentChapterId"
       :outline="outline"
       @select-chapter="handleSelectChapter"
+      @open-search="showSearch = true"
+      @open-import="showImport = true"
     />
 
     <!-- 编辑器主区域 -->
@@ -279,6 +294,12 @@ watch(currentChapterId, async (newId) => {
               <NIcon :component="PanelLeft" :size="18" />
             </template>
           </NButton>
+          <NButton text class="toolbar-btn" title="导入稿件" @click="showImport = true">
+            <template #icon>
+              <NIcon :component="FileUp" :size="18" />
+            </template>
+            <span v-if="!isMobile">导入</span>
+          </NButton>
           <NButton text class="toolbar-btn" title="版本快照与 diff" @click="snapshotEverOpened = true; showSnapshot = true">
             <template #icon>
               <NIcon :component="History" :size="18" />
@@ -318,9 +339,9 @@ watch(currentChapterId, async (newId) => {
           />
           <OnboardingHint
             v-if="showFirstAiSelectHint"
-            icon="sparkles"
-            title="AI 续写助手"
-            description="选中文字后，会出现 AI 浮窗。点击可对选中内容进行 AI 续写或润色，生成的内容带有特殊标识，你可以选择接受或忽略。"
+            icon="lightbulb"
+            title="创作辅助"
+            description="选中文字后，会出现轻量操作条。可以续写、润色或提出改写要求，生成内容会保留标识，确认后再融入正文。"
             action-label="明白了"
             variant="info"
             @close="showFirstAiSelectHint = false; ob.markDone('first-ai-select')"
@@ -371,9 +392,18 @@ watch(currentChapterId, async (newId) => {
           :chapter-id="currentChapterId"
           :outline="outline"
           @select-chapter="(id) => { handleSelectChapter(id); showMobileSidePanel = false }"
+          @open-search="() => { showSearch = true; showMobileSidePanel = false }"
+          @open-import="() => { showImport = true; showMobileSidePanel = false }"
         />
       </NDrawerContent>
     </NDrawer>
+
+    <ImportContentDrawer
+      v-model:show="showImport"
+      :project-id="projectId"
+      :outline="outline"
+      @imported="loadOutline"
+    />
   </div>
 </template>
 
@@ -382,7 +412,7 @@ watch(currentChapterId, async (newId) => {
   display: flex;
   height: calc(100vh - var(--w-topbar-height));
   overflow: hidden;
-  background: var(--w-bg);
+  background: var(--w-bg-canvas);
 }
 
 .editor-main {
@@ -408,7 +438,7 @@ watch(currentChapterId, async (newId) => {
 
 /* 连续写作提醒条 */
 .streak-reminder {
-  background: var(--w-bg-tertiary);
+  background: var(--w-bg-secondary);
   color: var(--w-text-secondary);
   font-size: var(--w-text-sm);
   padding: 8px 16px;
@@ -439,14 +469,14 @@ watch(currentChapterId, async (newId) => {
 
 /* 编辑器工具栏 */
 .editor-toolbar {
-  height: 56px;
+  height: 58px;
   padding: 0 var(--w-space-4);
   border-bottom: 1px solid var(--w-border-subtle);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: var(--w-space-2);
-  background: var(--w-bg-secondary);
+  background: var(--w-bg-toolbar);
 }
 
 .chapter-title-input {
@@ -458,6 +488,7 @@ watch(currentChapterId, async (newId) => {
 .chapter-title-input :deep(.n-input__input-el) {
   color: var(--w-text) !important;
   font-weight: 600;
+  font-family: var(--w-font-serif);
 }
 
 .toolbar-actions {
@@ -493,7 +524,7 @@ watch(currentChapterId, async (newId) => {
 .onboarding-area {
   padding: var(--w-space-3) var(--w-space-4);
   flex-shrink: 0;
-  background: var(--w-bg);
+  background: var(--w-bg-canvas);
 }
 
 .onboarding-area .ob-hint {

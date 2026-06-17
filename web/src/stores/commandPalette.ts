@@ -19,7 +19,7 @@ export interface PaletteCommand {
   description?: string
   /** 快捷键提示文本，如 "Ctrl+F"（可选）。 */
   shortcut?: string
-  /** 命令分组，如 "导航" / "写作" / "AI 操作"（可选）。 */
+  /** 命令分组，如 "导航" / "写作" / "创作辅助"（可选）。 */
   group?: string
   /** 命令图标（emoji 或 icon key，可选）。 */
   icon?: string

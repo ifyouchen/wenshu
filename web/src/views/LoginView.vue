@@ -50,7 +50,7 @@ async function handleLogin() {
       <h1>文枢</h1>
       <p class="auth-tagline">把故事稳定写下去</p>
       <p class="auth-desc">
-        为长篇创作者准备的 AI 写作工作台。沉淀项目、章节、角色和统计，把每一次推进都留在同一个地方。
+        为长篇创作者准备的专业写作工作台。沉淀项目、章节、角色和统计，把每一次推进都留在同一个地方。
       </p>
       <div class="auth-features">
         <span>项目管理</span>

@@ -3,7 +3,7 @@
  * 订阅升级引导弹窗（P8-19）。
  *
  * 三个场景分别展示不同的升级说明：
- * - quota-chars：AI 字符配额用尽
+ * - quota-chars：创作辅助字数用尽
  * - quota-adaptations：改编/审查次数用尽
  * - pro-feature：专业版功能入口
  *
@@ -18,7 +18,6 @@ import {
 } from 'naive-ui'
 import {
   Rocket,
-  Sparkles,
   Check,
 } from 'lucide-vue-next'
 import { useUpgradeModal } from '@/composables/useUpgradeModal'
@@ -36,13 +35,12 @@ const loadingPlans = ref(false)
 const checkoutLoading = ref(false)
 
 const scenarioIcon = computed(() => {
-  if (scenario.value === 'pro-feature') return Sparkles
   return Rocket
 })
 
 const scenarioTitle = computed<string>(() => {
   const titles: Record<UpgradeScenario, string> = {
-    'quota-chars': 'AI 字符配额已用尽',
+    'quota-chars': '创作辅助字数已用尽',
     'quota-adaptations': '改编/审查次数已用尽',
     'pro-feature': '升级到专业版',
   }
@@ -51,9 +49,9 @@ const scenarioTitle = computed<string>(() => {
 
 const scenarioDesc = computed<string>(() => {
   const descs: Record<UpgradeScenario, string> = {
-    'quota-chars': '本月 AI 字符配额已耗尽。升级专业版获得 200 万字/月配额，继续你的创作。',
+    'quota-chars': '本月创作辅助字数已耗尽。升级专业版获得 200 万字/月配额，继续你的创作。',
     'quota-adaptations': '本月改编/审查次数已耗尽（免费版 5 次/月）。升级专业版获得 50 次/月。',
-    'pro-feature': '该功能需要专业版或更高套餐。升级后解锁全部 AI 功能，享受更强大的创作体验。',
+    'pro-feature': '该功能需要专业版或更高套餐。升级后解锁完整创作辅助能力，获得更稳定的工作流。',
   }
   return descs[scenario.value]
 })
@@ -61,9 +59,9 @@ const scenarioDesc = computed<string>(() => {
 const displayPlans = computed(() => plans.value.filter(p => p.planKey !== 'free'))
 
 const proFeatures = [
-  '每月 200 万字 AI 字符额度',
+  '每月 200 万字创作辅助额度',
   '每月 50 次改编/一致性审查',
-  '优先响应，更快的 AI 生成',
+  '优先响应，更快的生成速度',
   '无限制快照版本历史',
   '高级文风分析与定制',
 ]

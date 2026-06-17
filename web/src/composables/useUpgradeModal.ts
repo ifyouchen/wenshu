@@ -2,7 +2,7 @@
  * useUpgradeModal — 订阅升级引导弹窗状态（P8-19）。
  *
  * 三个触发场景：
- * - quota-chars：AI 字符配额用尽（来自 C 级错误状态）
+ * - quota-chars：创作辅助字数配额用尽（来自 C 级错误状态）
  * - quota-adaptations：改编/审查次数用尽
  * - pro-feature：用户点击了专业版专属功能
  *

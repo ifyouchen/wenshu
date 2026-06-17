@@ -13,6 +13,7 @@ import {
   BookMarked,
   Lock,
   Search,
+  FileUp,
   ChevronRight,
   ChevronDown,
 } from 'lucide-vue-next'
@@ -28,6 +29,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   selectChapter: [chapterId: string]
+  openSearch: []
+  openImport: []
 }>()
 
 type PanelType = 'outline' | 'characters' | 'world'
@@ -133,6 +136,24 @@ watch(() => props.projectId, () => {
           </button>
         </template>
         {{ meta.label }}
+      </NTooltip>
+
+      <NTooltip placement="right">
+        <template #trigger>
+          <button class="icon-btn" @click="emit('openSearch')">
+            <NIcon :component="Search" :size="18" />
+          </button>
+        </template>
+        全书搜索
+      </NTooltip>
+
+      <NTooltip placement="right">
+        <template #trigger>
+          <button class="icon-btn" @click="emit('openImport')">
+            <NIcon :component="FileUp" :size="18" />
+          </button>
+        </template>
+        导入稿件
       </NTooltip>
     </div>
 
@@ -240,8 +261,8 @@ watch(() => props.projectId, () => {
 }
 
 .icon-bar {
-  width: 52px;
-  background: var(--w-bg-secondary);
+  width: 54px;
+  background: var(--w-bg-sidebar);
   border-right: 1px solid var(--w-border-subtle);
   display: flex;
   flex-direction: column;
@@ -271,14 +292,13 @@ watch(() => props.projectId, () => {
 .icon-btn.active {
   color: var(--w-text);
   background: var(--w-brand-soft);
-  border-left: 2px solid var(--w-brand);
-  margin-left: -1px;
+  box-shadow: inset 2px 0 0 var(--w-brand);
 }
 
 .slide-panel {
-  width: 260px;
+  width: 278px;
   border-right: 1px solid var(--w-border-subtle);
-  background: var(--w-bg-secondary);
+  background: var(--w-bg-sidebar);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -286,7 +306,7 @@ watch(() => props.projectId, () => {
 }
 
 .panel-header {
-  height: 48px;
+  height: 50px;
   padding: 0 var(--w-space-4);
   display: flex;
   align-items: center;
@@ -306,6 +326,7 @@ watch(() => props.projectId, () => {
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--w-border-subtle);
+  background: var(--w-bg-secondary);
 }
 
 .panel-search-icon {
@@ -364,7 +385,7 @@ watch(() => props.projectId, () => {
 
 .outline-item.active {
   background: var(--w-brand-soft);
-  border-left: 2px solid var(--w-brand);
+  box-shadow: inset 2px 0 0 var(--w-brand);
   padding-left: calc(var(--w-space-4) + 16px);
 }
 
@@ -402,6 +423,7 @@ watch(() => props.projectId, () => {
   padding: 10px var(--w-space-4);
   border-bottom: 1px solid var(--w-border-subtle);
   transition: background var(--w-transition-fast);
+  cursor: default;
 }
 
 .entity-card:last-child {

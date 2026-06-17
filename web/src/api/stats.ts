@@ -22,7 +22,7 @@ export interface DailyStats {
   chars: number
   /** 手动输入字数（P1-3）。 */
   manualChars?: number
-  /** AI 辅助接受字数（P1-3）。 */
+  /** 辅助生成接受字数（P1-3）。 */
   aiAcceptedChars?: number
 }
 

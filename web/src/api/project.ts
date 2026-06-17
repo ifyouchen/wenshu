@@ -75,7 +75,7 @@ export function saveChapter(
   return client.put<ApiResponse<ChapterInfo>>(`/chapters/${chapterId}`, data)
 }
 
-/** 接受 AI 生成内容：创建快照 + 记录 ai_accepted_chars（P0-1 修复）*/
+/** 接受辅助生成内容：创建快照 + 记录 ai_accepted_chars（P0-1 修复）*/
 export function acceptAiContent(chapterId: string, acceptedChars: number, content: string) {
   return client.post<ApiResponse<{ id: string; snapshotType: string }>>(`/chapters/${chapterId}/accept-ai`, {
     acceptedChars,

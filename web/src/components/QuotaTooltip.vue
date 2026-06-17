@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 配额 Tooltip 组件。
- * 显示当月 AI 字符和改编/审查剩余次数。
+ * 显示当月创作辅助字数和改编/审查剩余次数。
  */
 import { computed, onMounted } from 'vue'
 import { NTooltip, NProgress, NIcon } from 'naive-ui'
@@ -43,7 +43,7 @@ const progressColor = computed(() => {
       </div>
     </template>
     <div v-if="quota.quota" class="quota-detail">
-      <div class="quota-detail-title">本月 AI 字符</div>
+      <div class="quota-detail-title">本月创作辅助字数</div>
       <div class="quota-detail-value">
         {{ quota.quota.usedChars.toLocaleString() }} / {{ quota.quota.limitChars.toLocaleString() }} 字
       </div>
@@ -63,7 +63,7 @@ const progressColor = computed(() => {
       </div>
       <div class="quota-detail-tip">
         <NIcon :component="Info" :size="12" />
-        配额用量每次 AI 操作完成后更新
+        配额用量每次辅助操作完成后更新
       </div>
     </div>
     <span v-else class="quota-loading">加载中…</span>

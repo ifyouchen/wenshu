@@ -1,6 +1,6 @@
 /**
  * 配额 Store（P8-03）。
- * 全局单例，AI 操作完成后调用 refresh() 更新显示；
+ * 全局单例，创作辅助操作完成后调用 refresh() 更新显示；
  * 数据最多允许 60 秒延迟（前端 Tooltip 提示："配额用量每次操作完成后更新"）。
  */
 import { defineStore } from 'pinia'
@@ -16,7 +16,7 @@ export const useQuotaStore = defineStore('quota', () => {
   /** 最后一次刷新时间戳（ms）。 */
   const lastRefreshAt = ref(0)
 
-  /** AI 字符剩余百分比（0~100）。 */
+  /** 创作辅助字数剩余百分比（0~100）。 */
   const charUsagePercent = computed(() => {
     if (!quota.value || quota.value.limitChars === 0) return 0
     return Math.min(100, Math.round((quota.value.usedChars / quota.value.limitChars) * 100))

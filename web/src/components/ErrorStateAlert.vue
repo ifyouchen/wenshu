@@ -3,7 +3,7 @@
  * 异常状态 UI 组件。
  *
  * 覆盖四个异常级别：
- * - A（service-unavailable）：AI 服务不可用
+ * - A（service-unavailable）：创作辅助服务不可用
  * - B（result-unavailable）：结果不可用
  * - C（quota-exceeded）：配额不足
  * - D（content-blocked）：内容被安全过滤
@@ -37,9 +37,9 @@ const appealDone = ref(false)
 const appealReason = ref('')
 
 const defaultMessages: Record<string, string> = {
-  A: 'AI 服务暂时不可用，请稍后重试',
-  B: 'AI 生成结果不可用，请重新尝试',
-  C: '本月 AI 使用配额已用尽',
+  A: '创作辅助服务暂时不可用，请稍后重试',
+  B: '生成结果不可用，请重新尝试',
+  C: '本月创作辅助配额已用尽',
   D: '生成内容包含敏感内容，已被自动替换',
 }
 
@@ -49,7 +49,7 @@ const levelMeta = computed(() => {
       return {
         icon: WifiOff,
         title: '服务不可用',
-        desc: 'AI 服务正在维护或遇到临时故障，请稍等片刻后重试。如持续出现，请检查网络连接。',
+        desc: '创作辅助服务正在维护或遇到临时故障，请稍等片刻后重试。如持续出现，请检查网络连接。',
         borderColor: 'var(--w-border-default)',
         bgColor: 'var(--w-bg-tertiary)',
         iconColor: 'var(--w-text-tertiary)',
@@ -58,7 +58,7 @@ const levelMeta = computed(() => {
       return {
         icon: XCircle,
         title: '生成失败',
-        desc: '本次 AI 生成未能返回有效内容，可能是提示词或上下文不足导致。请调整写作指示后重新尝试。',
+        desc: '本次生成未能返回有效内容，可能是指示或上下文不足导致。请调整写作指示后重新尝试。',
         borderColor: 'var(--w-warning)',
         bgColor: 'var(--w-warning-soft)',
         iconColor: 'var(--w-warning)',
@@ -67,7 +67,7 @@ const levelMeta = computed(() => {
       return {
         icon: BarChart3,
         title: '配额不足',
-        desc: '当前套餐的月度 AI 字符配额已耗尽。下月初自动重置，或升级套餐获取更多配额。',
+        desc: '当前套餐的月度创作辅助字数已耗尽。下月初自动重置，或升级套餐获取更多配额。',
         borderColor: 'var(--w-danger)',
         bgColor: 'var(--w-danger-soft)',
         iconColor: 'var(--w-danger)',
@@ -77,7 +77,7 @@ const levelMeta = computed(() => {
       return {
         icon: ShieldAlert,
         title: '内容安全过滤',
-        desc: 'AI 输出内容经系统检测，含有可能违规的表达，已进行自动替换。',
+        desc: '输出内容经系统检测，含有可能违规的表达，已进行自动替换。',
         borderColor: 'var(--w-warning)',
         bgColor: 'var(--w-warning-soft)',
         iconColor: 'var(--w-warning)',
@@ -94,7 +94,7 @@ async function handleSubmitAppeal() {
   }
   appealSubmitting.value = true
   try {
-    const content = props.blockedContent || '（被替换的 AI 输出内容）'
+    const content = props.blockedContent || '（被替换的输出内容）'
     await submitContentAppeal(content, appealReason.value.trim())
     appealDone.value = true
     notify.success('申诉已提交，我们将在 3 个工作日内审核')
@@ -151,7 +151,7 @@ async function handleSubmitAppeal() {
             <div style="max-width: 280px; font-size: 12px; line-height: 1.6">
               <p style="margin: 0 0 6px; font-weight: 600">内容安全提示</p>
               <p style="margin: 0; opacity: 0.9">
-                {{ blockedReason || 'AI 输出内容经系统检测，含有可能违规的表达，已进行自动替换。' }}
+                {{ blockedReason || '输出内容经系统检测，含有可能违规的表达，已进行自动替换。' }}
               </p>
               <p style="margin: 6px 0 0; opacity: 0.7">如认为属于误判，请提交申诉反馈。</p>
             </div>

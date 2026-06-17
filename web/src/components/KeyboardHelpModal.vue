@@ -9,7 +9,7 @@
  * 覆盖范围：
  * - 全局导航：Ctrl+K / ESC 等
  * - 章节编辑：Ctrl+F / Ctrl+H / Ctrl+S
- * - AI 操作：选中文字 / AI 浮窗
+ * - 创作辅助：选中文字 / 辅助浮窗
  * - 视图切换：快照历史 / 移动端侧栏
  */
 import { NModal, NScrollbar, NIcon } from 'naive-ui'

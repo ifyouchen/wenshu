@@ -37,7 +37,7 @@ const editor = useEditor({
       codeBlock: false,
       blockquote: false,
     }),
-    Placeholder.configure({ placeholder: '开始写作……' }),
+    Placeholder.configure({ placeholder: '从这里继续写下去...' }),
     CharacterCount,
   ],
   editable: !props.readonly,
@@ -116,13 +116,14 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: var(--w-bg);
 }
 
 .editor-statusbar {
-  height: 34px;
+  height: 36px;
   padding: 0 var(--w-space-5);
   border-bottom: 1px solid var(--w-border-subtle);
-  background: var(--w-bg-secondary);
+  background: var(--w-bg-toolbar);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -173,18 +174,23 @@ onBeforeUnmount(() => {
 .editor-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--w-space-6) var(--w-space-5);
+  padding: var(--w-space-6) var(--w-space-5) var(--w-space-8);
 }
 
 /* TipTap prose 样式 */
 :deep(.ProseMirror) {
   max-width: var(--w-editor-max-width);
   margin: 0 auto;
-  min-height: 400px;
+  min-height: min(760px, calc(100vh - 210px));
   outline: none;
   font-size: 17px;
   line-height: 1.85;
   color: var(--w-text);
+  background: var(--w-bg-paper);
+  border: 1px solid var(--w-border-subtle);
+  border-radius: var(--w-radius-lg);
+  padding: clamp(28px, 5vw, 56px);
+  box-shadow: var(--w-shadow-sm);
 }
 
 :deep(.ProseMirror p) {
@@ -205,19 +211,19 @@ onBeforeUnmount(() => {
   text-indent: 2em;
 }
 
-/* AI 内容标识：左侧细线，默认隐藏 */
+/* 生成内容标识：左侧细线，默认隐藏 */
 :deep([data-ai="true"]) {
   position: relative;
-  border-left: 2px solid var(--w-brand);
+  border-left: 2px solid var(--w-ai-line);
   padding-left: 12px;
   margin-left: -14px;
-  background: linear-gradient(90deg, var(--w-brand-soft), transparent 60%);
+  background: linear-gradient(90deg, var(--w-ai-bg), transparent 64%);
   border-radius: 0 var(--w-radius-sm) var(--w-radius-sm) 0;
   transition: all var(--w-transition-base);
 }
 
 :deep([data-ai="true"]:hover) {
-  background: var(--w-brand-soft);
+  background: var(--w-ai-bg);
 }
 
 /* 选中文字 */
@@ -233,6 +239,8 @@ onBeforeUnmount(() => {
 
   :deep(.ProseMirror) {
     font-size: 16px;
+    padding: var(--w-space-5) var(--w-space-4);
+    border-radius: var(--w-radius-md);
   }
 }
 </style>

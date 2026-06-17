@@ -96,3 +96,13 @@ export interface ScriptSceneInfo {
   version: number
   updatedAt: string
 }
+
+/** 剧本分集。 */
+export interface ScriptEpisodeInfo {
+  id: string
+  draftId: string
+  episodeNo: number
+  title: string
+  sortOrder: number
+  createdAt: string
+}

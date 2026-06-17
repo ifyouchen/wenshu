@@ -31,6 +31,7 @@ import { useTheme } from '@/composables/useTheme'
 import CommandPalette from '@/components/CommandPalette.vue'
 import KeyboardHelpModal from '@/components/KeyboardHelpModal.vue'
 import UpgradeModal from '@/components/UpgradeModal.vue'
+import QuotaTooltip from '@/components/QuotaTooltip.vue'
 
 const auth = useAuthStore()
 const quota = useQuotaStore()
@@ -178,7 +179,7 @@ onUnmounted(() => {
           <span class="brand-mark">文</span>
           <span class="brand-text">
             <strong>文枢</strong>
-            <small>wenshu</small>
+            <small>创作工作台</small>
           </span>
         </RouterLink>
 
@@ -207,9 +208,11 @@ onUnmounted(() => {
           <template #icon>
             <NIcon :component="Search" :size="14" />
           </template>
-          <span>命令</span>
+          <span>全局命令</span>
           <kbd>Ctrl K</kbd>
         </NButton>
+
+        <QuotaTooltip v-if="!isMobile" />
 
         <button class="icon-btn" title="切换主题" @click="toggleTheme()">
           <NIcon :component="isDark ? Sun : Moon" :size="18" />
@@ -277,14 +280,10 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--w-space-5);
-  background: rgba(12, 12, 14, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--w-bg-toolbar);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--w-border-subtle);
-}
-
-[data-theme='light'] .app-topbar {
-  background: rgba(247, 245, 242, 0.82);
 }
 
 .topbar-left,
@@ -300,6 +299,7 @@ onUnmounted(() => {
   gap: 10px;
   color: var(--w-text);
   text-decoration: none;
+  min-width: 0;
 }
 
 .brand-mark {
@@ -326,14 +326,13 @@ onUnmounted(() => {
   font-family: var(--w-font-serif);
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 .brand-text small {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--w-text-tertiary);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .top-nav {
@@ -346,6 +345,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 34px;
   padding: 6px 12px;
   border-radius: var(--w-radius-sm);
   color: var(--w-text-secondary);
@@ -373,6 +373,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   color: var(--w-text-secondary) !important;
+  border: 1px solid var(--w-border-default) !important;
+  background: var(--w-bg-secondary) !important;
 }
 
 .command-btn kbd {
@@ -411,8 +413,8 @@ onUnmounted(() => {
 .user-avatar {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  background: var(--w-bg-tertiary);
+  border-radius: var(--w-radius-sm);
+  background: var(--w-brand-soft);
   border: 1px solid var(--w-border-default);
   display: flex;
   align-items: center;
@@ -433,6 +435,7 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  background: var(--w-bg);
 }
 
 /* 移动端底部导航栏 */
@@ -441,18 +444,15 @@ onUnmounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
-  background: rgba(12, 12, 14, 0.92);
+  height: var(--w-mobile-nav-height);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--w-bg-toolbar);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--w-border-subtle);
   display: flex;
   align-items: stretch;
   z-index: 1000;
-}
-
-[data-theme='light'] .mobile-bottom-nav {
-  background: rgba(255, 255, 255, 0.92);
 }
 
 .mobile-nav-item {
@@ -473,5 +473,15 @@ onUnmounted(() => {
 
 .mobile-nav-item:active {
   background: var(--w-bg-hover);
+}
+
+@media (max-width: 767px) {
+  .app-topbar {
+    padding: 0 var(--w-space-3);
+  }
+
+  .brand-text small {
+    display: none;
+  }
 }
 </style>

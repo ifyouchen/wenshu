@@ -1,6 +1,6 @@
 /** 剧本草稿、场景、集数相关 API（P8-13）。 */
 import client from './client'
-import type { ApiResponse, ScriptDraftInfo, ScriptSceneInfo } from './types'
+import type { ApiResponse, ScriptDraftInfo, ScriptEpisodeInfo, ScriptSceneInfo } from './types'
 
 export interface ScenePageResult {
   total: number
@@ -48,4 +48,19 @@ export function exportDraft(draftId: string, format: 'docx' | 'fdx' | 'storyboar
   return client.post<ApiResponse<{ taskId: string; draftId: string }>>(
     `/script/drafts/${draftId}/export?format=${format}`,
   )
+}
+
+/** 创建剧本分集。 */
+export function createEpisode(draftId: string, data: { episodeNo: number; title: string }) {
+  return client.post<ApiResponse<ScriptEpisodeInfo>>(`/script/drafts/${draftId}/episodes`, data)
+}
+
+/** 查询草稿下的分集列表。 */
+export function listEpisodes(draftId: string) {
+  return client.get<ApiResponse<ScriptEpisodeInfo[]>>(`/script/drafts/${draftId}/episodes`)
+}
+
+/** 删除剧本分集。 */
+export function deleteEpisode(draftId: string, episodeId: string) {
+  return client.delete<ApiResponse<void>>(`/script/drafts/${draftId}/episodes/${episodeId}`)
 }

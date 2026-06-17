@@ -8,6 +8,70 @@ const themeMode = ref<ThemeMode>(
   (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) : null) || 'dark',
 )
 
+type Palette = {
+  bg: string
+  surface: string
+  elevated: string
+  tertiary: string
+  text: string
+  textSecondary: string
+  textTertiary: string
+  border: string
+  borderSubtle: string
+  borderStrong: string
+  brand: string
+  brandHover: string
+  brandPressed: string
+  brandSoft: string
+  success: string
+  warning: string
+  error: string
+  info: string
+}
+
+const palettes: Record<ThemeMode, Palette> = {
+  dark: {
+    bg: '#101113',
+    surface: '#16181b',
+    elevated: '#24272d',
+    tertiary: '#202328',
+    text: '#f0efec',
+    textSecondary: '#b4b0aa',
+    textTertiary: '#85817a',
+    border: 'rgba(255,255,255,0.12)',
+    borderSubtle: 'rgba(255,255,255,0.075)',
+    borderStrong: 'rgba(255,255,255,0.18)',
+    brand: '#6f8197',
+    brandHover: '#8392a6',
+    brandPressed: '#586b82',
+    brandSoft: 'rgba(111,129,151,0.16)',
+    success: '#6f947f',
+    warning: '#c29a62',
+    error: '#c06a62',
+    info: '#7c9aaa',
+  },
+  light: {
+    bg: '#f3f1ec',
+    surface: '#fbfaf7',
+    elevated: '#ffffff',
+    tertiary: '#efede8',
+    text: '#1d1c1a',
+    textSecondary: '#5d5a54',
+    textTertiary: '#858077',
+    border: 'rgba(38,34,29,0.12)',
+    borderSubtle: 'rgba(38,34,29,0.075)',
+    borderStrong: 'rgba(38,34,29,0.2)',
+    brand: '#53677f',
+    brandHover: '#44576f',
+    brandPressed: '#36485f',
+    brandSoft: 'rgba(83,103,127,0.11)',
+    success: '#557d65',
+    warning: '#a97936',
+    error: '#a94f4b',
+    info: '#5b8192',
+  },
+}
+
 function applyTheme(mode: ThemeMode) {
   themeMode.value = mode
   if (typeof document !== 'undefined') {
@@ -31,137 +95,134 @@ export function useTheme() {
   }
 
   const themeOverrides = computed<GlobalThemeOverrides>(() => {
-    const isDarkValue = isDark.value
-    const bg = isDarkValue ? '#0c0c0e' : '#f7f5f2'
-    const surface = isDarkValue ? '#131316' : '#ffffff'
-    const elevated = isDarkValue ? '#212126' : '#ffffff'
-    const tertiary = isDarkValue ? '#1a1a1f' : '#f0eeeb'
-    const text = isDarkValue ? '#f2f2f0' : '#1a1a1a'
-    const textSecondary = isDarkValue ? '#9a9a9e' : '#5a5a5e'
-    const textTertiary = isDarkValue ? '#6b6b70' : '#8a8a8e'
-    const border = isDarkValue ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-    const borderSubtle = isDarkValue ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
-    const brand = isDarkValue ? '#5a6e8a' : '#4a5e7a'
-    const brandHover = isDarkValue ? '#6b7f9b' : '#3d506b'
-    const brandSoft = isDarkValue ? 'rgba(90,110,138,0.14)' : 'rgba(74,94,122,0.1)'
-    const success = isDarkValue ? '#5b8a72' : '#4a7a62'
+    const p = palettes[themeMode.value]
 
     return {
       common: {
-        baseColor: bg,
-        primaryColor: brand,
-        primaryColorHover: brandHover,
-        primaryColorPressed: isDarkValue ? '#4a5e7a' : '#2f4055',
-        primaryColorSuppl: brandHover,
-        successColor: success,
-        successColorHover: isDarkValue ? '#6b9a82' : '#5a8a72',
-        warningColor: isDarkValue ? '#b8894a' : '#a07030',
-        errorColor: isDarkValue ? '#b8564f' : '#a84040',
-        infoColor: isDarkValue ? '#6b8ba0' : '#5a7a8a',
-        textColorBase: text,
-        textColor1: text,
-        textColor2: textSecondary,
-        textColor3: textTertiary,
-        bodyColor: bg,
-        cardColor: surface,
-        modalColor: elevated,
-        popoverColor: elevated,
-        tableColor: surface,
-        tableHeaderColor: tertiary,
-        tagColor: tertiary,
-        dividerColor: border,
-        borderColor: border,
-        inputColor: tertiary,
-        inputColorDisabled: isDarkValue ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-        placeholderColor: textTertiary,
-        hoverColor: isDarkValue ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
-        pressedColor: isDarkValue ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-        fontFamily: "'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif",
-        fontFamilyMono: "'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', monospace",
-        borderRadius: '10px',
+        baseColor: p.bg,
+        primaryColor: p.brand,
+        primaryColorHover: p.brandHover,
+        primaryColorPressed: p.brandPressed,
+        primaryColorSuppl: p.brandHover,
+        successColor: p.success,
+        successColorHover: p.success,
+        warningColor: p.warning,
+        errorColor: p.error,
+        infoColor: p.info,
+        textColorBase: p.text,
+        textColor1: p.text,
+        textColor2: p.textSecondary,
+        textColor3: p.textTertiary,
+        bodyColor: p.bg,
+        cardColor: p.surface,
+        modalColor: p.elevated,
+        popoverColor: p.elevated,
+        tableColor: p.surface,
+        tableHeaderColor: p.tertiary,
+        tagColor: p.tertiary,
+        dividerColor: p.border,
+        borderColor: p.border,
+        inputColor: p.tertiary,
+        inputColorDisabled: p.borderSubtle,
+        placeholderColor: p.textTertiary,
+        hoverColor: p.brandSoft,
+        pressedColor: p.borderSubtle,
+        fontFamily: '"Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif',
+        fontFamilyMono: '"JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace',
+        borderRadius: '8px',
         borderRadiusSmall: '6px',
       },
       Button: {
-        color: surface,
-        colorHover: isDarkValue ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-        colorPressed: isDarkValue ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-        textColor: text,
-        textColorHover: text,
-        border: `1px solid ${border}`,
-        borderHover: `1px solid ${isDarkValue ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.16)'}`,
+        color: p.surface,
+        colorHover: p.tertiary,
+        colorPressed: p.brandSoft,
+        textColor: p.text,
+        textColorHover: p.text,
+        border: `1px solid ${p.border}`,
+        borderHover: `1px solid ${p.borderStrong}`,
       },
       Input: {
-        color: tertiary,
-        colorFocus: tertiary,
-        textColor: text,
-        caretColor: brand,
-        border: `1px solid ${border}`,
-        borderHover: `1px solid ${isDarkValue ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.16)'}`,
-        borderFocus: `1px solid ${brand}`,
-        boxShadowFocus: `0 0 0 3px ${brandSoft}`,
-        placeholderColor: textTertiary,
+        color: p.tertiary,
+        colorFocus: p.tertiary,
+        textColor: p.text,
+        caretColor: p.brand,
+        border: `1px solid ${p.border}`,
+        borderHover: `1px solid ${p.borderStrong}`,
+        borderFocus: `1px solid ${p.brand}`,
+        boxShadowFocus: `0 0 0 3px ${p.brandSoft}`,
+        placeholderColor: p.textTertiary,
       },
       Card: {
-        color: surface,
-        borderColor: border,
+        color: p.surface,
+        borderColor: p.border,
       },
       Modal: {
-        color: elevated,
-        borderColor: border,
+        color: p.elevated,
+        borderColor: p.border,
       },
       Drawer: {
-        color: surface,
-        headerBorderColor: border,
+        color: p.surface,
+        headerBorderColor: p.border,
+        footerBorderColor: p.border,
       },
       Tabs: {
-        tabTextColor: textSecondary,
-        tabTextColorActive: text,
-        tabTextColorHover: text,
-        barColor: brand,
+        tabTextColor: p.textSecondary,
+        tabTextColorActive: p.text,
+        tabTextColorHover: p.text,
+        barColor: p.brand,
+      },
+      DataTable: {
+        thColor: p.tertiary,
+        tdColor: p.surface,
+        borderColor: p.borderSubtle,
+        thTextColor: p.textSecondary,
+        tdTextColor: p.text,
       },
       Tag: {
-        color: tertiary,
-        textColor: textSecondary,
-        border: `1px solid ${borderSubtle}`,
+        color: p.tertiary,
+        textColor: p.textSecondary,
+        border: `1px solid ${p.borderSubtle}`,
       },
       Dropdown: {
-        color: elevated,
-        border: `1px solid ${border}`,
-        optionColorHover: isDarkValue ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+        color: p.elevated,
+        border: `1px solid ${p.border}`,
+        optionColorHover: p.tertiary,
       },
       Message: {
-        color: elevated,
-        textColor: text,
+        color: p.elevated,
+        textColor: p.text,
       },
       Notification: {
-        color: elevated,
+        color: p.elevated,
+        textColor: p.text,
       },
       Progress: {
-        fillColor: brand,
+        fillColor: p.brand,
       },
       Popover: {
-        color: elevated,
+        color: p.elevated,
+        textColor: p.text,
       },
       Tooltip: {
-        color: elevated,
-        textColor: text,
+        color: p.elevated,
+        textColor: p.text,
       },
       Slider: {
-        fillColor: brand,
+        fillColor: p.brand,
       },
       Switch: {
-        railColorActive: brand,
+        railColorActive: p.brand,
       },
       Checkbox: {
-        colorChecked: brand,
-        borderChecked: `1px solid ${brand}`,
+        colorChecked: p.brand,
+        borderChecked: `1px solid ${p.brand}`,
       },
       Radio: {
-        buttonColorActive: brand,
+        buttonColorActive: p.brand,
         buttonTextColorActive: '#fff',
       },
       Spin: {
-        color: brand,
+        color: p.brand,
       },
     }
   })

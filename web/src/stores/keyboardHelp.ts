@@ -8,7 +8,7 @@ import { ref, type Component } from 'vue'
 import {
   Compass,
   Pencil,
-  Bot,
+  Wand2,
   LayoutGrid,
 } from 'lucide-vue-next'
 
@@ -26,7 +26,7 @@ export interface ShortcutItem {
  * 快捷键分组定义。
  */
 export interface ShortcutGroup {
-  /** 分组标题，如 "导航" / "写作" / "AI 操作"。 */
+  /** 分组标题，如 "导航" / "写作" / "创作辅助"。 */
   title: string
   /** 分组图标（Lucide 组件）。 */
   icon: Component
@@ -57,11 +57,11 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
-    title: 'AI 操作',
-    icon: Bot,
+    title: '创作辅助',
+    icon: Wand2,
     shortcuts: [
-      { keys: ['选中文字'], description: '唤起 AI 浮窗，对选中内容进行续写或润色' },
-      { keys: ['Esc'], description: '取消 AI 流式输出' },
+      { keys: ['选中文字'], description: '唤起辅助浮窗，对选中内容进行续写或润色' },
+      { keys: ['Esc'], description: '取消流式续写' },
     ],
   },
   {
