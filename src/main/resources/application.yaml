@@ -13,18 +13,18 @@ spring:
       password: ${WENSHU_REDIS_PASSWORD:}
       timeout: 2s
   mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:successful-chen@qq.com}
+    password: ${MAIL_PASSWORD:qongmajewctojecc}
     properties:
       mail:
         smtp:
-          auth: ${MAIL_SMTP_AUTH:}
+          auth: ${MAIL_SMTP_AUTH:true}
           ssl:
-            enable: ${MAIL_SMTP_SSL_ENABLE:}
+            enable: ${MAIL_SMTP_SSL_ENABLE:true}
           starttls:
-            enable: ${MAIL_SMTP_STARTTLS_ENABLE:}
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
   flyway:
     enabled: false
   sql:
@@ -81,12 +81,12 @@ wenshu:
     creative-model: claude-sonnet-4-6
     utility-model: deepseek-chat
     anthropic-api-key: ${ANTHROPIC_API_KEY:}
-    deepseek-api-key: ${DEEPSEEK_API_KEY:}
+    deepseek-api-key: ${DEEPSEEK_API_KEY:sk-05c7654745684e17baab13771408dea2}
   storage:
     provider: cos
-    region: ${TENCENT_COS_REGION:ap-guangzhou}
-    bucket: ${TENCENT_COS_BUCKET:wenshu-1250000000}
-    secret-id: ${TENCENT_COS_SECRET_ID:}
-    secret-key: ${TENCENT_COS_SECRET_KEY:}
+    region: ${TENCENT_COS_REGION:ap-shanghai}
+    bucket: ${TENCENT_COS_BUCKET:myblog-1322876242}
+    secret-id: ${TENCENT_COS_SECRET_ID:AKIDJj074vc7XowtdBWgeaM6hGgwzpX7MUSD}
+    secret-key: ${TENCENT_COS_SECRET_KEY:bzIPJz87uU5jIgzKZfaQ8h8CBxXHqEPO}
     custom-domain: ${TENCENT_COS_CUSTOM_DOMAIN:}
     presigned-url-ttl-minutes: ${TENCENT_COS_PRESIGNED_URL_TTL_MINUTES:60}

@@ -32,7 +32,9 @@ public class CharacterApplicationService {
     @Transactional
     public CharacterInfo createCharacter(UUID projectId, UUID userId, CreateCharacterCommand command) {
         verifyProjectOwnership(projectId, userId);
-        Character character = Character.create(projectId, command.name(), command.role(), clock);
+        Character character = Character.create(projectId, command.name(), command.role(),
+                command.appearance(), command.personality(), command.abilities(),
+                command.speechStyle(), command.status(), clock);
         characterRepository.save(character);
         return CharacterInfo.from(character);
     }

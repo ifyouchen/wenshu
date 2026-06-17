@@ -1,554 +1,307 @@
 <script setup lang="ts">
-/**
- * 章节编辑器页面。
- *
- * 特性：
- * - TipTap 编辑器，只加载当前章节，auto-save debounce 1s
- * - 左侧图标面板（大纲/角色库/词典侧栏）
- * - 创作辅助浮窗 + SSE 续写
- * - 全书搜索替换横条
- * - 移动端响应式
- * - 渐进式用户引导
- */
-import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Editor } from '@tiptap/vue-3'
-import { NButton, NDrawer, NDrawerContent, NEmpty, NInput, NIcon, NSpin, useMessage } from 'naive-ui'
+import { EditorContent, useEditor } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import CharacterCount from '@tiptap/extension-character-count'
 import {
-  ArrowLeft,
+  BookOpen,
+  Boxes,
+  CheckCircle2,
+  Clapperboard,
+  FileText,
+  Library,
+  MessageSquareText,
   PanelLeft,
-  History,
-  AlertTriangle,
-  Flame,
-  FileUp,
+  Save,
+  Search,
+  Settings,
+  Users,
 } from 'lucide-vue-next'
-import ChapterEditor from '@/components/ChapterEditor.vue'
-import EditorSidePanel from '@/components/EditorSidePanel.vue'
-import AiFloatButton from '@/components/AiFloatButton.vue'
-import SearchReplaceBar from '@/components/SearchReplaceBar.vue'
-import OnboardingHint from '@/components/OnboardingHint.vue'
-import ImportContentDrawer from '@/components/ImportContentDrawer.vue'
+import { getChapter, getChapterContext, getOutline, saveChapter } from '@/api/project'
 import type { ChapterInfo, OutlineInfo } from '@/api/project'
-import { getChapter, getOutline, saveChapter } from '@/api/project'
-import { getWritingOverview } from '@/api/stats'
-import { useDevice } from '@/composables/useDevice'
-import { useCommandPaletteStore } from '@/stores/commandPalette'
-import { useOnboarding } from '@/composables/useOnboarding'
-import { useEditorHeartbeat } from '@/composables/useEditorHeartbeat'
-
-const SnapshotDrawer = defineAsyncComponent(
-  () => import('@/components/SnapshotDrawer.vue'),
-)
+import { listCharacters, listWorldElements } from '@/api/character'
+import type { CharacterInfo, WorldElementInfo } from '@/api/character'
+import { polishAdvanced, polishBasic } from '@/api/polish'
+import { submitConsistencyCheck } from '@/api/consistency'
+import { continueNovel, createBranch } from '@/api/novel'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
-const message = useMessage()
-const { isMobile } = useDevice()
-const palette = useCommandPaletteStore()
+const toast = useToast()
 
+const projectId = computed(() => String(route.params.projectId))
+const chapterId = computed(() => String(route.params.chapterId || ''))
 const chapter = ref<ChapterInfo | null>(null)
 const outline = ref<OutlineInfo | null>(null)
+const characters = ref<CharacterInfo[]>([])
+const worldElements = ref<WorldElementInfo[]>([])
+const sideOpen = ref(true)
+const sideMode = ref('outline')
 const loading = ref(false)
-const chapterTitle = ref('')
-const editorRef = ref<InstanceType<typeof ChapterEditor> | null>(null)
+const saveState = ref<'saved' | 'saving' | 'error'>('saved')
+const title = ref('')
+const command = ref('')
+const aiMessages = ref<Array<{ role: 'user' | 'assistant'; text: string }>>([
+  { role: 'assistant', text: '选用底部命令或直接输入需求：续写、润色、扩写、缩写、转剧本、查一致性。' },
+])
+let saveTimer: number | undefined
 
-const aiVisible = ref(false)
-const showSnapshot = ref(false)
-const snapshotEverOpened = ref(false)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const editorInstance = ref<any>(undefined)
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    Placeholder.configure({ placeholder: '从这里继续写。文枢会自动保存章节内容。' }),
+    CharacterCount,
+  ],
+  content: '',
+  editorProps: {
+    attributes: {
+      class: 'wenshu-editor-prose',
+    },
+  },
+  onUpdate: () => scheduleSave(),
+})
 
-const showSearch = ref(false)
-const showReplace = ref(false)
-const showImport = ref(false)
+const sideItems = [
+  { key: 'outline', title: '章节大纲', icon: FileText },
+  { key: 'characters', title: '角色', icon: Users },
+  { key: 'dict', title: '词典', icon: Library },
+  { key: 'world', title: '世界观', icon: Boxes },
+  { key: 'search', title: '搜索', icon: Search },
+  { key: 'settings', title: '设置', icon: Settings },
+]
 
-const showMobileSidePanel = ref(false)
+const wordCount = computed(() => editor.value?.storage.characterCount.characters() || 0)
+const dictElements = computed(() => worldElements.value.filter((item) => (item.type || '').includes('dict') || item.type === 'term'))
+const worldviewElements = computed(() => worldElements.value.filter((item) => !dictElements.value.includes(item)))
 
-const streakReminderVisible = ref(false)
-const streakDays = ref(0)
-const todayRemainingChars = ref(0)
+onMounted(loadAll)
+onBeforeUnmount(() => {
+  if (saveTimer) window.clearTimeout(saveTimer)
+  editor.value?.destroy()
+})
+watch(chapterId, loadAll)
 
-const ob = useOnboarding()
-const showFirstEditorHint = ref(false)
-const showFirstAiSelectHint = ref(false)
-const showMilestone3000 = ref(false)
-const maxTrackedChars = ref(0)
+function messageOf(error: unknown, fallback: string) {
+  return (error as { response?: { data?: { message?: string } } }).response?.data?.message || fallback
+}
 
-const projectId = route.params.projectId as string
-const currentChapterId = computed(() => route.params.chapterId as string | undefined)
-
-const { otherTabEditing } = useEditorHeartbeat(currentChapterId.value ?? '')
-
-async function loadChapter(id: string) {
+async function loadAll() {
   loading.value = true
   try {
-    const res = await getChapter(id)
-    chapter.value = res.data.data
-    chapterTitle.value = chapter.value.title ?? ''
-  } catch {
-    message.error('章节加载失败')
+    const outlineRes = await getOutline(projectId.value)
+    outline.value = outlineRes.data.data
+    if (!chapterId.value) return
+
+    try {
+      const contextRes = await getChapterContext(chapterId.value)
+      chapter.value = contextRes.data.data.chapter
+      outline.value = contextRes.data.data.outline || outline.value
+      characters.value = contextRes.data.data.characters as CharacterInfo[]
+      worldElements.value = contextRes.data.data.worldElements as WorldElementInfo[]
+    } catch {
+      const [chapterRes, characterRes, worldRes] = await Promise.all([
+        getChapter(chapterId.value),
+        listCharacters(projectId.value),
+        listWorldElements(projectId.value),
+      ])
+      chapter.value = chapterRes.data.data
+      characters.value = characterRes.data.data
+      worldElements.value = worldRes.data.data
+    }
+    title.value = chapter.value?.title || ''
+    editor.value?.commands.setContent(chapter.value?.content || '', { emitUpdate: false })
+  } catch (error) {
+    toast.error(messageOf(error, '编辑器加载失败'))
   } finally {
     loading.value = false
   }
 }
 
-async function loadOutline() {
-  try {
-    const res = await getOutline(projectId)
-    outline.value = res.data.data
-  } catch { /* 静默失败 */ }
+function selectChapter(id: string) {
+  router.push(`/projects/${projectId.value}/editor/${id}`)
 }
 
-async function handleAutoSave(content: string) {
+function scheduleSave() {
+  if (!chapter.value) return
+  saveState.value = 'saving'
+  if (saveTimer) window.clearTimeout(saveTimer)
+  saveTimer = window.setTimeout(saveNow, 900)
+}
+
+async function saveNow() {
   if (!chapter.value) return
   try {
-    await saveChapter(chapter.value.id, {
-      title: chapterTitle.value || undefined,
-      content,
+    const res = await saveChapter(chapter.value.id, {
+      title: title.value,
+      content: editor.value?.getHTML() || '',
       status: chapter.value.status,
     })
-    editorRef.value?.markSaved()
+    chapter.value = res.data.data
+    saveState.value = 'saved'
   } catch {
-    editorRef.value?.markError()
-  }
-
-  const charCount = content.replace(/\s/g, '').length
-  if (charCount > maxTrackedChars.value) {
-    maxTrackedChars.value = charCount
-    if (charCount >= 3000 && ob.shouldShow('char-milestone-3000')) {
-      showMilestone3000.value = true
-    }
+    saveState.value = 'error'
   }
 }
 
-async function handleTitleBlur() {
-  if (!chapter.value) return
-  try {
-    await saveChapter(chapter.value.id, { title: chapterTitle.value })
-    chapter.value.title = chapterTitle.value
-  } catch {
-    message.error('标题保存失败')
-  }
+async function saveTitle() {
+  await saveNow()
 }
 
-function handleSelectChapter(chapterId: string) {
-  router.push(`/projects/${projectId}/editor/${chapterId}`)
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function handleEditorMounted(editor: any) {
-  editorInstance.value = editor
-  editor.on('selectionUpdate', ({ editor: e }: { editor: Editor }) => {
-    const { from, to } = e.state.selection
-    const hasSelection = from !== to
-    aiVisible.value = hasSelection
-    if (hasSelection && ob.shouldShow('first-ai-select')) {
-      showFirstAiSelectHint.value = true
-    }
-  })
-}
-
-function handleGlobalKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-    e.preventDefault()
-    showSearch.value = true
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
-    e.preventDefault()
-    showSearch.value = true
-    showReplace.value = true
-  }
-}
-
-onMounted(async () => {
-  document.addEventListener('keydown', handleGlobalKeydown)
-  await loadOutline()
-  if (currentChapterId.value) await loadChapter(currentChapterId.value)
-  if (route.query.import === '1') showImport.value = true
+async function runCommand(preset?: string) {
+  const text = (preset || command.value).trim()
+  if (!text) return
+  command.value = ''
+  aiMessages.value.push({ role: 'user', text })
+  const lower = text.toLowerCase()
 
   try {
-    const statsRes = await getWritingOverview()
-    const overview = statsRes.data.data
-    if (overview.streak > 0) {
-      const todayProgress = overview.todayChars ?? 0
-      const goal = overview.dailyGoal ?? 2000
-      if (todayProgress < goal) {
-        streakDays.value = overview.streak
-        todayRemainingChars.value = goal - todayProgress
-        streakReminderVisible.value = true
-      }
+    if ((text.includes('续写') || lower.includes('continue')) && chapterId.value) {
+      let result = ''
+      aiMessages.value.push({ role: 'assistant', text: '正在续写...' })
+      const index = aiMessages.value.length - 1
+      await continueNovel(chapterId.value, (token) => {
+        result += token
+        aiMessages.value[index].text = result || '正在续写...'
+      })
+      return
     }
-  } catch { /* 静默失败 */ }
-
-  if (ob.shouldShow('first-editor')) {
-    showFirstEditorHint.value = true
+    if (text.includes('润色')) {
+      const selected = editor.value?.state.doc.textBetween(
+        editor.value.state.selection.from,
+        editor.value.state.selection.to,
+        '\n',
+      )
+      const source = selected || editor.value?.getText().slice(0, 1200) || ''
+      const res = text.includes('高级') ? await polishAdvanced(source, text) : await polishBasic(source)
+      aiMessages.value.push({ role: 'assistant', text: res.data.data.rewritten || res.data.data.basicAnnotations?.map((item) => `${item.original} -> ${item.suggested}`).join('\n') || '暂无润色建议' })
+      return
+    }
+    if (text.includes('转剧本')) {
+      router.push(`/projects/${projectId.value}/script`)
+      return
+    }
+    if (text.includes('一致性')) {
+      const res = await submitConsistencyCheck(projectId.value)
+      router.push(`/consistency/reports/${res.data.data.reportId}`)
+      return
+    }
+    if (text.includes('分支')) {
+      const res = await createBranch(projectId.value, chapterId.value || undefined)
+      aiMessages.value.push({ role: 'assistant', text: res.data.data.map((item) => `${item.title}\n${item.summary}`).join('\n\n') || '暂无分支建议' })
+      return
+    }
+    aiMessages.value.push({ role: 'assistant', text: `已记录你的需求：「${text}」。当前后端没有对应命令接口，先以面板消息保留。` })
+  } catch (error) {
+    aiMessages.value.push({ role: 'assistant', text: messageOf(error, 'AI 能力暂时不可用，请检查模型配置或后端接口。') })
   }
-
-  palette.registerCommands([
-    {
-      id: 'editor:import',
-      label: '导入稿件',
-      description: '上传或粘贴已有正文，切分为章节',
-      group: '写作',
-      icon: 'I',
-      shortcut: '',
-      action: () => { showImport.value = true },
-    },
-    {
-      id: 'editor:search',
-      label: '搜索替换',
-      description: '在全书中搜索/替换文字',
-      group: '写作',
-      icon: 'S',
-      shortcut: 'Ctrl+F',
-      action: () => { showSearch.value = true },
-    },
-    {
-      id: 'editor:snapshot',
-      label: '查看版本历史',
-      description: '查看章节快照并支持恢复',
-      group: '写作',
-      icon: 'H',
-      shortcut: '',
-      action: () => { snapshotEverOpened.value = true; showSnapshot.value = true },
-    },
-    {
-      id: 'editor:side-panel',
-      label: '切换侧栏',
-      description: '显示/隐藏大纲和角色库',
-      group: '写作',
-      icon: 'P',
-      shortcut: '',
-      action: () => { showMobileSidePanel.value = !showMobileSidePanel.value },
-    },
-  ])
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleGlobalKeydown)
-  palette.unregisterCommands(['editor:import', 'editor:search', 'editor:snapshot', 'editor:side-panel'])
-})
-
-watch(currentChapterId, async (newId) => {
-  if (newId) await loadChapter(newId)
-})
+}
 </script>
 
 <template>
-  <div class="editor-page">
-    <!-- 左侧图标面板 + 侧栏 -->
-    <EditorSidePanel
-      v-if="!isMobile"
-      :project-id="projectId"
-      :chapter-id="currentChapterId"
-      :outline="outline"
-      @select-chapter="handleSelectChapter"
-      @open-search="showSearch = true"
-      @open-import="showImport = true"
-    />
+  <div class="editor-shell" :class="{ 'side-collapsed': !sideOpen }">
+    <aside class="editor-rail">
+      <button class="ws-icon-button" type="button" title="展开侧栏" @click="sideOpen = !sideOpen">
+        <PanelLeft :size="18" />
+      </button>
+      <button
+        v-for="item in sideItems"
+        :key="item.key"
+        class="rail-button"
+        :class="{ active: sideMode === item.key }"
+        type="button"
+        :title="item.title"
+        @click="sideMode = item.key; sideOpen = true"
+      >
+        <component :is="item.icon" :size="18" />
+      </button>
+    </aside>
 
-    <!-- 编辑器主区域 -->
-    <div class="editor-main">
-      <!-- 多标签页冲突警告 -->
-      <div v-if="otherTabEditing" class="other-tab-warning">
-        <AlertTriangle :size="14" />
-        <span>另一个标签页正在编辑本章节，请注意避免内容冲突</span>
+    <aside class="editor-side">
+      <header><h2>{{ sideItems.find((item) => item.key === sideMode)?.title }}</h2></header>
+      <div v-if="sideMode === 'outline'" class="side-list">
+        <section v-for="volume in outline?.volumes || []" :key="volume.id">
+          <h3>{{ volume.title || '未命名卷' }}</h3>
+          <button
+            v-for="item in volume.chapters"
+            :key="item.id"
+            type="button"
+            :class="{ active: item.id === chapterId }"
+            @click="selectChapter(item.id)"
+          >
+            {{ item.title || '未命名章节' }}
+          </button>
+        </section>
       </div>
-
-      <!-- 连续写作提醒条 -->
-      <div v-if="streakReminderVisible" class="streak-reminder">
-        <Flame :size="14" />
-        <span>你已连续更新 {{ streakDays }} 天，今天还差 {{ todayRemainingChars }} 字</span>
-        <button class="streak-reminder-close" @click="streakReminderVisible = false">×</button>
+      <div v-else-if="sideMode === 'characters'" class="side-list">
+        <article v-for="item in characters" :key="item.id">
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.role || '角色' }}</span>
+          <p>{{ item.personality || item.speechStyle || '暂无描述' }}</p>
+        </article>
       </div>
+      <div v-else-if="sideMode === 'dict' || sideMode === 'world'" class="side-list">
+        <article v-for="item in (sideMode === 'dict' ? dictElements : worldviewElements)" :key="item.id">
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.type }}</span>
+          <p>{{ item.description || '暂无描述' }}</p>
+        </article>
+      </div>
+      <div v-else class="ws-empty compact">
+        <span>{{ sideMode === 'search' ? '搜索面板后续接全书搜索接口。' : '编辑设置已集中到顶部保存与底部命令栏。' }}</span>
+      </div>
+    </aside>
 
-      <!-- 搜索替换横条 -->
-      <SearchReplaceBar
-        v-if="showSearch"
-        :project-id="projectId"
-        :show-replace="showReplace"
-        @close="showSearch = false; showReplace = false"
-        @jump-to-chapter="handleSelectChapter"
-      />
+    <main class="editor-center">
+      <header class="editor-titlebar">
+        <input v-model="title" class="editor-title-input" placeholder="章节标题" @blur="saveTitle">
+        <div class="save-state" :class="saveState">
+          <Save v-if="saveState === 'saving'" :size="15" />
+          <CheckCircle2 v-else :size="15" />
+          {{ saveState === 'saving' ? '保存中' : saveState === 'error' ? '保存失败' : '已保存' }} · {{ wordCount }} 字
+        </div>
+      </header>
 
-      <!-- 章节标题 + 工具栏 -->
-      <div class="editor-toolbar">
-        <NButton v-if="isMobile" text class="toolbar-btn" @click="router.back()">
-          <template #icon>
-            <NIcon :component="ArrowLeft" :size="18" />
-          </template>
-        </NButton>
+      <section v-if="loading" class="ws-empty"><span>章节加载中...</span></section>
+      <section v-else-if="!chapterId" class="ws-empty">
+        <BookOpen :size="32" />
+        <span>从左侧选择章节开始写作。</span>
+      </section>
+      <section v-else class="editor-paper">
+        <EditorContent :editor="editor" />
+      </section>
 
-        <NInput
-          v-model:value="chapterTitle"
-          placeholder="章节标题"
-          :bordered="false"
-          class="chapter-title-input"
-          :style="{ fontSize: isMobile ? '16px' : '20px' }"
-          @blur="handleTitleBlur"
-        />
+      <footer class="command-bar">
+        <button type="button" @click="runCommand('续写')">续写</button>
+        <button type="button" @click="runCommand('润色')">润色</button>
+        <button type="button" @click="runCommand('扩写')">扩写</button>
+        <button type="button" @click="runCommand('缩写')">缩写</button>
+        <button type="button" @click="runCommand('转剧本')">转剧本</button>
+        <button type="button" @click="runCommand('查一致性')">查一致性</button>
+        <input v-model="command" placeholder="输入命令或需求" @keydown.enter.prevent="runCommand()">
+        <button type="button" class="primary" @click="runCommand()">发送</button>
+      </footer>
+    </main>
 
-        <div v-if="currentChapterId" class="toolbar-actions">
-          <NButton v-if="isMobile" text class="toolbar-btn" title="打开侧栏" @click="showMobileSidePanel = true">
-            <template #icon>
-              <NIcon :component="PanelLeft" :size="18" />
-            </template>
-          </NButton>
-          <NButton text class="toolbar-btn" title="导入稿件" @click="showImport = true">
-            <template #icon>
-              <NIcon :component="FileUp" :size="18" />
-            </template>
-            <span v-if="!isMobile">导入</span>
-          </NButton>
-          <NButton text class="toolbar-btn" title="版本快照与 diff" @click="snapshotEverOpened = true; showSnapshot = true">
-            <template #icon>
-              <NIcon :component="History" :size="18" />
-            </template>
-            <span v-if="!isMobile">历史</span>
-          </NButton>
+    <aside class="ai-panel">
+      <header>
+        <MessageSquareText :size="18" />
+        <h2>AI 助手</h2>
+      </header>
+      <div class="ai-stream">
+        <div v-for="(item, index) in aiMessages" :key="index" class="ai-message" :class="item.role">
+          {{ item.text }}
         </div>
       </div>
-
-      <!-- 加载中 -->
-      <div v-if="loading" class="editor-loading">
-        <NSpin size="large" />
+      <div class="ai-actions">
+        <button class="ws-button" type="button" @click="runCommand('分支建议')">剧情分支</button>
+        <button class="ws-button" type="button" @click="runCommand('转剧本')">
+          <Clapperboard :size="15" />
+          转剧本
+        </button>
       </div>
-
-      <!-- 未选择章节 -->
-      <div v-else-if="!currentChapterId" class="editor-empty">
-        <NEmpty :description="isMobile ? '请点击侧栏选择章节' : '请从左侧选择一个章节开始写作'">
-          <template #extra>
-            <span class="editor-empty-tip">
-              {{ isMobile ? '点击上方侧栏按钮展开大纲' : 'Ctrl+F 全书搜索 · Ctrl+H 搜索替换' }}
-            </span>
-          </template>
-        </NEmpty>
-      </div>
-
-      <!-- TipTap 编辑器 -->
-      <template v-else>
-        <div v-if="showFirstEditorHint || showFirstAiSelectHint || showMilestone3000" class="onboarding-area">
-          <OnboardingHint
-            v-if="showFirstEditorHint"
-            icon="info"
-            title="开始写作"
-            description="在编辑器中尽情写作。使用 Ctrl+F 搜索，Ctrl+H 替换，历史按钮查看版本快照。"
-            action-label="我知道了"
-            variant="info"
-            @close="showFirstEditorHint = false; ob.markDone('first-editor')"
-          />
-          <OnboardingHint
-            v-if="showFirstAiSelectHint"
-            icon="lightbulb"
-            title="创作辅助"
-            description="选中文字后，会出现轻量操作条。可以续写、润色或提出改写要求，生成内容会保留标识，确认后再融入正文。"
-            action-label="明白了"
-            variant="info"
-            @close="showFirstAiSelectHint = false; ob.markDone('first-ai-select')"
-          />
-          <OnboardingHint
-            v-if="showMilestone3000"
-            icon="check"
-            title="已写超过 3000 字"
-            description="太棒了！你已经写超过 3000 字，坚持每天的写作目标，你的故事正在成形。"
-            variant="success"
-            @close="showMilestone3000 = false; ob.markDone('char-milestone-3000')"
-          />
-        </div>
-
-        <div class="editor-wrapper">
-          <ChapterEditor
-            ref="editorRef"
-            :chapter="chapter"
-            @change="handleAutoSave"
-            @editor-ready="handleEditorMounted"
-          />
-
-          <AiFloatButton
-            :editor="editorInstance"
-            :chapter-id="currentChapterId"
-            :visible="aiVisible"
-            @stream-start="aiVisible = false"
-            @stream-end="aiVisible = true"
-          />
-        </div>
-      </template>
-    </div>
-
-    <!-- 版本快照抽屉 -->
-    <SnapshotDrawer
-      v-if="snapshotEverOpened && currentChapterId"
-      v-model:show="showSnapshot"
-      :chapter-id="currentChapterId"
-      :current-content="chapter?.content ?? ''"
-      @restored="() => { if (currentChapterId) loadChapter(currentChapterId) }"
-    />
-
-    <!-- 移动端侧栏抽屉 -->
-    <NDrawer v-if="isMobile" v-model:show="showMobileSidePanel" :width="300" placement="right">
-      <NDrawerContent title="大纲与角色" :native-scrollbar="false">
-        <EditorSidePanel
-          :project-id="projectId"
-          :chapter-id="currentChapterId"
-          :outline="outline"
-          @select-chapter="(id) => { handleSelectChapter(id); showMobileSidePanel = false }"
-          @open-search="() => { showSearch = true; showMobileSidePanel = false }"
-          @open-import="() => { showImport = true; showMobileSidePanel = false }"
-        />
-      </NDrawerContent>
-    </NDrawer>
-
-    <ImportContentDrawer
-      v-model:show="showImport"
-      :project-id="projectId"
-      :outline="outline"
-      @imported="loadOutline"
-    />
+    </aside>
   </div>
 </template>
-
-<style scoped>
-.editor-page {
-  display: flex;
-  height: calc(100vh - var(--w-topbar-height));
-  overflow: hidden;
-  background: var(--w-bg-canvas);
-}
-
-.editor-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* 多标签页冲突警告 */
-.other-tab-warning {
-  background: var(--w-warning-soft);
-  color: var(--w-warning);
-  font-size: var(--w-text-sm);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--w-border-subtle);
-  flex-shrink: 0;
-}
-
-/* 连续写作提醒条 */
-.streak-reminder {
-  background: var(--w-bg-secondary);
-  color: var(--w-text-secondary);
-  font-size: var(--w-text-sm);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--w-border-subtle);
-  flex-shrink: 0;
-}
-
-.streak-reminder-close {
-  margin-left: auto;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--w-radius-sm);
-  color: var(--w-text-tertiary);
-  font-size: 16px;
-  transition: all var(--w-transition-fast);
-}
-
-.streak-reminder-close:hover {
-  color: var(--w-text);
-  background: var(--w-bg-hover);
-}
-
-/* 编辑器工具栏 */
-.editor-toolbar {
-  height: 58px;
-  padding: 0 var(--w-space-4);
-  border-bottom: 1px solid var(--w-border-subtle);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--w-space-2);
-  background: var(--w-bg-toolbar);
-}
-
-.chapter-title-input {
-  flex: 1;
-  font-weight: 600;
-  background: transparent !important;
-}
-
-.chapter-title-input :deep(.n-input__input-el) {
-  color: var(--w-text) !important;
-  font-weight: 600;
-  font-family: var(--w-font-serif);
-}
-
-.toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--w-space-1);
-}
-
-.toolbar-btn {
-  color: var(--w-text-secondary) !important;
-}
-
-.toolbar-btn:hover {
-  color: var(--w-text) !important;
-  background: var(--w-bg-hover) !important;
-}
-
-/* 加载与空状态 */
-.editor-loading,
-.editor-empty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.editor-empty-tip {
-  font-size: var(--w-text-xs);
-  color: var(--w-text-tertiary);
-}
-
-/* 引导提示区 */
-.onboarding-area {
-  padding: var(--w-space-3) var(--w-space-4);
-  flex-shrink: 0;
-  background: var(--w-bg-canvas);
-}
-
-.onboarding-area .ob-hint {
-  margin: 0;
-}
-
-/* 编辑器包装 */
-.editor-wrapper {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-}
-
-@media (max-width: 767px) {
-  .editor-page {
-    height: calc(100vh - var(--w-topbar-height) - 56px);
-  }
-
-  .editor-toolbar {
-    padding: 0 var(--w-space-3);
-  }
-
-  .onboarding-area {
-    padding: var(--w-space-2) var(--w-space-3);
-  }
-}
-</style>

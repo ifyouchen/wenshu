@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS ai_operation_logs;
 DROP TABLE IF EXISTS script_scenes;
 DROP TABLE IF EXISTS script_episodes;
 DROP TABLE IF EXISTS script_drafts;
+DROP TABLE IF EXISTS style_templates;
 DROP TABLE IF EXISTS user_style_profiles;
 DROP TABLE IF EXISTS chapter_key_events;
 DROP TABLE IF EXISTS quota_usage;
@@ -233,6 +234,18 @@ CREATE TABLE user_style_profiles (
     sample_text TEXT,
     style_tags TEXT NOT NULL DEFAULT '[]',
     analysis_task_id UUID,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE style_templates (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    template_type VARCHAR(20) NOT NULL,
+    genres TEXT NOT NULL DEFAULT '[]',
+    prompt TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

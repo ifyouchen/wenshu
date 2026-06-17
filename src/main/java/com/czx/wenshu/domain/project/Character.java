@@ -46,6 +46,15 @@ public class Character {
         return new Character(UUID.randomUUID(), projectId, name, role, null, null, "[]", null, "{}", false, null, null, now, now);
     }
 
+    public static Character create(UUID projectId, String name, String role, String appearance,
+                                   String personality, String abilities, String speechStyle,
+                                   String status, Clock clock) {
+        Instant now = Instant.now(clock);
+        return new Character(UUID.randomUUID(), projectId, name, role, appearance, personality,
+                abilities != null ? abilities : "[]", speechStyle, status != null ? status : "{}",
+                false, null, null, now, now);
+    }
+
     public static Character rehydrate(UUID id, UUID projectId, String name, String role, String appearance,
                                       String personality, String abilities, String speechStyle, String status,
                                       boolean locked, UUID firstChapterId, UUID lastActiveChapterId,

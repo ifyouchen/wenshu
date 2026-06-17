@@ -47,7 +47,9 @@ public class CharacterController {
     @PostMapping("/projects/{id}/characters")
     public Result<CharacterInfo> createCharacter(@PathVariable UUID id, @Valid @RequestBody CreateCharacterRequest request) {
         User user = currentUserProvider.getCurrentUser();
-        return Result.ok(characterService.createCharacter(id, user.id(), new CreateCharacterCommand(request.name(), request.role())));
+        return Result.ok(characterService.createCharacter(id, user.id(), new CreateCharacterCommand(
+                request.name(), request.role(), request.appearance(), request.personality(),
+                request.abilities(), request.speechStyle(), request.status())));
     }
 
     @Operation(summary = "角色详情", description = "获取角色详情。")

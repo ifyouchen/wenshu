@@ -46,6 +46,11 @@
 | PUT | `/user/style-profile` | Yes | 保存文风样本并异步分析 |
 | DELETE | `/user/style-profile` | Yes | 删除文风档案 |
 | PUT | `/user/writing-goal` | Yes | 设置全局每日目标 |
+| GET | `/style-templates` | Yes | 风格模板列表，query: `type=writing/polish` |
+| POST | `/style-templates` | Yes | 创建写作/润色风格模板 |
+| PUT | `/style-templates/{id}` | Yes | 更新风格模板 |
+| PUT | `/style-templates/{id}/activate` | Yes | 激活风格模板，同类型唯一激活 |
+| DELETE | `/style-templates/{id}` | Yes | 删除风格模板 |
 
 ## Projects, Volumes, Chapters
 
@@ -65,6 +70,7 @@
 | GET | `/chapters/{id}` | Yes | 章节详情 |
 | PUT | `/chapters/{id}` | Yes | 保存章节内容、标题、状态、大纲 |
 | DELETE | `/chapters/{id}` | Yes | 删除章节 |
+| GET | `/chapters/{id}/context` | Yes | 编辑器章节上下文，聚合章节、角色、词典和关键事件 |
 | GET | `/chapters/{id}/snapshots` | Yes | 快照列表 |
 | POST | `/chapters/{id}/snapshots` | Yes | 手动创建快照 |
 | POST | `/snapshots/{id}/restore` | Yes | 恢复快照 |

@@ -314,6 +314,18 @@ CREATE TABLE IF NOT EXISTS user_style_profiles (
     updated_at       TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS style_templates (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name          VARCHAR(100) NOT NULL,
+    template_type VARCHAR(20) NOT NULL,
+    genres        TEXT NOT NULL DEFAULT '[]',
+    prompt        TEXT NOT NULL,
+    is_active     BOOLEAN DEFAULT FALSE,
+    created_at    TIMESTAMPTZ DEFAULT now(),
+    updated_at    TIMESTAMPTZ DEFAULT now()
+);
+
 -- ── 剧本系统 ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS script_drafts (
@@ -509,6 +521,7 @@ CREATE INDEX IF NOT EXISTS idx_script_scenes_draft   ON script_scenes(draft_id, 
 -- 配额与统计
 CREATE INDEX IF NOT EXISTS idx_quota_user_month      ON quota_usage(user_id, year_month);
 CREATE INDEX IF NOT EXISTS idx_writing_stats_user_date ON writing_daily_stats(user_id, stat_date DESC);
+CREATE INDEX IF NOT EXISTS idx_style_templates_user_type ON style_templates(user_id, template_type);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_writing_stats_project_daily
     ON writing_daily_stats(user_id, project_id, stat_date)
     WHERE project_id IS NOT NULL;

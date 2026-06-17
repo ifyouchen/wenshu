@@ -1,282 +1,91 @@
 <script setup lang="ts">
-/**
- * 一致性审查报告页（P8-12）。
- * - 加载报告及条目列表
- * - 按问题类型分组展示（character/timeline/location/plot）
- * - 支持跳转到对应章节
- * - 支持将条目标记为 handled / ignored / open
- */
-import { ref, onMounted, computed, h } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  NLayout, NLayoutContent, NPageHeader, NCard, NGrid, NGi,
-  NTag, NButton, NSpace, NText, NEmpty, NSpin, NStatistic,
-  NTabs, NTabPane, NDropdown, NIcon, useMessage,
-} from 'naive-ui'
-import {
-  MapPin,
-  User,
-  AlertCircle,
-  Clock,
-  Home,
-  Bookmark,
-  AlertTriangle,
-  CheckCircle2,
-  HelpCircle,
-} from 'lucide-vue-next'
+import { AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-vue-next'
 import { getConsistencyReport, updateItemStatus } from '@/api/consistency'
 import type { ConsistencyReport, ConsistencyReportItem } from '@/api/consistency'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
-const message = useMessage()
-
-const reportId = route.params.reportId as string
-const projectId = computed(() => report.value?.projectId ?? '')
-
-const loading = ref(false)
+const toast = useToast()
 const report = ref<ConsistencyReport | null>(null)
+const loading = ref(false)
+const active = ref('all')
 
-const groupedItems = computed(() => {
-  if (!report.value) return {}
-  const groups: Record<string, ConsistencyReportItem[]> = {
-    character: [],
-    timeline: [],
-    location: [],
-    plot: [],
-    other: [],
+const groups = computed(() => {
+  const items = report.value?.items || []
+  return {
+    all: items,
+    open: items.filter((item) => item.status === 'open'),
+    handled: items.filter((item) => item.status === 'handled'),
+    ignored: items.filter((item) => item.status === 'ignored'),
   }
-  for (const item of report.value.items) {
-    const key = item.type && groups[item.type] ? item.type : 'other'
-    groups[key].push(item)
-  }
-  return groups
 })
+const visibleItems = computed(() => groups.value[active.value as keyof typeof groups.value] || [])
 
-async function loadReport() {
+onMounted(load)
+
+async function load() {
   loading.value = true
   try {
-    const res = await getConsistencyReport(reportId)
+    const res = await getConsistencyReport(String(route.params.reportId))
     report.value = res.data.data
   } catch {
-    message.error('报告加载失败，请检查报告 ID 是否有效')
+    toast.error('报告加载失败')
   } finally {
     loading.value = false
   }
 }
 
-async function handleUpdateStatus(item: ConsistencyReportItem, status: 'open' | 'handled' | 'ignored') {
-  try {
-    await updateItemStatus(item.id, status)
-    item.status = status
-    message.success(status === 'handled' ? '已标记为已处理' : status === 'ignored' ? '已标记为忽略' : '已重新打开')
-  } catch {
-    message.error('状态更新失败')
-  }
+async function setStatus(item: ConsistencyReportItem, status: 'open' | 'handled' | 'ignored') {
+  await updateItemStatus(item.id, status)
+  item.status = status
 }
-
-function jumpToProject() {
-  if (projectId.value) {
-    router.push(`/projects/${projectId.value}/editor`)
-  }
-}
-
-const typeMeta: Record<string, { label: string; type: 'error' | 'warning' | 'info' | 'default'; icon: any }> = {
-  character: { label: '人物一致性', type: 'error', icon: User },
-  timeline:  { label: '时间线',     type: 'warning', icon: Clock },
-  location:  { label: '地点描述',   type: 'info', icon: Home },
-  plot:      { label: '情节逻辑',   type: 'warning', icon: AlertTriangle },
-  other:     { label: '其他问题',   type: 'default', icon: HelpCircle },
-}
-
-const statusOptions = [
-  { label: '标记为已处理', key: 'handled' },
-  { label: '标记为忽略', key: 'ignored' },
-  { label: '重新打开', key: 'open' },
-]
-
-const statusIcon = {
-  handled: CheckCircle2,
-  ignored: AlertCircle,
-  open: AlertTriangle,
-}
-
-function typeTabLabel(key: string, count: number) {
-  const meta = typeMeta[key]
-  return () => h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '5px' } }, [
-    h(NIcon, { component: meta?.icon ?? HelpCircle, size: 13 }),
-    `${meta?.label ?? key}（${count}）`,
-  ])
-}
-
-onMounted(loadReport)
 </script>
 
 <template>
-  <NLayout class="report-layout">
-    <NLayoutContent class="report-content">
-      <NPageHeader
-        title="一致性审查报告"
-        :subtitle="report ? `共 ${report.totalItems} 条问题，待处理 ${report.openItems} 条` : ''"
-        @back="router.back()"
-      >
-        <template #extra>
-          <NSpace>
-            <NButton v-if="projectId" size="small" @click="jumpToProject">打开编辑器</NButton>
-            <NButton :loading="loading" size="small" @click="loadReport">刷新</NButton>
-          </NSpace>
-        </template>
-      </NPageHeader>
+  <div class="ws-page">
+    <section class="ws-page__head">
+      <div>
+        <p class="ws-eyebrow">Consistency</p>
+        <h1>一致性报告</h1>
+        <p v-if="report">共 {{ report.totalItems }} 条，待处理 {{ report.openItems }} 条。</p>
+      </div>
+      <div class="ws-actions">
+        <button v-if="report?.projectId" class="ws-button" type="button" @click="router.push(`/projects/${report.projectId}/editor`)">打开编辑器</button>
+        <button class="ws-button" type="button" @click="load"><RotateCcw :size="16" />刷新</button>
+      </div>
+    </section>
 
-      <NSpin v-if="loading" size="large" class="report-spin" />
+    <div class="ws-tabs">
+      <button :class="{ active: active === 'all' }" @click="active = 'all'">全部 {{ groups.all.length }}</button>
+      <button :class="{ active: active === 'open' }" @click="active = 'open'">待处理 {{ groups.open.length }}</button>
+      <button :class="{ active: active === 'handled' }" @click="active = 'handled'">已处理 {{ groups.handled.length }}</button>
+      <button :class="{ active: active === 'ignored' }" @click="active = 'ignored'">忽略 {{ groups.ignored.length }}</button>
+    </div>
 
-      <NEmpty
-        v-else-if="!report || !report.items.length"
-        description="本次审查未发现问题"
-        class="report-empty"
-      />
-
-      <template v-else>
-        <NGrid :cols="4" :x-gap="16" class="report-stats">
-          <NGi v-for="(group, key) in groupedItems" :key="key">
-            <NCard size="small">
-              <NStatistic
-                :label="typeMeta[key]?.label ?? key"
-                :value="group.length"
-              />
-            </NCard>
-          </NGi>
-        </NGrid>
-
-        <NTabs type="line" animated>
-          <NTabPane
-            v-for="(items, key) in groupedItems"
-            :key="key"
-            :name="key"
-            :tab="typeTabLabel(key, items.length)"
-          >
-            <div v-for="item in items" :key="item.id" class="issue-card">
-              <div class="issue-header">
-                <NSpace align="center" :size="8">
-                  <NTag
-                    :type="typeMeta[key]?.type ?? 'default'"
-                    size="small"
-                    :bordered="false"
-                  >
-                    <template #icon>
-                      <NIcon :component="typeMeta[key]?.icon ?? HelpCircle" :size="12" />
-                    </template>
-                    {{ typeMeta[key]?.label ?? key }}
-                  </NTag>
-                  <NTag
-                    :type="item.status === 'handled' ? 'success' : item.status === 'ignored' ? 'default' : 'warning'"
-                    size="small"
-                    :bordered="false"
-                  >
-                    <template #icon>
-                      <NIcon :component="statusIcon[item.status]" :size="12" />
-                    </template>
-                    {{ item.status === 'handled' ? '已处理' : item.status === 'ignored' ? '已忽略' : '待处理' }}
-                  </NTag>
-                  <NTag v-if="item.chapterHint" size="small" type="info" :bordered="false">
-                    <template #icon>
-                      <NIcon :component="MapPin" :size="12" />
-                    </template>
-                    {{ item.chapterHint }}
-                  </NTag>
-                  <NTag v-if="item.character" size="small" type="default" :bordered="false">
-                    <template #icon>
-                      <NIcon :component="User" :size="12" />
-                    </template>
-                    {{ item.character }}
-                  </NTag>
-                </NSpace>
-
-                <NDropdown
-                  trigger="click"
-                  :options="statusOptions"
-                  @select="(k) => handleUpdateStatus(item, k as 'open' | 'handled' | 'ignored')"
-                >
-                  <NButton text size="small">更多</NButton>
-                </NDropdown>
-              </div>
-
-              <NText class="issue-desc">
-                {{ item.description }}
-              </NText>
-
-              <NText
-                v-if="item.suggestion"
-                depth="3"
-                class="issue-suggestion"
-              >
-                <NIcon :component="Bookmark" :size="12" />
-                建议：{{ item.suggestion }}
-              </NText>
-            </div>
-          </NTabPane>
-        </NTabs>
-      </template>
-    </NLayoutContent>
-  </NLayout>
+    <section v-if="loading" class="ws-empty">加载中...</section>
+    <section v-else-if="!visibleItems.length" class="ws-empty">
+      <CheckCircle2 :size="32" />
+      <span>没有对应状态的问题。</span>
+    </section>
+    <section v-else class="issue-list">
+      <article v-for="item in visibleItems" :key="item.id" class="ws-card issue-card">
+        <div class="compact-card__title">
+          <span class="ws-badge">{{ item.type || 'other' }}</span>
+          <span class="ws-badge" :class="{ success: item.status === 'handled', danger: item.status === 'open' }">
+            {{ item.status === 'open' ? '待处理' : item.status === 'handled' ? '已处理' : '已忽略' }}
+          </span>
+        </div>
+        <p><AlertTriangle :size="15" />{{ item.description }}</p>
+        <small v-if="item.suggestion">建议：{{ item.suggestion }}</small>
+        <div class="ws-actions">
+          <button class="ws-button" type="button" @click="setStatus(item, 'handled')">已处理</button>
+          <button class="ws-button" type="button" @click="setStatus(item, 'ignored')">忽略</button>
+          <button class="ws-button" type="button" @click="setStatus(item, 'open')">重新打开</button>
+        </div>
+      </article>
+    </section>
+  </div>
 </template>
-
-<style scoped>
-.report-layout {
-  height: calc(100vh - var(--w-topbar-height));
-  overflow: hidden;
-  background: var(--w-bg);
-}
-
-.report-content {
-  padding: var(--w-space-4) var(--w-space-5);
-  overflow-y: auto;
-  max-width: var(--w-max-content-width);
-  margin: 0 auto;
-}
-
-.report-spin {
-  display: block;
-  margin: 60px auto;
-}
-
-.report-empty {
-  margin-top: 48px;
-}
-
-.report-stats {
-  margin: var(--w-space-4) 0 var(--w-space-5);
-}
-
-.issue-card {
-  padding: var(--w-space-3) var(--w-space-4);
-  border: 1px solid var(--w-border-default);
-  border-radius: var(--w-radius-md);
-  margin-bottom: var(--w-space-3);
-  background: var(--w-bg-secondary);
-  transition: box-shadow var(--w-transition-base);
-}
-
-.issue-card:hover {
-  box-shadow: var(--w-shadow-sm);
-}
-
-.issue-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.issue-desc {
-  font-size: var(--w-text-sm);
-  display: block;
-  margin: var(--w-space-2) 0 var(--w-space-1);
-}
-
-.issue-suggestion {
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-</style>
