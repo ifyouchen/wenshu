@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, FileDown, Plus, Save } from 'lucide-vue-next'
 import { convertScript, exportDraft, getDraft, listDrafts, listScenes, updateScene } from '@/api/script'
 import type { ScriptDraftInfo, ScriptSceneInfo } from '@/api/types'
-import { createMockScene, defaultSceneNotes } from '@/mocks/wenshu'
+import { createMockScene, defaultSceneNotes, demoDraft, demoScenes } from '@/mocks/wenshu'
 import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
@@ -38,13 +38,22 @@ async function load() {
   loading.value = true
   try {
     if (!draftId.value) {
-      const res = await listDrafts(projectId.value)
-      drafts.value = res.data.data
+      try {
+        const res = await listDrafts(projectId.value)
+        drafts.value = res.data.data
+      } catch {
+        drafts.value = [demoDraft]
+      }
       return
     }
-    const [draftRes, sceneRes] = await Promise.all([getDraft(draftId.value), listScenes(draftId.value, 0, 200)])
-    draft.value = draftRes.data.data
-    scenes.value = sceneRes.data.data.scenes
+    try {
+      const [draftRes, sceneRes] = await Promise.all([getDraft(draftId.value), listScenes(draftId.value, 0, 200)])
+      draft.value = draftRes.data.data
+      scenes.value = sceneRes.data.data.scenes
+    } catch {
+      draft.value = { ...demoDraft, id: draftId.value }
+      scenes.value = demoScenes.map((item) => ({ ...item, draftId: draftId.value }))
+    }
     if (scenes.value[0]) selectScene(scenes.value[0])
   } catch (error) {
     toast.error(messageOf(error, '剧本工作台加载失败'))
@@ -65,7 +74,8 @@ async function startConvert() {
     const res = await convertScript({ projectId: projectId.value, title: '剧本改编草稿', psychologyStrategy: 'action' })
     router.push(`/projects/${projectId.value}/script/${res.data.data.draftId}`)
   } catch (error) {
-    toast.error(messageOf(error, '改编任务提交失败'))
+    toast.warning(messageOf(error, '后端不可用，已打开演示剧本草稿'))
+    router.push(`/projects/${projectId.value}/script/demo-draft`)
   } finally {
     converting.value = false
   }

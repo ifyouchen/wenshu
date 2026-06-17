@@ -30,6 +30,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/v1/stats/**",
                         "/api/v1/tasks/**",
                         "/api/v1/novel/**",
+                        "/api/v1/story-tools",
+                        "/api/v1/story-tools/**",
                         "/api/v1/skeleton/**",
                         "/api/v1/polish/**",
                         "/api/v1/consistency/**",

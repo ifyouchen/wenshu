@@ -1,0 +1,95 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(git clone *)",
+      "Bash(npx skills *)",
+      "Bash(python3 *)",
+      "Bash(powershell *)",
+      "Bash(awk '{print $1}')",
+      "Bash(mkdir -p .claude/agents)",
+      "Bash(cp \".agents/skills/story-setup/references/templates/agents/chapter-extractor.md\" \".claude/agents/chapter-extractor.md\")",
+      "Bash(ls -la .story-deployed)",
+      "Bash(ls -la .active-book)",
+      "Bash(ls -la .claude/settings.local.json)",
+      "Bash(ls -la .claude/hooks/)",
+      "Bash(ls -la .claude/agents/)",
+      "Bash(cp -r .claude/skills/story-setup/references/templates/hooks/* .claude/hooks/)",
+      "Bash(chmod +x .claude/hooks/*.sh)",
+      "Bash(echo \"Hooks deployed: $?\")",
+      "Bash(cp .claude/skills/story-setup/references/templates/rules/*.md .claude/rules/)",
+      "Bash(echo \"Rules deployed: $?\")",
+      "Bash(cp .claude/skills/story-setup/references/templates/agents/*.md .claude/agents/)",
+      "Bash(echo \"Agents deployed: $?\")",
+      "Bash(cp .claude/skills/story-setup/references/agent-references/*.md .claude/skills/story-setup/references/agent-references/)",
+      "Bash(echo \"Agent refs deployed: $?\")",
+      "Bash(echo \"chmod done: $?\")"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/detect-story-gaps.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-story-commit.sh",
+            "timeout": 15,
+            "if": "Bash(git commit*)"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-compact.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -10,12 +10,29 @@ import { getMe } from '@/api/user'
 import { saveTokens, clearTokens, getAccessToken } from '@/api/client'
 import type { UserInfo } from '@/api/types'
 
+const DEMO_KEY = 'wenshu-demo-mode'
+
+const demoUser: UserInfo = {
+  id: 'demo-user',
+  email: 'demo@wenshu.local',
+  nickname: '演示创作者',
+  avatarUrl: null,
+  identityType: 'web_novel_author',
+  isEmailVerified: true,
+  aiTrainConsent: false,
+  dailyCharGoal: 2000,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+}
+
 export const useAuthStore = defineStore('auth', () => {
   /** 当前登录用户信息，null 表示未登录。 */
   const user = ref<UserInfo | null>(null)
 
   /** 是否已登录（本地有 Token 即视为登录态，路由守卫使用此值）。 */
-  const isLoggedIn = computed(() => !!getAccessToken() || !!user.value)
+  const isDemoMode = computed(() => localStorage.getItem(DEMO_KEY) === '1')
+
+  const isLoggedIn = computed(() => !!getAccessToken() || !!user.value || isDemoMode.value)
 
   /**
    * 登录。
@@ -47,17 +64,28 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function logoutAction(): Promise<void> {
     try {
-      await authApi.logout()
+      if (!isDemoMode.value) await authApi.logout()
     } finally {
       clearTokens()
+      localStorage.removeItem(DEMO_KEY)
       user.value = null
     }
+  }
+
+  function demoLoginAction(): void {
+    localStorage.setItem(DEMO_KEY, '1')
+    localStorage.setItem('wenshu-identity-picked', '1')
+    user.value = demoUser
   }
 
   /**
    * 从后端拉取最新用户信息（页面刷新后恢复状态时调用）。
    */
   async function fetchUser(): Promise<void> {
+    if (isDemoMode.value) {
+      user.value = demoUser
+      return
+    }
     if (!getAccessToken()) return
     try {
       const res = await getMe()
@@ -69,5 +97,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, isLoggedIn, loginAction, registerAction, logoutAction, fetchUser }
+  return { user, isDemoMode, isLoggedIn, loginAction, registerAction, logoutAction, demoLoginAction, fetchUser }
 })

@@ -13,6 +13,7 @@ const toast = useToast()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
+const isDev = import.meta.env.DEV
 const canSubmit = computed(() => email.value.includes('@') && password.value.length >= 6 && !loading.value)
 
 function messageOf(error: unknown) {
@@ -34,6 +35,11 @@ async function submit() {
   } finally {
     loading.value = false
   }
+}
+
+function enterDemo() {
+  auth.demoLoginAction()
+  router.push('/')
 }
 </script>
 
@@ -60,6 +66,9 @@ async function submit() {
         <button class="ws-button ws-button--primary" type="submit" :disabled="!canSubmit">
           <LogIn :size="18" />
           <span>{{ loading ? '登录中' : '登录' }}</span>
+        </button>
+        <button v-if="isDev" class="ws-button" type="button" @click="enterDemo">
+          演示进入
         </button>
       </form>
 

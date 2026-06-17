@@ -47,7 +47,15 @@ import {
   listStyleTemplates,
 } from '@/api/styleTemplate'
 import type { StyleTemplateInfo } from '@/api/styleTemplate'
-import { buildPlotNodes, fallbackStyleTemplates, relationshipHints } from '@/mocks/wenshu'
+import {
+  buildPlotNodes,
+  demoCharacters,
+  demoOutline,
+  demoProjects,
+  demoWorldElements,
+  fallbackStyleTemplates,
+  relationshipHints,
+} from '@/mocks/wenshu'
 import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
@@ -62,6 +70,7 @@ const worldElements = ref<WorldElementInfo[]>([])
 const outline = ref<OutlineInfo | null>(null)
 const templates = ref<StyleTemplateInfo[]>([])
 const templateFallback = ref(false)
+const demoData = ref(false)
 
 const showProjectModal = ref(false)
 const showCharacterModal = ref(false)
@@ -106,7 +115,10 @@ async function loadProjects() {
     projects.value = res.data.data
     selectedProjectId.value = projects.value[0]?.id || ''
   } catch (error) {
-    toast.error(messageOf(error, '作品列表加载失败'))
+    projects.value = demoProjects
+    selectedProjectId.value = demoProjects[0]?.id || ''
+    demoData.value = true
+    toast.warning(messageOf(error, '后端不可用，已进入演示数据模式'))
   } finally {
     loading.value = false
   }
@@ -119,20 +131,32 @@ async function loadProjectAssets() {
 
 async function loadCharacters() {
   if (!selectedProjectId.value) return
-  const res = await listCharacters(selectedProjectId.value)
-  characters.value = res.data.data
+  try {
+    const res = await listCharacters(selectedProjectId.value)
+    characters.value = res.data.data
+  } catch {
+    characters.value = demoCharacters
+  }
 }
 
 async function loadWorldElements() {
   if (!selectedProjectId.value) return
-  const res = await listWorldElements(selectedProjectId.value)
-  worldElements.value = res.data.data
+  try {
+    const res = await listWorldElements(selectedProjectId.value)
+    worldElements.value = res.data.data
+  } catch {
+    worldElements.value = demoWorldElements
+  }
 }
 
 async function loadOutline() {
   if (!selectedProjectId.value) return
-  const res = await getOutline(selectedProjectId.value)
-  outline.value = res.data.data
+  try {
+    const res = await getOutline(selectedProjectId.value)
+    outline.value = res.data.data
+  } catch {
+    outline.value = demoOutline(selectedProjectId.value)
+  }
 }
 
 async function loadTemplates() {
@@ -161,7 +185,25 @@ async function saveProject() {
     showProjectModal.value = false
     toast.success('作品已创建')
   } catch (error) {
-    toast.error(messageOf(error, '创建作品失败'))
+    const localProject: ProjectInfo = {
+      id: `local-project-${Date.now()}`,
+      userId: 'demo-user',
+      title: projectForm.title.trim(),
+      genre: projectForm.genre || null,
+      synopsis: projectForm.synopsis || null,
+      worldview: projectForm.worldview || null,
+      totalWords: 0,
+      dailyCharGoal: 2000,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    projects.value.unshift(localProject)
+    selectedProjectId.value = localProject.id
+    Object.assign(projectForm, { title: '', genre: '', synopsis: '', worldview: '' })
+    showProjectModal.value = false
+    demoData.value = true
+    toast.warning(messageOf(error, '后端不可用，作品已保存为本地演示状态'))
   }
 }
 
@@ -173,7 +215,9 @@ async function removeProject(project: ProjectInfo) {
     selectedProjectId.value = projects.value[0]?.id || ''
     toast.success('作品已删除')
   } catch (error) {
-    toast.error(messageOf(error, '删除失败'))
+    projects.value = projects.value.filter((item) => item.id !== project.id)
+    selectedProjectId.value = projects.value[0]?.id || ''
+    toast.warning(messageOf(error, '后端不可用，已从当前演示列表移除'))
   }
 }
 
@@ -196,27 +240,45 @@ function editCharacter(item?: CharacterInfo) {
 
 async function saveCharacter() {
   if (!selectedProjectId.value || !characterForm.name.trim()) return
+  const payload = {
+    name: characterForm.name.trim(),
+    role: characterForm.role,
+    personality: characterForm.personality,
+    abilities: characterForm.abilities,
+    speechStyle: characterForm.speechStyle,
+  }
   try {
-    const payload = {
-      name: characterForm.name.trim(),
-      role: characterForm.role,
-      personality: characterForm.personality,
-      abilities: characterForm.abilities,
-      speechStyle: characterForm.speechStyle,
-    }
     if (characterForm.id) await updateCharacter(characterForm.id, payload)
     else await createCharacter(selectedProjectId.value, payload)
     showCharacterModal.value = false
     await loadCharacters()
     toast.success('角色已保存')
   } catch (error) {
-    toast.error(messageOf(error, '角色保存失败'))
+    if (characterForm.id) {
+      const found = characters.value.find((item) => item.id === characterForm.id)
+      if (found) Object.assign(found, payload)
+    } else {
+      characters.value.unshift({
+        id: `local-character-${Date.now()}`,
+        projectId: selectedProjectId.value,
+        ...payload,
+        appearance: null,
+        status: '{}',
+        locked: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    }
+    showCharacterModal.value = false
+    toast.warning(messageOf(error, '后端不可用，角色已保存为本地演示状态'))
   }
 }
 
 async function removeCharacter(id: string) {
   if (!window.confirm('确定删除该角色吗？')) return
-  await deleteCharacter(id)
+  try {
+    await deleteCharacter(id)
+  } catch { /* 演示模式本地移除 */ }
   characters.value = characters.value.filter((item) => item.id !== id)
 }
 
@@ -246,26 +308,63 @@ async function saveWorld() {
     await loadWorldElements()
     toast.success('条目已保存')
   } catch (error) {
-    toast.error(messageOf(error, '条目保存失败'))
+    if (worldForm.id) {
+      const found = worldElements.value.find((item) => item.id === worldForm.id)
+      if (found) Object.assign(found, payload)
+    } else {
+      worldElements.value.unshift({
+        id: `local-world-${Date.now()}`,
+        projectId: selectedProjectId.value,
+        ...payload,
+        locked: false,
+        createdAt: new Date().toISOString(),
+      })
+    }
+    showWorldModal.value = false
+    toast.warning(messageOf(error, '后端不可用，条目已保存为本地演示状态'))
   }
 }
 
 async function removeWorld(id: string) {
   if (!window.confirm('确定删除该条目吗？')) return
-  await deleteWorldElement(id)
+  try {
+    await deleteWorldElement(id)
+  } catch { /* 演示模式本地移除 */ }
   worldElements.value = worldElements.value.filter((item) => item.id !== id)
 }
 
 async function addVolume() {
   if (!selectedProjectId.value || !volumeTitle.value.trim()) return
-  await createVolume(selectedProjectId.value, { title: volumeTitle.value.trim() })
+  try {
+    await createVolume(selectedProjectId.value, { title: volumeTitle.value.trim() })
+  } catch {
+    outline.value = outline.value || demoOutline(selectedProjectId.value)
+    outline.value.volumes.push({
+      id: `local-volume-${Date.now()}`,
+      title: volumeTitle.value.trim(),
+      conflict: null,
+      sortOrder: outline.value.volumes.length + 1,
+      chapters: [],
+    })
+  }
   volumeTitle.value = ''
   await loadOutline()
 }
 
 async function addChapter(volumeId: string) {
   if (!chapterTitle.value.trim()) return
-  await createChapter(volumeId, { title: chapterTitle.value.trim() })
+  try {
+    await createChapter(volumeId, { title: chapterTitle.value.trim() })
+  } catch {
+    const volume = outline.value?.volumes.find((item) => item.id === volumeId)
+    volume?.chapters.push({
+      id: `local-chapter-${Date.now()}`,
+      title: chapterTitle.value.trim(),
+      outline: '本地演示章节，可进入编辑器查看布局。',
+      wordCount: 0,
+      status: 'pending',
+    })
+  }
   chapterTitle.value = ''
   await loadOutline()
 }
@@ -314,6 +413,7 @@ async function removeTemplate(item: StyleTemplateInfo) {
         <p class="ws-eyebrow">Wenshu Workspace</p>
         <h1>创作中枢</h1>
         <p>围绕作品组织角色、词典、世界观、大纲和风格模板。</p>
+        <p v-if="demoData" class="ws-hint">当前为演示数据模式：真实接口恢复后会自动优先使用后端数据。</p>
       </div>
       <button class="ws-button ws-button--primary" type="button" @click="showProjectModal = true">
         <Plus :size="18" />

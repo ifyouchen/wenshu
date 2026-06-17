@@ -72,6 +72,10 @@ client.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    if (localStorage.getItem('wenshu-demo-mode') === '1') {
+      return Promise.reject(error)
+    }
+
     original._retry = true
 
     if (isRefreshing) {
@@ -88,7 +92,11 @@ client.interceptors.response.use(
 
     try {
       const refreshToken = localStorage.getItem('refreshToken')
-      if (!refreshToken) throw new Error('无 Refresh Token')
+      if (!refreshToken) {
+        clearTokens()
+        if (window.location.pathname !== '/login') window.location.href = '/login'
+        throw new Error('无 Refresh Token')
+      }
 
       // 调用刷新接口（不走拦截器，避免死循环）
       const res = await axios.post<ApiResponse<{
@@ -106,7 +114,7 @@ client.interceptors.response.use(
       rejectQueue(refreshErr)
       clearTokens()
       // 跳转到登录页（无法直接访问 router，用 location）
-      window.location.href = '/login'
+      if (window.location.pathname !== '/login') window.location.href = '/login'
       return Promise.reject(refreshErr)
     } finally {
       isRefreshing = false

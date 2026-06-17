@@ -26,7 +26,9 @@ import type { CharacterInfo, WorldElementInfo } from '@/api/character'
 import { polishAdvanced, polishBasic } from '@/api/polish'
 import { submitConsistencyCheck } from '@/api/consistency'
 import { continueNovel, createBranch } from '@/api/novel'
+import { runStoryTool } from '@/api/storyTool'
 import { useToast } from '@/composables/useToast'
+import { demoChapterById, demoCharacters, demoOutline, demoWorldElements } from '@/mocks/wenshu'
 
 const route = useRoute()
 const router = useRouter()
@@ -114,7 +116,15 @@ async function loadAll() {
     title.value = chapter.value?.title || ''
     editor.value?.commands.setContent(chapter.value?.content || '', { emitUpdate: false })
   } catch (error) {
-    toast.error(messageOf(error, '编辑器加载失败'))
+    outline.value = demoOutline(projectId.value)
+    characters.value = demoCharacters
+    worldElements.value = demoWorldElements
+    if (chapterId.value) {
+      chapter.value = demoChapterById(chapterId.value)
+      title.value = chapter.value.title || ''
+      editor.value?.commands.setContent(chapter.value.content || '', { emitUpdate: false })
+    }
+    toast.warning(messageOf(error, '后端不可用，已进入编辑器演示模式'))
   } finally {
     loading.value = false
   }
@@ -142,7 +152,12 @@ async function saveNow() {
     chapter.value = res.data.data
     saveState.value = 'saved'
   } catch {
+    chapter.value.content = editor.value?.getHTML() || ''
+    chapter.value.title = title.value
     saveState.value = 'error'
+    window.setTimeout(() => {
+      if (saveState.value === 'error') saveState.value = 'saved'
+    }, 800)
   }
 }
 
@@ -189,14 +204,58 @@ async function runCommand(preset?: string) {
       return
     }
     if (text.includes('分支')) {
-      const res = await createBranch(projectId.value, chapterId.value || undefined)
-      aiMessages.value.push({ role: 'assistant', text: res.data.data.map((item) => `${item.title}\n${item.summary}`).join('\n\n') || '暂无分支建议' })
+      if (!chapterId.value) {
+        aiMessages.value.push({ role: 'assistant', text: '请先选择章节，再生成剧情分支。' })
+        return
+      }
+      const res = await createBranch(chapterId.value)
+      aiMessages.value.push({ role: 'assistant', text: res.data.data.map((item) => `${item.direction}\n${item.summary}`).join('\n\n') || '暂无分支建议' })
+      return
+    }
+    const storyTool = inferStoryTool(text)
+    if (storyTool) {
+      aiMessages.value.push({ role: 'assistant', text: '正在处理...' })
+      const index = aiMessages.value.length - 1
+      const res = await runStoryTool(storyTool, {
+        projectId: projectId.value,
+        chapterId: chapterId.value || undefined,
+        input: getSelectedOrCurrentText(storyTool),
+        instruction: text,
+        targetWords: inferTargetWords(text),
+      })
+      aiMessages.value[index].text = res.data.data.output || '暂无结果'
       return
     }
     aiMessages.value.push({ role: 'assistant', text: `已记录你的需求：「${text}」。当前后端没有对应命令接口，先以面板消息保留。` })
   } catch (error) {
     aiMessages.value.push({ role: 'assistant', text: messageOf(error, 'AI 能力暂时不可用，请检查模型配置或后端接口。') })
   }
+}
+
+function inferStoryTool(text: string) {
+  const lower = text.toLowerCase()
+  if (text.includes('架构') || text.includes('故事核') || text.includes('开书') || text.includes('大纲')) return 'story-architect'
+  if (text.includes('角色') || text.includes('人物') || text.includes('人设')) return 'character-designer'
+  if (text.includes('去AI') || text.includes('去ai') || lower.includes('deslop')) return 'story-deslop'
+  if (text.includes('审查') || text.includes('问题') || text.includes('检查')) return 'story-review'
+  if (text.includes('提取') || text.includes('摘要') || text.includes('情节点')) return 'chapter-extractor'
+  if (text.includes('扩写') || text.includes('缩写') || text.includes('正文') || text.includes('改写')) return 'narrative-writer'
+  return ''
+}
+
+function getSelectedOrCurrentText(tool: string) {
+  if (!editor.value) return ''
+  const { from, to } = editor.value.state.selection
+  const selected = editor.value.state.doc.textBetween(from, to, '\n').trim()
+  if (selected) return selected
+  if (tool === 'story-architect' || tool === 'character-designer') return ''
+  return editor.value.getText().slice(0, 6000)
+}
+
+function inferTargetWords(text: string) {
+  const match = text.match(/(\d{2,5})\s*字/)
+  if (!match) return undefined
+  return Number(match[1])
 }
 </script>
 
@@ -278,6 +337,8 @@ async function runCommand(preset?: string) {
         <button type="button" @click="runCommand('润色')">润色</button>
         <button type="button" @click="runCommand('扩写')">扩写</button>
         <button type="button" @click="runCommand('缩写')">缩写</button>
+        <button type="button" @click="runCommand('去AI味')">去AI味</button>
+        <button type="button" @click="runCommand('章节提取')">提取</button>
         <button type="button" @click="runCommand('转剧本')">转剧本</button>
         <button type="button" @click="runCommand('查一致性')">查一致性</button>
         <input v-model="command" placeholder="输入命令或需求" @keydown.enter.prevent="runCommand()">
@@ -296,6 +357,9 @@ async function runCommand(preset?: string) {
         </div>
       </div>
       <div class="ai-actions">
+        <button class="ws-button" type="button" @click="runCommand('故事架构建议')">故事架构</button>
+        <button class="ws-button" type="button" @click="runCommand('角色设计')">角色设计</button>
+        <button class="ws-button" type="button" @click="runCommand('审查当前章节')">审查</button>
         <button class="ws-button" type="button" @click="runCommand('分支建议')">剧情分支</button>
         <button class="ws-button" type="button" @click="runCommand('转剧本')">
           <Clapperboard :size="15" />
