@@ -13,8 +13,10 @@ import com.czx.wenshu.domain.script.ScriptSceneRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -68,14 +70,21 @@ public class ScriptConversionTaskRunner {
      * @param draftId  目标草稿 ID
      * @param projectId 作品 ID
      * @param psychologyStrategy 心理外化策略（P7-03）
+     * @param chapterIds 改编章节范围，空表示整部作品
      */
     @Async("aiTaskExecutor")
     @Transactional
-    public void run(UUID taskId, UUID draftId, UUID projectId, String psychologyStrategy) {
+    public void run(UUID taskId, UUID draftId, UUID projectId, String psychologyStrategy, List<UUID> chapterIds) {
         log.info("[ScriptConversionTaskRunner] 开始剧本改编 taskId={} draftId={}", taskId, draftId);
         try {
             asyncTaskService.markRunning(taskId, 3, "收集章节内容");
             List<Chapter> chapters = chapterRepository.findByProjectId(projectId);
+            if (chapterIds != null && !chapterIds.isEmpty()) {
+                Set<UUID> selected = new HashSet<>(chapterIds);
+                chapters = chapters.stream()
+                        .filter(chapter -> selected.contains(chapter.id()))
+                        .collect(Collectors.toList());
+            }
             if (chapters.isEmpty()) {
                 asyncTaskService.fail(taskId, "作品暂无章节内容，无法改编");
                 markDraftFailed(draftId);

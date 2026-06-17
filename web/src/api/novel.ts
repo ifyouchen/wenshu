@@ -11,6 +11,22 @@ export function createBranch(chapterId: string, branchCount = 3) {
   return client.post<ApiResponse<BranchSuggestion[]>>('/novel/branch', { chapterId, branchCount })
 }
 
+export function submitSkeleton(data: {
+  projectId: string
+  genre?: string
+  synopsis?: string
+  worldview?: string
+  targetWords?: number
+}) {
+  return client.post<ApiResponse<{ taskId: string }>>('/novel/skeleton', data)
+}
+
+export function applySkeleton(taskId: string) {
+  return client.post<ApiResponse<{ createdVolumes: number; createdChapters: number; createdCharacters: number }>>(
+    `/skeleton/${taskId}/apply`,
+  )
+}
+
 export async function continueNovel(chapterId: string, onToken: (text: string) => void) {
   const token = getAccessToken()
   const res = await fetch(`/api/v1/novel/continue?chapterId=${encodeURIComponent(chapterId)}`, {

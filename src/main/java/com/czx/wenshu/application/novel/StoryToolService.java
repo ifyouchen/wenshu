@@ -101,8 +101,12 @@ public class StoryToolService {
     }
 
     private boolean isTextRequired(StoryToolKind kind) {
-        return kind == StoryToolKind.STORY_DESLOP
+        return kind == StoryToolKind.STORY_LONG_ANALYZE
+                || kind == StoryToolKind.STORY_SHORT_ANALYZE
+                || kind == StoryToolKind.STORY_IMPORT
+                || kind == StoryToolKind.STORY_DESLOP
                 || kind == StoryToolKind.STORY_REVIEW
+                || kind == StoryToolKind.CONSISTENCY_CHECKER
                 || kind == StoryToolKind.CHAPTER_EXTRACTOR;
     }
 
@@ -153,11 +157,23 @@ public class StoryToolService {
 
     private String outputContract(StoryToolKind kind) {
         return switch (kind) {
+            case STORY_ROUTER -> "请输出：意图判断、推荐工具、所需输入、执行步骤、预期产物。";
+            case STORY_LONG_WRITE -> "请输出：目标情绪、题材定位、故事核、长线冲突、人物功能位、卷/章推进方案；如果用户要求正文，则直接输出正文。";
+            case STORY_SHORT_WRITE -> "请输出：目标情绪、核心反转、前三句钩子、情绪推进节点、结尾余韵；如果用户要求成稿，则直接输出短篇正文。";
+            case STORY_LONG_ANALYZE -> "请输出：黄金三章拆解、主角欲望、冲突引爆、爽点承诺、人物功能位、节奏模板、可复用经验。";
+            case STORY_SHORT_ANALYZE -> "请输出：故事核、目标情绪、开头钩子、铺垫节点、反转设计、释放段、传播点、可复用写法。";
+            case STORY_LONG_SCAN -> "请输出：平台样本、重复模式、题材趋势、读者需求、风险阈值、适合作者条件、验证动作。";
+            case STORY_SHORT_SCAN -> "请输出：样本日期、高频情绪、触发场景、反转类型、传播点、信号强度、饱和风险、复扫节点。";
+            case STORY_IMPORT -> "请输出：篇幅判断、章节结构、故事核、角色表、设定表、伏笔表、当前进度、需复核项、后续写作建议。";
+            case STORY_COVER -> "请输出：封面定位、主体画面、构图、色彩、字体、图像生成提示词、负面提示词、不同平台适配建议。";
+            case STORY_RESEARCHER -> "请输出：资料卡、可写细节、冲突素材、常见误区、待核验问题。";
+            case STORY_EXPLORER -> "请输出：已确定事实、项目内依据、推断、缺失信息、建议补录项。";
             case STORY_ARCHITECT -> "请输出：核心卖点、故事核、世界观规则、主线冲突、三幕/卷级推进、前 3 章钩子、风险点。";
             case CHARACTER_DESIGNER -> "请输出：角色卡、欲望/恐惧/弱点、动机链、人物弧线、关系张力、口癖/动作、可直接入库字段。";
             case NARRATIVE_WRITER -> "请输出可直接放入正文的文本；如需要说明，只放在正文后 3 条以内。";
             case STORY_DESLOP -> "请先输出改写后的完整文本，再输出不超过 5 条的修改要点。";
             case STORY_REVIEW -> "请按 S1-S4 严重度输出问题清单：位置线索、问题、影响、修改建议。";
+            case CONSISTENCY_CHECKER -> "请输出：冲突位置、项目内依据、冲突类型、影响范围、修复建议。";
             case CHAPTER_EXTRACTOR -> "请输出：一句话摘要、关键情节点、角色状态变化、伏笔/回收、设定新增、时间地点、下一章接续点。";
         };
     }

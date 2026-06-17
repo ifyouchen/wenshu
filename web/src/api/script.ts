@@ -14,6 +14,7 @@ export function convertScript(data: {
   projectId: string
   title?: string
   psychologyStrategy?: string
+  chapterIds?: string[]
 }) {
   return client.post<ApiResponse<{ taskId: string; draftId: string }>>('/script/convert', data)
 }

@@ -42,6 +42,9 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
+        { path: 'write', name: 'write-flow', component: () => import('@/views/NovelWriteFlowView.vue') },
+        { path: 'rewrite', name: 'rewrite-flow', component: () => import('@/views/NovelRewriteFlowView.vue') },
+        { path: 'script-flow', name: 'script-flow', component: () => import('@/views/ScriptFlowView.vue') },
         {
           path: 'projects/:projectId/editor/:chapterId?',
           name: 'editor',

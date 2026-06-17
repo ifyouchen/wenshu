@@ -28,9 +28,10 @@ const demoUser: UserInfo = {
 export const useAuthStore = defineStore('auth', () => {
   /** 当前登录用户信息，null 表示未登录。 */
   const user = ref<UserInfo | null>(null)
+  const demoMode = ref(typeof localStorage !== 'undefined' && localStorage.getItem(DEMO_KEY) === '1')
 
   /** 是否已登录（本地有 Token 即视为登录态，路由守卫使用此值）。 */
-  const isDemoMode = computed(() => localStorage.getItem(DEMO_KEY) === '1')
+  const isDemoMode = computed(() => demoMode.value)
 
   const isLoggedIn = computed(() => !!getAccessToken() || !!user.value || isDemoMode.value)
 
@@ -68,6 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       clearTokens()
       localStorage.removeItem(DEMO_KEY)
+      demoMode.value = false
       user.value = null
     }
   }
@@ -75,6 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
   function demoLoginAction(): void {
     localStorage.setItem(DEMO_KEY, '1')
     localStorage.setItem('wenshu-identity-picked', '1')
+    demoMode.value = true
     user.value = demoUser
   }
 

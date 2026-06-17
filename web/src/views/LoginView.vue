@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { LogIn } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
+import { getSystemHealth } from '@/api/system'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,11 +14,33 @@ const toast = useToast()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
+const serviceStatus = ref<'checking' | 'online' | 'offline'>('checking')
 const isDev = import.meta.env.DEV
-const canSubmit = computed(() => email.value.includes('@') && password.value.length >= 6 && !loading.value)
+const canSubmit = computed(() => email.value.includes('@') && password.value.length >= 8 && !loading.value)
+const passwordHint = computed(() => {
+  if (!password.value) return '密码长度需为 8 到 72 位'
+  if (password.value.length < 8) return '密码至少 8 位'
+  return ''
+})
+
+onMounted(checkService)
 
 function messageOf(error: unknown) {
-  return (error as { response?: { data?: { message?: string } } }).response?.data?.message || '操作失败，请稍后再试'
+  const responseMessage = (error as { response?: { data?: { message?: string } } }).response?.data?.message
+  if (responseMessage) return responseMessage
+  return serviceStatus.value === 'offline'
+    ? '后端服务暂不可用，请先使用演示进入或启动后端服务'
+    : '登录失败，请检查账号密码'
+}
+
+async function checkService() {
+  serviceStatus.value = 'checking'
+  try {
+    await getSystemHealth()
+    serviceStatus.value = 'online'
+  } catch {
+    serviceStatus.value = 'offline'
+  }
 }
 
 async function submit() {
@@ -31,6 +54,7 @@ async function submit() {
     }
     router.push(String(route.query.redirect || '/'))
   } catch (error) {
+    await checkService()
     toast.error(messageOf(error))
   } finally {
     loading.value = false
@@ -55,13 +79,22 @@ function enterDemo() {
       </div>
 
       <form class="ws-form" @submit.prevent="submit">
+        <div
+          class="ws-alert"
+          :class="{ 'ws-alert--warning': serviceStatus === 'offline' }"
+        >
+          <span v-if="serviceStatus === 'checking'">正在检查后端服务...</span>
+          <span v-else-if="serviceStatus === 'online'">后端服务已连接，可以使用真实账号登录。</span>
+          <span v-else>后端服务不可用，真实登录会失败；可先用演示进入查看流程。</span>
+        </div>
         <label class="ws-field">
           <span>邮箱</span>
           <input v-model="email" class="ws-input" type="email" autocomplete="email" placeholder="name@example.com">
         </label>
         <label class="ws-field">
           <span>密码</span>
-          <input v-model="password" class="ws-input" type="password" autocomplete="current-password" placeholder="至少 6 位">
+          <input v-model="password" class="ws-input" type="password" autocomplete="current-password" placeholder="至少 8 位">
+          <small v-if="passwordHint" class="ws-field-hint">{{ passwordHint }}</small>
         </label>
         <button class="ws-button ws-button--primary" type="submit" :disabled="!canSubmit">
           <LogIn :size="18" />

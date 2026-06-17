@@ -23,7 +23,7 @@ const canSubmit = computed(() =>
   nickname.value.trim().length >= 2 &&
   email.value.includes('@') &&
   code.value.trim().length >= 4 &&
-  password.value.length >= 6 &&
+  password.value.length >= 8 &&
   password.value === confirmPassword.value &&
   !loading.value,
 )
@@ -91,7 +91,7 @@ async function submit() {
         </label>
         <label class="ws-field">
           <span>密码</span>
-          <input v-model="password" class="ws-input" type="password" autocomplete="new-password" placeholder="至少 6 位">
+          <input v-model="password" class="ws-input" type="password" autocomplete="new-password" placeholder="至少 8 位">
         </label>
         <label class="ws-field">
           <span>确认密码</span>

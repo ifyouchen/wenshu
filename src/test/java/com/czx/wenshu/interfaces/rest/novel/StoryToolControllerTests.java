@@ -112,8 +112,11 @@ class StoryToolControllerTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<Map<String, Object>> tools = (List<Map<String, Object>>) response.getBody().get("data");
         assertThat(tools).extracting(tool -> tool.get("id"))
-                .contains("story-architect", "character-designer", "narrative-writer",
-                        "story-deslop", "story-review", "chapter-extractor");
+                .contains("story", "story-long-write", "story-short-write",
+                        "story-long-analyze", "story-short-analyze", "story-long-scan", "story-short-scan",
+                        "story-import", "story-cover", "story-deslop", "story-review",
+                        "story-architect", "character-designer", "narrative-writer",
+                        "consistency-checker", "chapter-extractor");
     }
 
     @Test

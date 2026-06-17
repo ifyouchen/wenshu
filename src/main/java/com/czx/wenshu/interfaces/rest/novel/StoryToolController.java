@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Story Tools", description = "网文工具箱：故事架构、角色设计、正文创作、去AI味、审查、章节提取")
+@Tag(name = "Story Tools", description = "网文工具箱：写作、拆文、扫榜、导入、封面、去AI味、审查、章节提取")
 @Validated
 @RestController
 @RequestMapping("/api/v1/story-tools")
@@ -44,7 +44,7 @@ public class StoryToolController {
     }
 
     @Operation(summary = "运行网文工具",
-               description = "tool 可选：story-architect、character-designer、narrative-writer、story-deslop、story-review、chapter-extractor。")
+               description = "tool 使用 /story-tools 返回的 id，例如 story-long-write、story-short-analyze、story-cover、story-deslop。")
     @PostMapping("/{tool}/run")
     public Result<StoryToolResult> runTool(@PathVariable String tool,
                                            @RequestBody(required = false) StoryToolRequest request) {

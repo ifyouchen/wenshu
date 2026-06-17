@@ -99,7 +99,7 @@ public class ScriptController {
     public Result<Map<String, String>> convert(@Valid @RequestBody ConvertRequest request) {
         User user = currentUserProvider.getCurrentUser();
         return Result.ok(conversionService.submitConversion(
-                request.projectId(), user.id(), request.title(), request.psychologyStrategy()));
+                request.projectId(), user.id(), request.title(), request.psychologyStrategy(), request.chapterIds()));
     }
 
     // ── P7-07 分集管理 ─────────────────────────────────────────────────────
@@ -153,11 +153,13 @@ public class ScriptController {
      * @param projectId          作品 ID
      * @param title              草稿标题（可省略）
      * @param psychologyStrategy 心理外化策略（action/dialogue/voiceover/skip）
+     * @param chapterIds         改编章节范围，空表示整部作品
      */
     public record ConvertRequest(
             @NotNull UUID projectId,
             String title,
-            String psychologyStrategy) {}
+            String psychologyStrategy,
+            List<UUID> chapterIds) {}
 
     /**
      * 集数创建请求体（P7-07）。

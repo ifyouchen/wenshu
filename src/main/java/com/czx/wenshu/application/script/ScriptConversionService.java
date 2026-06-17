@@ -4,11 +4,13 @@ import com.czx.wenshu.application.task.AsyncTaskService;
 import com.czx.wenshu.application.user.QuotaService;
 import com.czx.wenshu.common.exception.ApiException;
 import com.czx.wenshu.common.result.ErrorCode;
+import com.czx.wenshu.domain.project.ChapterRepository;
 import com.czx.wenshu.domain.project.ProjectRepository;
 import com.czx.wenshu.domain.script.ScriptDraft;
 import com.czx.wenshu.domain.script.ScriptDraftRepository;
 import com.czx.wenshu.domain.task.AsyncTask;
 import java.time.Clock;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ public class ScriptConversionService {
 
     private final ScriptDraftRepository draftRepository;
     private final ProjectRepository projectRepository;
+    private final ChapterRepository chapterRepository;
     private final AsyncTaskService asyncTaskService;
     private final QuotaService quotaService;
     private final ScriptConversionTaskRunner taskRunner;
@@ -34,12 +37,14 @@ public class ScriptConversionService {
 
     public ScriptConversionService(ScriptDraftRepository draftRepository,
                                     ProjectRepository projectRepository,
+                                    ChapterRepository chapterRepository,
                                     AsyncTaskService asyncTaskService,
                                     QuotaService quotaService,
                                     ScriptConversionTaskRunner taskRunner,
                                     Clock clock) {
         this.draftRepository = draftRepository;
         this.projectRepository = projectRepository;
+        this.chapterRepository = chapterRepository;
         this.asyncTaskService = asyncTaskService;
         this.quotaService = quotaService;
         this.taskRunner = taskRunner;
@@ -54,14 +59,23 @@ public class ScriptConversionService {
      * @param userId             当前用户 ID
      * @param title              草稿标题（可为 null，默认使用作品标题）
      * @param psychologyStrategy 心理外化策略（action/dialogue/voiceover/skip）
+     * @param chapterIds         改编章节范围，空表示整部作品
      * @return 包含 taskId 和 draftId 的 Map
      */
     @Transactional
     public Map<String, String> submitConversion(UUID projectId, UUID userId,
-                                                  String title, String psychologyStrategy) {
+                                                  String title, String psychologyStrategy,
+                                                  List<UUID> chapterIds) {
         log.info("[ScriptConversionService] 提交改编任务 projectId={} userId={}", projectId, userId);
         if (!projectRepository.existsByIdAndUserId(projectId, userId)) {
             throw new ApiException(ErrorCode.NOT_FOUND, "作品不存在");
+        }
+        if (chapterIds != null && !chapterIds.isEmpty()) {
+            for (UUID chapterId : chapterIds) {
+                if (!chapterRepository.existsByIdAndProjectId(chapterId, projectId)) {
+                    throw new ApiException(ErrorCode.NOT_FOUND, "改编章节不存在");
+                }
+            }
         }
 
         // 检查并扣减改编配额
@@ -73,7 +87,7 @@ public class ScriptConversionService {
         draftRepository.save(draft);
 
         AsyncTask task = asyncTaskService.createTask(userId, projectId, "script_conversion");
-        taskRunner.run(task.id(), draft.id(), projectId, strategy);
+        taskRunner.run(task.id(), draft.id(), projectId, strategy, chapterIds);
 
         log.info("[ScriptConversionService] 改编任务已提交 taskId={} draftId={}", task.id(), draft.id());
         return Map.of("taskId", task.id().toString(), "draftId", draft.id().toString());

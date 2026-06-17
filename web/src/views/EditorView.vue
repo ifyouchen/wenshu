@@ -234,12 +234,24 @@ async function runCommand(preset?: string) {
 
 function inferStoryTool(text: string) {
   const lower = text.toLowerCase()
+  if (text.includes('长篇拆文') || text.includes('黄金三章')) return 'story-long-analyze'
+  if (text.includes('短篇拆文') || text.includes('拆短篇')) return 'story-short-analyze'
+  if (text.includes('长篇扫榜') || text.includes('起点排行') || text.includes('番茄排行') || text.includes('晋江排行')) return 'story-long-scan'
+  if (text.includes('短篇扫榜') || text.includes('知乎盐言') || text.includes('短篇排行')) return 'story-short-scan'
+  if (text.includes('导入') || text.includes('反向解析')) return 'story-import'
+  if (text.includes('封面')) return 'story-cover'
+  if (text.includes('查资料') || text.includes('调研')) return 'story-researcher'
+  if (text.includes('查角色') || text.includes('查伏笔') || text.includes('查设定') || text.includes('写到哪')) return 'story-explorer'
+  if (text.includes('长篇') || text.includes('连载') || text.includes('日更')) return 'story-long-write'
+  if (text.includes('短篇') || text.includes('盐言') || text.includes('一万字')) return 'story-short-write'
   if (text.includes('架构') || text.includes('故事核') || text.includes('开书') || text.includes('大纲')) return 'story-architect'
   if (text.includes('角色') || text.includes('人物') || text.includes('人设')) return 'character-designer'
   if (text.includes('去AI') || text.includes('去ai') || lower.includes('deslop')) return 'story-deslop'
   if (text.includes('审查') || text.includes('问题') || text.includes('检查')) return 'story-review'
+  if (text.includes('一致性') || text.includes('冲突') || text.includes('时间线')) return 'consistency-checker'
   if (text.includes('提取') || text.includes('摘要') || text.includes('情节点')) return 'chapter-extractor'
   if (text.includes('扩写') || text.includes('缩写') || text.includes('正文') || text.includes('改写')) return 'narrative-writer'
+  if (text.includes('网文工具') || text.includes('怎么写') || text.includes('帮我写书')) return 'story'
   return ''
 }
 
@@ -248,7 +260,7 @@ function getSelectedOrCurrentText(tool: string) {
   const { from, to } = editor.value.state.selection
   const selected = editor.value.state.doc.textBetween(from, to, '\n').trim()
   if (selected) return selected
-  if (tool === 'story-architect' || tool === 'character-designer') return ''
+  if (['story', 'story-architect', 'story-long-write', 'story-short-write', 'story-long-scan', 'story-short-scan', 'story-cover', 'story-researcher', 'story-explorer', 'character-designer'].includes(tool)) return ''
   return editor.value.getText().slice(0, 6000)
 }
 
@@ -334,10 +346,14 @@ function inferTargetWords(text: string) {
 
       <footer class="command-bar">
         <button type="button" @click="runCommand('续写')">续写</button>
+        <button type="button" @click="runCommand('长篇写作')">长篇</button>
+        <button type="button" @click="runCommand('短篇写作')">短篇</button>
         <button type="button" @click="runCommand('润色')">润色</button>
         <button type="button" @click="runCommand('扩写')">扩写</button>
         <button type="button" @click="runCommand('缩写')">缩写</button>
         <button type="button" @click="runCommand('去AI味')">去AI味</button>
+        <button type="button" @click="runCommand('短篇拆文')">拆文</button>
+        <button type="button" @click="runCommand('长篇扫榜')">扫榜</button>
         <button type="button" @click="runCommand('章节提取')">提取</button>
         <button type="button" @click="runCommand('转剧本')">转剧本</button>
         <button type="button" @click="runCommand('查一致性')">查一致性</button>
@@ -359,6 +375,8 @@ function inferTargetWords(text: string) {
       <div class="ai-actions">
         <button class="ws-button" type="button" @click="runCommand('故事架构建议')">故事架构</button>
         <button class="ws-button" type="button" @click="runCommand('角色设计')">角色设计</button>
+        <button class="ws-button" type="button" @click="runCommand('封面设计')">封面设计</button>
+        <button class="ws-button" type="button" @click="runCommand('导入小说')">导入解析</button>
         <button class="ws-button" type="button" @click="runCommand('审查当前章节')">审查</button>
         <button class="ws-button" type="button" @click="runCommand('分支建议')">剧情分支</button>
         <button class="ws-button" type="button" @click="runCommand('转剧本')">

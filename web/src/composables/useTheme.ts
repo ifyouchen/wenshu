@@ -4,7 +4,7 @@ const STORAGE_KEY = 'wenshu-theme'
 type ThemeMode = 'dark' | 'light'
 
 const themeMode = ref<ThemeMode>(
-  (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) : null) || 'dark',
+  (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) : null) || 'light',
 )
 
 function applyTheme(mode: ThemeMode) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { BarChart3, BookOpen, LogOut, Moon, Settings, Sun, UserRound } from 'lucide-vue-next'
+import { BarChart3, BookOpen, Clapperboard, Edit3, LogOut, Moon, PenLine, Settings, Sun, UserRound } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 
@@ -12,6 +12,9 @@ const { isDark, toggleTheme } = useTheme()
 const userName = computed(() => auth.user?.nickname || auth.user?.email || '创作者')
 const navItems = [
   { label: '工作台', to: '/', icon: BookOpen },
+  { label: '写小说', to: '/write', icon: PenLine },
+  { label: '改小说', to: '/rewrite', icon: Edit3 },
+  { label: '改剧本', to: '/script-flow', icon: Clapperboard },
   { label: '统计', to: '/stats', icon: BarChart3 },
   { label: '设置', to: '/settings', icon: Settings },
 ]
