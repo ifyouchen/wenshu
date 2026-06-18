@@ -7,7 +7,6 @@ import { getOutline, listProjects } from '@/api/project'
 import type { OutlineInfo } from '@/api/project'
 import type { ProjectInfo, ScriptDraftInfo } from '@/api/types'
 import { getScriptState, type ChapterBrief } from '@/api/workflow'
-import { demoDraft, demoOutline, demoProject, demoProjects } from '@/mocks/wenshu'
 import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
@@ -19,7 +18,7 @@ const converting = ref(false)
 const degraded = ref('')
 const projects = ref<ProjectInfo[]>([])
 const selectedProjectId = ref('')
-const outline = ref<OutlineInfo>(demoOutline())
+const outline = ref<OutlineInfo | null>(null)
 const drafts = ref<ScriptDraftInfo[]>([])
 const adaptableChapters = ref<ChapterBrief[]>([])
 
@@ -45,6 +44,10 @@ watch(selectedProjectId, async (projectId) => {
   await loadState(projectId)
 })
 
+function messageOf(error: unknown, fallback: string) {
+  return (error as { response?: { data?: { message?: string } } }).response?.data?.message || fallback
+}
+
 async function loadProjects() {
   loading.value = true
   degraded.value = ''
@@ -52,14 +55,14 @@ async function loadProjects() {
     const res = await listProjects()
     projects.value = res.data.data || []
   } catch (error) {
-    projects.value = demoProjects
-    degraded.value = '作品接口不可用，已启用演示数据模式。'
+    projects.value = []
+    degraded.value = messageOf(error, '作品接口不可用，请确认后端服务和登录状态。')
+    toast.error(degraded.value)
   } finally {
     if (!projects.value.length) {
-      projects.value = demoProjects
-      degraded.value ||= '当前还没有作品，先用演示项目展示改编流程。'
+      degraded.value ||= '当前还没有作品，请先创建作品后再改编。'
     }
-    selectedProjectId.value = String(route.query.projectId || projects.value[0]?.id || demoProject.id)
+    selectedProjectId.value = String(route.query.projectId || projects.value[0]?.id || '')
     loading.value = false
   }
 }
@@ -77,11 +80,12 @@ async function loadState(projectId: string) {
       drafts.value = draftsRes.data.data || []
       adaptableChapters.value = buildChapterList(outline.value)
       degraded.value ||= '改编聚合接口不可用，已降级为大纲和草稿接口。'
-    } catch {
-      outline.value = demoOutline(projectId)
-      drafts.value = [demoDraft]
-      adaptableChapters.value = buildChapterList(outline.value)
-      degraded.value ||= '改编接口不可用，已启用演示数据模式。'
+    } catch (fallbackError) {
+      outline.value = null
+      drafts.value = []
+      adaptableChapters.value = []
+      degraded.value = messageOf(fallbackError, '改编接口不可用，请稍后重试。')
+      toast.error(degraded.value)
     }
   }
   if (!convertForm.range) convertForm.range = 'all'
@@ -116,8 +120,8 @@ async function submitConvert() {
     toast.success('改编任务已提交')
     router.push(`/projects/${selectedProjectId.value}/script/${draftId}`)
   } catch (error) {
-    degraded.value = '改编接口或模型不可用，已进入演示草稿；真实生成请检查后端与模型配置。'
-    router.push(`/projects/${selectedProjectId.value || demoProject.id}/script/${demoDraft.id}`)
+    degraded.value = messageOf(error, '改编接口或模型不可用，请检查后端与模型配置。')
+    toast.error(degraded.value)
   } finally {
     converting.value = false
   }
@@ -224,8 +228,8 @@ function openDraft(draft: ScriptDraftInfo) {
           继续校订
         </button>
       </div>
-      <div class="outline-strip">
-        <article v-for="volume in outline.volumes" :key="volume.id">
+        <div class="outline-strip">
+        <article v-for="volume in outline?.volumes || []" :key="volume.id">
           <strong>{{ volume.title || '未命名卷' }}</strong>
           <span>{{ volume.conflict || '暂无卷冲突描述' }}</span>
           <small>{{ volume.chapters.length }} 章</small>

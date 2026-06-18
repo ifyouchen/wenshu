@@ -1637,7 +1637,7 @@ a {
 .script-grid {
   height: calc(100% - 56px);
   display: grid;
-  grid-template-columns: 220px minmax(220px, 0.8fr) minmax(360px, 1.4fr) 260px;
+  grid-template-columns: 220px minmax(220px, 0.85fr) minmax(360px, 1.45fr);
 }
 
 .script-pane {

@@ -41,11 +41,6 @@ async function submit() {
     localStorage.setItem('wenshu-identity-picked', '1')
     router.push('/')
   } catch (error) {
-    if (selected.value === 'new_author') {
-      localStorage.setItem('wenshu-identity-picked', '1')
-      router.push('/')
-      return
-    }
     toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || '身份保存失败')
   } finally {
     loading.value = false

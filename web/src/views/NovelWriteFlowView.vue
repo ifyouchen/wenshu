@@ -7,7 +7,6 @@ import type { OutlineInfo } from '@/api/project'
 import type { ProjectInfo } from '@/api/types'
 import { submitSkeleton } from '@/api/novel'
 import { getWriteState } from '@/api/workflow'
-import { demoOutline, demoProjects } from '@/mocks/wenshu'
 import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
@@ -17,7 +16,7 @@ const toast = useToast()
 const projects = ref<ProjectInfo[]>([])
 const selectedProjectId = ref('')
 const outline = ref<OutlineInfo | null>(null)
-const demoData = ref(false)
+const loadError = ref('')
 const loading = ref(false)
 const skeletonTaskId = ref('')
 
@@ -37,13 +36,14 @@ function messageOf(error: unknown, fallback: string) {
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   try {
     const res = await listProjects()
     projects.value = res.data.data
   } catch (error) {
-    projects.value = demoProjects
-    demoData.value = true
-    toast.warning(messageOf(error, '后端不可用，已进入演示数据模式'))
+    projects.value = []
+    loadError.value = messageOf(error, '作品列表加载失败，请确认后端服务和登录状态。')
+    toast.error(loadError.value)
   } finally {
     selectedProjectId.value = String(route.query.projectId || projects.value[0]?.id || '')
     loading.value = false
@@ -62,9 +62,10 @@ async function loadState() {
     try {
       const res = await getOutline(selectedProjectId.value)
       outline.value = res.data.data
-    } catch {
-      outline.value = demoOutline(selectedProjectId.value)
-      demoData.value = true
+    } catch (error) {
+      outline.value = null
+      loadError.value = messageOf(error, '大纲加载失败，请稍后重试。')
+      toast.error(loadError.value)
     }
   }
 }
@@ -82,23 +83,7 @@ async function createNewProject() {
     selectedProjectId.value = res.data.data.id
     toast.success('作品已创建')
   } catch (error) {
-    const local: ProjectInfo = {
-      id: `local-project-${Date.now()}`,
-      userId: 'demo-user',
-      title: projectForm.title.trim(),
-      genre: projectForm.genre || null,
-      synopsis: projectForm.synopsis || null,
-      worldview: projectForm.worldview || null,
-      totalWords: 0,
-      dailyCharGoal: 2000,
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    projects.value.unshift(local)
-    selectedProjectId.value = local.id
-    demoData.value = true
-    toast.warning(messageOf(error, '后端不可用，已创建本地演示作品'))
+    toast.error(messageOf(error, '作品创建失败，请稍后重试'))
   }
 }
 
@@ -108,16 +93,8 @@ async function addVolume() {
     await createVolume(selectedProjectId.value, { title: volumeForm.title.trim(), conflict: volumeForm.conflict })
     toast.success('卷已创建')
     await loadState()
-  } catch {
-    outline.value = outline.value || { volumes: [] }
-    outline.value.volumes.push({
-      id: `local-volume-${Date.now()}`,
-      title: volumeForm.title,
-      conflict: volumeForm.conflict,
-      sortOrder: outline.value.volumes.length,
-      chapters: [],
-    })
-    demoData.value = true
+  } catch (error) {
+    toast.error(messageOf(error, '卷创建失败，请稍后重试'))
   }
 }
 
@@ -128,12 +105,8 @@ async function addChapter(volumeId?: string) {
     const res = await createChapter(targetVolume, { title: chapterForm.title.trim(), outline: chapterForm.outline })
     toast.success('章节已创建')
     router.push(`/projects/${selectedProjectId.value}/editor/${res.data.data.id}`)
-  } catch {
-    const volume = outline.value?.volumes.find((item) => item.id === targetVolume)
-    const id = `local-chapter-${Date.now()}`
-    volume?.chapters.push({ id, title: chapterForm.title, outline: chapterForm.outline, wordCount: 0, status: 'pending' })
-    demoData.value = true
-    router.push(`/projects/${selectedProjectId.value}/editor/${id}`)
+  } catch (error) {
+    toast.error(messageOf(error, '章节创建失败，请稍后重试'))
   }
 }
 
@@ -168,7 +141,7 @@ function enterEditor() {
         <p class="ws-eyebrow">Write Novel</p>
         <h1>写小说</h1>
         <p>先有作品和章节，再进入编辑器写正文。AI 骨架是可选入口。</p>
-        <p v-if="demoData" class="ws-hint">当前为演示数据模式，真实接口恢复后自动优先使用后端。</p>
+        <p v-if="loadError" class="ws-hint">{{ loadError }}</p>
       </div>
       <select v-model="selectedProjectId" class="ws-select">
         <option value="">选择作品</option>

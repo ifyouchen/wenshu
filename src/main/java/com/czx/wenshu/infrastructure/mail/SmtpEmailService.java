@@ -1,5 +1,7 @@
 package com.czx.wenshu.infrastructure.mail;
 
+import com.czx.wenshu.common.exception.ApiException;
+import com.czx.wenshu.common.result.ErrorCode;
 import com.czx.wenshu.domain.user.EmailAddress;
 import com.czx.wenshu.infrastructure.config.WenshuProperties;
 import java.time.Instant;
@@ -10,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -31,7 +32,6 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
-    @Async
     public void sendVerificationEmail(EmailAddress email, String rawToken, Instant expiresAt) {
         Context context = new Context();
         context.setVariables(Map.of(
@@ -43,7 +43,6 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
-    @Async
     public void sendPasswordResetEmail(EmailAddress email, String rawToken, Instant expiresAt) {
         String resetUrl = properties.getBaseUrl() + "/reset-password?token=" + rawToken;
         Context context = new Context();
@@ -55,7 +54,6 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
-    @Async
     public void sendSecurityAlertEmail(EmailAddress email, String alertType, String alertDetail, String alertTime) {
         Context context = new Context();
         context.setVariables(Map.of(
@@ -79,6 +77,7 @@ public class SmtpEmailService implements EmailService {
             log.info("Email sent: to={}, subject={}", to, subject);
         } catch (Exception exception) {
             log.error("Failed to send email: to={}, subject={}", to, subject, exception);
+            throw new ApiException(ErrorCode.INTERNAL_ERROR, "邮件发送失败，请检查 SMTP 配置或稍后再试");
         }
     }
 }

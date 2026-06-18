@@ -9,7 +9,6 @@ import type { ChapterInfo, OutlineInfo } from '@/api/project'
 import { applyRewrite, rewriteChapter, type RewriteMode, type RewriteSuggestion } from '@/api/rewrite'
 import type { ProjectInfo } from '@/api/types'
 import { getRewriteState, type ChapterBrief } from '@/api/workflow'
-import { demoChapterById, demoOutline, demoProject, demoProjects } from '@/mocks/wenshu'
 import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
@@ -20,7 +19,7 @@ const loading = ref(false)
 const degraded = ref('')
 const projects = ref<ProjectInfo[]>([])
 const selectedProjectId = ref('')
-const outline = ref<OutlineInfo>(demoOutline())
+const outline = ref<OutlineInfo | null>(null)
 const chapters = ref<ChapterBrief[]>([])
 const selectedChapterId = ref('')
 const currentChapter = ref<ChapterInfo | null>(null)
@@ -41,7 +40,7 @@ const importForm = reactive({
 const selectedProject = computed(() => projects.value.find((item) => item.id === selectedProjectId.value) || null)
 const chapterSource = computed(() => currentChapter.value?.content || '')
 const plainSource = computed(() => stripHtml(chapterSource.value))
-const activeVolumeId = computed(() => outline.value.volumes[0]?.id || '')
+const activeVolumeId = computed(() => outline.value?.volumes[0]?.id || '')
 
 onMounted(loadProjects)
 
@@ -56,6 +55,10 @@ watch(selectedChapterId, async (chapterId) => {
 function stripHtml(html: string) {
   if (!html) return ''
   return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
+}
+
+function messageOf(error: unknown, fallback: string) {
+  return (error as { response?: { data?: { message?: string } } }).response?.data?.message || fallback
 }
 
 function buildChapterList(nextOutline: OutlineInfo): ChapterBrief[] {
@@ -77,21 +80,21 @@ async function loadProjects() {
     const res = await listProjects()
     projects.value = res.data.data || []
   } catch (error) {
-    projects.value = demoProjects
-    degraded.value = '作品接口不可用，已启用演示数据模式。'
+    projects.value = []
+    degraded.value = messageOf(error, '作品接口不可用，请确认后端服务和登录状态。')
+    toast.error(degraded.value)
   } finally {
     if (!projects.value.length) {
-      projects.value = demoProjects
-      degraded.value ||= '当前还没有作品，先用演示项目展示改稿流程。'
+      degraded.value ||= '当前还没有作品，请先创建作品后再改稿。'
     }
-    selectedProjectId.value = String(route.query.projectId || projects.value[0]?.id || demoProject.id)
+    selectedProjectId.value = String(route.query.projectId || projects.value[0]?.id || '')
     loading.value = false
   }
 }
 
 async function loadState(projectId: string) {
   suggestion.value = null
-  degraded.value = degraded.value && projects.value[0]?.id === demoProject.id ? degraded.value : ''
+  degraded.value = ''
   try {
     const res = await getRewriteState(projectId)
     outline.value = res.data.data.outline
@@ -102,10 +105,11 @@ async function loadState(projectId: string) {
       outline.value = res.data.data
       chapters.value = buildChapterList(outline.value)
       degraded.value ||= '改稿聚合接口不可用，已降级为大纲接口。'
-    } catch {
-      outline.value = demoOutline(projectId)
-      chapters.value = buildChapterList(outline.value)
-      degraded.value ||= '改稿接口不可用，已启用演示数据模式。'
+    } catch (fallbackError) {
+      outline.value = null
+      chapters.value = []
+      degraded.value = messageOf(fallbackError, '改稿接口不可用，请稍后重试。')
+      toast.error(degraded.value)
     }
   }
   selectedChapterId.value = String(route.query.chapterId || chapters.value[0]?.id || '')
@@ -117,8 +121,9 @@ async function loadChapter(chapterId: string) {
     const res = await getChapter(chapterId)
     currentChapter.value = res.data.data
   } catch (error) {
-    currentChapter.value = demoChapterById(chapterId)
-    degraded.value ||= '章节详情接口不可用，已使用演示章节。'
+    currentChapter.value = null
+    degraded.value = messageOf(error, '章节详情加载失败，请稍后重试。')
+    toast.error(degraded.value)
   }
 }
 
@@ -137,14 +142,8 @@ async function importPastedText() {
     sourceMode.value = 'chapter'
     toast.success('已导入为章节，可以开始改稿')
   } catch (error) {
-    const mockChapter = demoChapterById(`local-import-${Date.now()}`)
-    mockChapter.title = importForm.title.trim() || '导入改稿'
-    mockChapter.content = `<p>${importForm.text.trim().replace(/\n+/g, '</p><p>')}</p>`
-    currentChapter.value = mockChapter
-    selectedChapterId.value = mockChapter.id
-    sourceMode.value = 'chapter'
-    degraded.value = '导入接口不可用，当前稿件仅在本页临时可用。'
-    toast.info('已用本地临时稿件进入改稿')
+    degraded.value = messageOf(error, '导入失败，请确认作品中已有卷并稍后重试。')
+    toast.error(degraded.value)
   }
 }
 
@@ -163,27 +162,11 @@ async function runRewrite() {
     })
     suggestion.value = res.data.data
   } catch (error) {
-    const rewritten = buildLocalRewrite(plainSource.value, rewriteForm.mode, rewriteForm.instruction)
-    suggestion.value = {
-      mode: rewriteForm.mode,
-      source: plainSource.value,
-      rewritten,
-      instruction: rewriteForm.instruction || '演示改稿',
-    }
-    degraded.value = '改稿接口或模型不可用，已生成可预览的本地演示建议。'
+    degraded.value = messageOf(error, '改稿接口或模型不可用，请检查后端与模型配置。')
+    toast.error(degraded.value)
   } finally {
     running.value = false
   }
-}
-
-function buildLocalRewrite(source: string, mode: RewriteMode, instruction: string) {
-  const prefix = {
-    polish: '【润色建议】保持原意，压实句子节奏：',
-    expand: '【扩写建议】增加动作、环境与心理层次：',
-    shorten: '【缩写建议】删去重复信息，保留关键推进：',
-    custom: `【自定义建议】${instruction || '按你的要求调整'}：`,
-  }[mode]
-  return `${prefix}\n${source || '这里会显示改稿后的正文。'}`
 }
 
 async function applySuggestion() {
@@ -198,13 +181,8 @@ async function applySuggestion() {
     currentChapter.value = res.data.data
     toast.success('已应用修改并创建快照')
   } catch (error) {
-    currentChapter.value = {
-      ...currentChapter.value,
-      content: `<p>${suggestion.value.rewritten.replace(/\n+/g, '</p><p>')}</p>`,
-      wordCount: suggestion.value.rewritten.length,
-    }
-    degraded.value = '应用接口不可用，修改仅在本页临时生效。'
-    toast.info('已在本页临时应用改稿')
+    degraded.value = messageOf(error, '应用修改失败，请稍后重试。')
+    toast.error(degraded.value)
   }
 }
 
@@ -301,7 +279,7 @@ async function checkConsistency() {
         <div class="ws-section-title">
           <div>
             <h2>改稿指令</h2>
-            <p>常用模式走真实接口，失败后展示本地演示建议。</p>
+            <p>常用模式走真实接口，失败时会显示后端错误。</p>
           </div>
         </div>
         <label class="ws-field">

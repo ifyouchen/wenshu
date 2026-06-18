@@ -25,6 +25,12 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/ResetPasswordView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/verify-email',
       name: 'verify-email',
       component: () => import('@/views/VerifyEmailView.vue'),
@@ -81,6 +87,10 @@ router.beforeEach(async (to, from) => {
 
   if (auth.isLoggedIn && !auth.user) {
     await auth.fetchUser()
+  }
+
+  if (to.meta.requiresAuth && !auth.isLoggedIn) {
+    return { name: 'login', query: { redirect: to.fullPath } }
   }
 
   if (to.meta.requiresAuth === false && auth.isLoggedIn) {

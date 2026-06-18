@@ -27,8 +27,8 @@ import { polishAdvanced, polishBasic } from '@/api/polish'
 import { submitConsistencyCheck } from '@/api/consistency'
 import { continueNovel, createBranch } from '@/api/novel'
 import { runStoryTool } from '@/api/storyTool'
+import { searchProject, type ChapterSearchResult } from '@/api/search'
 import { useToast } from '@/composables/useToast'
-import { demoChapterById, demoCharacters, demoOutline, demoWorldElements } from '@/mocks/wenshu'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,6 +46,10 @@ const loading = ref(false)
 const saveState = ref<'saved' | 'saving' | 'error'>('saved')
 const title = ref('')
 const command = ref('')
+const searchKeyword = ref('')
+const searchLoading = ref(false)
+const searchError = ref('')
+const searchResults = ref<ChapterSearchResult[]>([])
 const aiMessages = ref<Array<{ role: 'user' | 'assistant'; text: string }>>([
   { role: 'assistant', text: '选用底部命令或直接输入需求：续写、润色、扩写、缩写、转剧本、查一致性。' },
 ])
@@ -116,15 +120,13 @@ async function loadAll() {
     title.value = chapter.value?.title || ''
     editor.value?.commands.setContent(chapter.value?.content || '', { emitUpdate: false })
   } catch (error) {
-    outline.value = demoOutline(projectId.value)
-    characters.value = demoCharacters
-    worldElements.value = demoWorldElements
-    if (chapterId.value) {
-      chapter.value = demoChapterById(chapterId.value)
-      title.value = chapter.value.title || ''
-      editor.value?.commands.setContent(chapter.value.content || '', { emitUpdate: false })
-    }
-    toast.warning(messageOf(error, '后端不可用，已进入编辑器演示模式'))
+    outline.value = null
+    characters.value = []
+    worldElements.value = []
+    chapter.value = null
+    title.value = ''
+    editor.value?.commands.setContent('', { emitUpdate: false })
+    toast.error(messageOf(error, '编辑器加载失败，请确认后端服务和登录状态。'))
   } finally {
     loading.value = false
   }
@@ -151,13 +153,9 @@ async function saveNow() {
     })
     chapter.value = res.data.data
     saveState.value = 'saved'
-  } catch {
-    chapter.value.content = editor.value?.getHTML() || ''
-    chapter.value.title = title.value
+  } catch (error) {
     saveState.value = 'error'
-    window.setTimeout(() => {
-      if (saveState.value === 'error') saveState.value = 'saved'
-    }, 800)
+    toast.error(messageOf(error, '保存失败，请确认网络或后端服务状态'))
   }
 }
 
@@ -226,7 +224,7 @@ async function runCommand(preset?: string) {
       aiMessages.value[index].text = res.data.data.output || '暂无结果'
       return
     }
-    aiMessages.value.push({ role: 'assistant', text: `已记录你的需求：「${text}」。当前后端没有对应命令接口，先以面板消息保留。` })
+    aiMessages.value.push({ role: 'assistant', text: `暂不支持该命令：「${text}」。请使用续写、润色、分支、一致性、转剧本或已列出的工具命令。` })
   } catch (error) {
     aiMessages.value.push({ role: 'assistant', text: messageOf(error, 'AI 能力暂时不可用，请检查模型配置或后端接口。') })
   }
@@ -268,6 +266,27 @@ function inferTargetWords(text: string) {
   const match = text.match(/(\d{2,5})\s*字/)
   if (!match) return undefined
   return Number(match[1])
+}
+
+async function doSearch() {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) {
+    searchResults.value = []
+    searchError.value = '请输入搜索关键词'
+    return
+  }
+  searchLoading.value = true
+  searchError.value = ''
+  try {
+    const res = await searchProject(projectId.value, keyword)
+    searchResults.value = res.data.data.chapters
+    if (!res.data.data.total) searchError.value = '没有找到匹配内容'
+  } catch (error) {
+    searchResults.value = []
+    searchError.value = messageOf(error, '搜索失败，请稍后重试')
+  } finally {
+    searchLoading.value = false
+  }
 }
 </script>
 
@@ -320,8 +339,32 @@ function inferTargetWords(text: string) {
           <p>{{ item.description || '暂无描述' }}</p>
         </article>
       </div>
+      <div v-else-if="sideMode === 'search'" class="side-list">
+        <label class="ws-field">
+          <span>全书搜索</span>
+          <input
+            v-model="searchKeyword"
+            class="ws-input"
+            placeholder="输入关键词"
+            @keydown.enter.prevent="doSearch"
+          >
+        </label>
+        <button class="ws-button" type="button" :disabled="searchLoading" @click="doSearch">
+          {{ searchLoading ? '搜索中' : '搜索' }}
+        </button>
+        <p v-if="searchError" class="ws-hint">{{ searchError }}</p>
+        <article v-for="result in searchResults" :key="result.chapterId">
+          <button type="button" @click="selectChapter(result.chapterId)">
+            <strong>{{ result.chapterTitle || '未命名章节' }}</strong>
+            <span>{{ result.matchCount }} 处匹配</span>
+          </button>
+          <p v-for="(match, index) in result.matches.slice(0, 2)" :key="index">
+            {{ match.before }}<mark>{{ match.match }}</mark>{{ match.after }}
+          </p>
+        </article>
+      </div>
       <div v-else class="ws-empty compact">
-        <span>{{ sideMode === 'search' ? '搜索面板后续接全书搜索接口。' : '编辑设置已集中到顶部保存与底部命令栏。' }}</span>
+        <span>编辑设置已集中到顶部保存与底部命令栏。</span>
       </div>
     </aside>
 

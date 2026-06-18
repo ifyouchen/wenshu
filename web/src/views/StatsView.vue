@@ -14,10 +14,12 @@ const heatmap = ref<HeatmapData | null>(null)
 const projects = ref<ProjectProgress[]>([])
 const monthly = ref<MonthlySummary | null>(null)
 const month = ref(new Date().toISOString().slice(0, 7))
+const loadError = ref('')
 
 const heatDays = computed(() => heatmap.value?.days.slice(-120) || [])
 
 onMounted(async () => {
+  loadError.value = ''
   const [overviewRes, heatRes, projectRes, monthlyRes] = await Promise.allSettled([
     getWritingOverview(),
     getWritingHeatmap(),
@@ -28,6 +30,9 @@ onMounted(async () => {
   if (heatRes.status === 'fulfilled') heatmap.value = heatRes.value.data.data
   if (projectRes.status === 'fulfilled') projects.value = projectRes.value.data.data
   if (monthlyRes.status === 'fulfilled') monthly.value = monthlyRes.value.data.data
+  if ([overviewRes, heatRes, projectRes, monthlyRes].some((item) => item.status === 'rejected')) {
+    loadError.value = '部分统计接口加载失败，请稍后刷新。'
+  }
 })
 
 function pct(value = 0) {
@@ -50,6 +55,7 @@ function level(chars: number) {
         <p class="ws-eyebrow">Writing Stats</p>
         <h1>写作统计</h1>
         <p>记录今日进度、作品推进和近期热力。</p>
+        <p v-if="loadError" class="ws-hint">{{ loadError }}</p>
       </div>
     </section>
 

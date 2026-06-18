@@ -72,10 +72,6 @@ client.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    if (localStorage.getItem('wenshu-demo-mode') === '1') {
-      return Promise.reject(error)
-    }
-
     original._retry = true
 
     if (isRefreshing) {

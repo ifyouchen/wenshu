@@ -3,8 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { CreditCard, KeyRound, ShieldCheck, UserRound } from 'lucide-vue-next'
 import { changePassword, getMe, setIdentityType, setWritingGoal, updateAiConsent, updateProfile } from '@/api/user'
-import { getCurrentSubscription } from '@/api/subscription'
-import type { CurrentSubscriptionInfo } from '@/api/subscription'
+import { createCheckout, getCurrentSubscription, getSubscriptionPlans } from '@/api/subscription'
+import type { CurrentSubscriptionInfo, PlanInfo } from '@/api/subscription'
 import type { UserInfo } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -14,6 +14,8 @@ const auth = useAuthStore()
 const toast = useToast()
 const user = ref<UserInfo | null>(null)
 const subscription = ref<CurrentSubscriptionInfo | null>(null)
+const plans = ref<PlanInfo[]>([])
+const checkoutLoading = ref('')
 const profile = reactive({ nickname: '', avatarUrl: '' })
 const prefs = reactive({ dailyCharGoal: 2000, identityType: 'new_author', aiTrainConsent: false })
 const password = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
@@ -25,7 +27,7 @@ const charPct = computed(() => {
 })
 
 onMounted(async () => {
-  const [me, sub] = await Promise.allSettled([getMe(), getCurrentSubscription()])
+  const [me, sub, planRes] = await Promise.allSettled([getMe(), getCurrentSubscription(), getSubscriptionPlans()])
   if (me.status === 'fulfilled') {
     user.value = me.value.data.data
     profile.nickname = user.value.nickname || ''
@@ -35,6 +37,7 @@ onMounted(async () => {
     prefs.aiTrainConsent = user.value.aiTrainConsent
   }
   if (sub.status === 'fulfilled') subscription.value = sub.value.data.data
+  if (planRes.status === 'fulfilled') plans.value = planRes.value.data.data
 })
 
 async function saveProfile() {
@@ -63,6 +66,24 @@ async function savePassword() {
   toast.success('密码已修改，请重新登录')
   await auth.logoutAction()
   router.push('/login')
+}
+
+async function checkout(planKey: string) {
+  checkoutLoading.value = planKey
+  try {
+    const res = await createCheckout(planKey)
+    const payUrl = res.data.data.payUrl
+    if (!payUrl || payUrl.startsWith('PAYMENT_NOT_CONFIGURED')) {
+      toast.warning('支付渠道尚未配置，请联系管理员或稍后重试')
+      return
+    }
+    window.open(payUrl, '_blank')
+    toast.info('已打开支付页面，完成支付后请刷新页面')
+  } catch (error) {
+    toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || '创建支付订单失败')
+  } finally {
+    checkoutLoading.value = ''
+  }
 }
 </script>
 
@@ -113,7 +134,21 @@ async function savePassword() {
         <p>{{ subscription?.planName || '订阅信息暂不可用' }}</p>
         <div class="progress-track"><span :style="{ width: `${charPct}%` }" /></div>
         <small v-if="subscription">{{ subscription.quota.usedChars }} / {{ subscription.quota.limitChars }} 字</small>
-        <button class="ws-button" type="button">订阅入口</button>
+        <div class="table-list">
+          <div v-for="plan in plans.filter((item) => item.planKey !== subscription?.planKey)" :key="plan.planKey" class="table-row">
+            <strong>{{ plan.name }}</strong>
+            <span>{{ plan.description }} · ¥{{ plan.pricePerMonth }}/月</span>
+            <button
+              class="ws-button"
+              type="button"
+              :disabled="checkoutLoading === plan.planKey"
+              @click="checkout(plan.planKey)"
+            >
+              {{ checkoutLoading === plan.planKey ? '创建订单中' : '购买' }}
+            </button>
+          </div>
+          <div v-if="!plans.length" class="ws-empty compact">套餐列表暂不可用</div>
+        </div>
       </section>
     </section>
   </div>

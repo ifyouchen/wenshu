@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, FileDown, Plus, Save } from 'lucide-vue-next'
+import { ArrowLeft, FileDown, Save } from 'lucide-vue-next'
 import { convertScript, exportDraft, getDraft, listDrafts, listScenes, updateScene } from '@/api/script'
 import type { ScriptDraftInfo, ScriptSceneInfo } from '@/api/types'
-import { createMockScene, defaultSceneNotes, demoDraft, demoScenes } from '@/mocks/wenshu'
 import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
@@ -21,8 +20,6 @@ const draft = ref<ScriptDraftInfo | null>(null)
 const scenes = ref<ScriptSceneInfo[]>([])
 const selectedSceneId = ref('')
 const content = ref('')
-const note = ref('')
-const notes = ref(defaultSceneNotes.slice())
 const exportFormat = ref<'docx' | 'fdx' | 'storyboard'>('docx')
 
 const selectedScene = computed(() => scenes.value.find((item) => item.id === selectedSceneId.value) || null)
@@ -41,8 +38,9 @@ async function load() {
       try {
         const res = await listDrafts(projectId.value)
         drafts.value = res.data.data
-      } catch {
-        drafts.value = [demoDraft]
+      } catch (error) {
+        drafts.value = []
+        toast.error(messageOf(error, '剧本草稿列表加载失败'))
       }
       return
     }
@@ -50,9 +48,10 @@ async function load() {
       const [draftRes, sceneRes] = await Promise.all([getDraft(draftId.value), listScenes(draftId.value, 0, 200)])
       draft.value = draftRes.data.data
       scenes.value = sceneRes.data.data.scenes
-    } catch {
-      draft.value = { ...demoDraft, id: draftId.value }
-      scenes.value = demoScenes.map((item) => ({ ...item, draftId: draftId.value }))
+    } catch (error) {
+      draft.value = null
+      scenes.value = []
+      toast.error(messageOf(error, '剧本工作台加载失败'))
     }
     if (scenes.value[0]) selectScene(scenes.value[0])
   } catch (error) {
@@ -65,7 +64,6 @@ async function load() {
 function selectScene(scene: ScriptSceneInfo) {
   selectedSceneId.value = scene.id
   content.value = scene.content || ''
-  note.value = notes.value.find((item) => item.sceneId === scene.id)?.text || ''
 }
 
 async function startConvert() {
@@ -74,38 +72,23 @@ async function startConvert() {
     const res = await convertScript({ projectId: projectId.value, title: '剧本改编草稿', psychologyStrategy: 'action' })
     router.push(`/projects/${projectId.value}/script/${res.data.data.draftId}`)
   } catch (error) {
-    toast.warning(messageOf(error, '后端不可用，已打开演示剧本草稿'))
-    router.push(`/projects/${projectId.value}/script/demo-draft`)
+    toast.error(messageOf(error, '改编接口或模型不可用，请检查后端与模型配置。'))
   } finally {
     converting.value = false
   }
-}
-
-function addScene() {
-  if (!draftId.value) return
-  const scene = createMockScene(draftId.value, scenes.value.length)
-  scenes.value.push(scene)
-  selectScene(scene)
 }
 
 async function saveScene() {
   if (!selectedScene.value) return
   saving.value = true
   try {
-    if (!selectedScene.value.id.startsWith('mock-')) {
-      const res = await updateScene(selectedScene.value.id, {
-        content: content.value,
-        location: selectedScene.value.location || undefined,
-        timeDesc: selectedScene.value.timeDesc || undefined,
-        version: selectedScene.value.version,
-      })
-      Object.assign(selectedScene.value, res.data.data)
-    } else {
-      selectedScene.value.content = content.value
-    }
-    const existed = notes.value.find((item) => item.sceneId === selectedScene.value?.id)
-    if (existed) existed.text = note.value
-    else notes.value.push({ sceneId: selectedScene.value.id, text: note.value })
+    const res = await updateScene(selectedScene.value.id, {
+      content: content.value,
+      location: selectedScene.value.location || undefined,
+      timeDesc: selectedScene.value.timeDesc || undefined,
+      version: selectedScene.value.version,
+    })
+    Object.assign(selectedScene.value, res.data.data)
     toast.success('场景已保存')
   } catch (error) {
     toast.error(messageOf(error, '保存失败，可能存在版本冲突'))
@@ -167,7 +150,7 @@ async function submitExport() {
 
       <main class="script-grid">
         <aside class="script-pane scene-pane">
-          <header><span>场景</span><button class="ws-icon-button" type="button" @click="addScene"><Plus :size="16" /></button></header>
+          <header><span>场景</span></header>
           <button
             v-for="scene in scenes"
             :key="scene.id"
@@ -188,10 +171,6 @@ async function submitExport() {
           <header>剧本输出</header>
           <textarea v-model="content" class="pane-editor" placeholder="在这里校订剧本内容" />
         </section>
-        <aside class="script-pane">
-          <header>笔记</header>
-          <textarea v-model="note" class="pane-editor note" placeholder="场景笔记使用前端本地状态，刷新后不保证持久化。" />
-        </aside>
       </main>
     </template>
 

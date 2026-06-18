@@ -5,19 +5,18 @@ import { BookOpenText, Clapperboard, FilePenLine, Play, RefreshCw } from 'lucide
 import { getDashboard, type DashboardState } from '@/api/workflow'
 import { listProjects } from '@/api/project'
 import type { ProjectInfo } from '@/api/types'
-import { demoChapter, demoDraft, demoProjects } from '@/mocks/wenshu'
 import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
 const toast = useToast()
 const loading = ref(false)
-const demoData = ref(false)
+const loadError = ref('')
 const dashboard = ref<DashboardState | null>(null)
 const projects = ref<ProjectInfo[]>([])
 
 const recentProject = computed(() => dashboard.value?.recentProjects?.[0] || projects.value[0] || null)
-const continueChapter = computed(() => dashboard.value?.continueChapter || demoChapter)
-const recentDraft = computed(() => dashboard.value?.recentScriptDraft || demoDraft)
+const continueChapter = computed(() => dashboard.value?.continueChapter || null)
+const recentDraft = computed(() => dashboard.value?.recentScriptDraft || null)
 
 onMounted(loadHome)
 
@@ -27,6 +26,7 @@ function messageOf(error: unknown, fallback: string) {
 
 async function loadHome() {
   loading.value = true
+  loadError.value = ''
   try {
     const res = await getDashboard()
     dashboard.value = res.data.data
@@ -35,10 +35,11 @@ async function loadHome() {
     try {
       const res = await listProjects()
       projects.value = res.data.data
+      loadError.value = messageOf(error, '工作台聚合接口暂不可用，已展示作品列表。')
     } catch {
-      projects.value = demoProjects
-      demoData.value = true
-      toast.warning(messageOf(error, '后端不可用，已进入演示数据模式'))
+      projects.value = []
+      loadError.value = messageOf(error, '工作台加载失败，请确认后端服务和登录状态。')
+      toast.error(loadError.value)
     }
   } finally {
     loading.value = false
@@ -60,7 +61,7 @@ function goContinueWrite() {
         <p class="ws-eyebrow">Wenshu Workflow</p>
         <h1>你今天要做什么？</h1>
         <p>按创作目标进入流程：写小说、改小说、小说改剧本。</p>
-        <p v-if="demoData" class="ws-hint">当前为演示数据模式：真实接口恢复后会自动优先使用后端数据。</p>
+        <p v-if="loadError" class="ws-hint">{{ loadError }}</p>
       </div>
       <button class="ws-button" type="button" :disabled="loading" @click="loadHome">
         <RefreshCw :size="16" />
